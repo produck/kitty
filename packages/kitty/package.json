@@ -1,0 +1,42 @@
+{
+	"name": "@produck/kitty",
+	"version": "0.0.1",
+	"description": "Web application using kit.",
+	"license": "MIT",
+	"author": "ChaosLee",
+	"keywords": [
+		"kit",
+		"kitty",
+		"web",
+		"application"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/produck/kitty.git",
+		"directory": "packages/kitty"
+	},
+	"bugs": {
+		"url": "https://github.com/produck/kitty/issues"
+	},
+	"homepage": "https://github.com/produck/kitty#readme",
+	"publishConfig": {
+		"access": "public"
+	},
+	"type": "module",
+	"main": "src/index.mjs",
+	"types": "index.d.ts",
+	"exports": {
+		".": {
+			"types": "./index.d.ts",
+			"import": "./src/index.mjs"
+		}
+	},
+	"files": [
+		"src",
+		"index.d.ts"
+	],
+	"scripts": {
+		"test": "node ./test/index.mjs",
+		"test:only": "node --test-only ./test/index.mjs"
+	}
+}
