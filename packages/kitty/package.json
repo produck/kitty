@@ -1,0 +1,15 @@
+{
+  "name": "@produck/kitty",
+  "version": "0.0.0",
+  "description": "Web application using kit.",
+  "license": "MIT",
+  "author": "ChaosLee",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/index.mjs",
+    "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test"
+  },
+  "devDependencies": {
+    "c8": "11.0.0"
+  }
+}
