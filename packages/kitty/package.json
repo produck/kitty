@@ -11,5 +11,12 @@
   },
   "devDependencies": {
     "c8": "11.0.0"
+  },
+  "dependencies": {
+    "@produck/compose": "^0.2.0",
+    "@produck/is-sub-constructor": "^1.0.2",
+    "@produck/kit": "^0.2.0",
+    "@produck/ow": "^0.2.5",
+    "@produck/type-error": "^0.1.7"
   }
 }

@@ -16,4 +16,12 @@ export default defineConfig([
   ProduckRule.config.json,
   ProduckRule.config.markdown,
   ProduckRule.excludeGitIgnore(import.meta.url),
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
+    },
+  },
 ]);
