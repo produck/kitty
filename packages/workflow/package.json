@@ -1,5 +1,5 @@
 {
-  "name": "@produck/kitty",
+  "name": "@produck/kitty-workflow",
   "version": "0.0.0",
   "description": "Web application using kit.",
   "license": "MIT",
@@ -13,10 +13,11 @@
     "c8": "11.0.0"
   },
   "dependencies": {
-    "@produck/compose": "^0.2.0",
-    "@produck/is-sub-constructor": "^1.0.2",
-    "@produck/kit": "^0.2.0",
+    "@produck/compose": "^0.3.0",
+    "@produck/is-sub-constructor": "^1.0.3",
+    "@produck/kit": "^0.3.1",
     "@produck/ow": "^0.2.5",
-    "@produck/type-error": "^0.1.7"
+    "@produck/type-error": "^0.1.7",
+    "is-plain-object": "^5.0.0"
   }
 }
