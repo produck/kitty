@@ -6,11 +6,12 @@ import * as Composer from '@produck/compose';
 import * as Adapter from './Adapter.mjs';
 
 const I_KIT = Symbol('#kit');
+const I_INJECTOR = Symbol('#injector');
 const I_CONSTRUCTOR = Symbol('#constructor');
 const I_WORKFLOW = Symbol('#workflow');
 const I_HANDLER_SEQUENSE = Symbol('#handlerSequence');
 
-async function internalDeploy(kit, install, server, options) {
+async function deploy(kit, install, server, options) {
   const DeploymentKit = kit('Kitty<Deployment>');
 
   await Kit.Injector(DeploymentKit).bind(install)(server, options);
@@ -19,18 +20,30 @@ async function internalDeploy(kit, install, server, options) {
 }
 
 export class KittyWorkflow {
-  [I_KIT] = Kit.global;
   [I_WORKFLOW] = null;
   [I_HANDLER_SEQUENSE] = [];
   [I_CONSTRUCTOR] = KittyWorkflow;
 
   constructor(kit) {
-    this[I_KIT] = kit('KittyFlow');
+    const WorkflowKit = kit('KitWorkflow');
+
+    this[I_KIT] = WorkflowKit;
+    this[I_INJECTOR] = Kit.Injector(WorkflowKit);
     this[I_CONSTRUCTOR] = new.target;
     Object.freeze(this);
   }
 
+  install(installer) {
+    if (typeof installer !== 'function') {
+      ThrowTypeError('args[0] as installer', 'function');
+    }
+  }
+
   use(...handlerList) {
+    if (this.isFinal) {
+      Ow.throw('It has been finalized.');
+    }
+
     for (const index in handlerList) {
       const handler = handlerList[index];
 
@@ -70,9 +83,9 @@ export class KittyWorkflow {
       Ow.throw('It MUST be finalized before deployment.');
     }
 
-    const adapter = Adapter.getByServer(server);
+    const { install } = Adapter.getByServer(server);
 
-    return internalDeploy(this[I_KIT], adapter.install, server, options);
+    return deploy(this[I_KIT], install, server, options);
   }
 
   adapt(options) {
@@ -82,11 +95,14 @@ export class KittyWorkflow {
       Ow.throw('It must be finalized before adapt to deploy.');
     }
 
-    let deployed = false;
+    let deployed = false,
+      available = true;
 
-    return async function instantDeploy(server, options) {
-      if (!(server instanceof constructor)) {
-        ThrowTypeError('args[0] as server', adapter.name);
+    queueMicrotask(() => (available = false));
+
+    return function deployOnce(server, options) {
+      if (!available) {
+        Ow.Error.Common('It should be deployed immediately.');
       }
 
       if (deployed) {
@@ -95,7 +111,11 @@ export class KittyWorkflow {
 
       deployed = true;
 
-      return internalDeploy(this[I_KIT], adapter.install, server, options);
+      if (!(server instanceof constructor)) {
+        ThrowTypeError('args[0] as server', adapter.name);
+      }
+
+      return deploy(this[I_KIT], adapter.install, server, options);
     };
   }
 }

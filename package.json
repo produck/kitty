@@ -19,12 +19,12 @@
     "packages/adaptor/http2",
     "packages/adaptor/http1.1/http",
     "packages/adaptor/http1.1/https",
-    "packages/use/method",
-    "packages/use/cookie",
-    "packages/use/request-type",
-    "packages/use/request-content-negotiation",
-    "packages/use/response-type",
-    "packages/use/status",
+    "packages/handler/method",
+    "packages/handler/cookie",
+    "packages/handler/request-type",
+    "packages/handler/request-content-negotiation",
+    "packages/handler/response-type",
+    "packages/handler/status",
     "packages/kitty"
   ],
   "scripts": {

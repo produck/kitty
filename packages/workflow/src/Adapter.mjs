@@ -4,6 +4,7 @@ import * as Ow from '@produck/ow';
 import { ThrowTypeError } from '@produck/type-error';
 import { isPlainObject } from 'is-plain-object';
 import { isSubConstructor } from '@produck/is-sub-constructor';
+import * as Kit from '@produck/kit';
 
 const registry = new Map();
 
@@ -11,7 +12,8 @@ export function normalizeOptions(options) {
   const _options = {
     constructor: net.Server,
     name: '',
-    install: async () => {},
+    // install: async (kit, [server, options]) => {},
+    options: () => {},
   };
 
   if (isPlainObject(options)) {
@@ -28,7 +30,7 @@ export function normalizeOptions(options) {
     }
 
     if (typeof _install !== 'function') {
-      _options.install = _install;
+      _options.install = Kit.defineRecipe(_install);
     } else {
       ThrowTypeError('args[1] as adapter', 'function');
     }
