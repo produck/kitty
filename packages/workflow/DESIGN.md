@@ -190,6 +190,77 @@ workflow.plugin({ onTransaction: Kit.defineRecipe(kit => { ... }) });
 This keeps the model uniform — `use()` is just syntactic sugar for
 the most common case.
 
+## Typed Capability Accessors
+
+Kit provides `Getter`, a small utility that wraps a property lookup
+into a typed accessor function:
+
+```js
+import { Getter } from '@produck/kit';
+
+// Returns { use: fn, touch: fn }
+const { use, touch } = Getter('body');
+```
+
+### Recommended export pattern
+
+Each plugin or adapter package exports its Getter with a semantic
+name, controlling the strictness its consumers experience:
+
+```js
+// packages/kitty-body/src/accessors.mjs
+import { Getter } from '@produck/kit';
+
+// Only export `use` — consumers must ensure the capability is
+// installed, or get an immediate ReferenceError at runtime.
+export const { use: useBody } = Getter('body');
+export const { use: useJson } = Getter('body:json');
+
+// packages/kitty-cookie/src/accessors.mjs
+import { Getter } from '@produck/kit';
+
+export const { use: useCookie } = Getter('cookie');
+```
+
+Consumer usage:
+
+```js
+import { useBody } from '@produck/kitty-body';
+import { useCookie } from '@produck/kitty-cookie';
+
+// TypeScript: body is inferred as Body — no `?` needed
+// Runtime:   throws immediately if body plugin is missing
+const body = useBody(kit);
+const cookie = useCookie(kit);
+```
+
+### Strict vs tolerant access
+
+| | `use(kit)` | `touch(kit)` |
+|---|---|---|
+| Behaviour | Throws `ReferenceError` if key not found | Returns `undefined` if key not found |
+| Export | Public, the primary API | Internal or unexported; if not exported, rots away via GC |
+| Use case | Production code, where missing deps should fail fast | Migration, optional features, probing |
+
+The accessor author decides what to export. `touch` can be kept
+internal for the plugin's own optional probing, while consumers only
+see `use` — guaranteeing they either get the capability or fail
+immediately.
+
+### Comparison with Koa
+
+| | Koa `ctx.body` | Kitty `useBody(kit)` |
+|---|---|---|
+| Type safety | `ctx.body?` (may not exist, TS needs augmentation) | `Body` (guaranteed, or throws) |
+| Runtime feedback | Silent `undefined` | Immediate `ReferenceError` with kit chain trace |
+| Dependency tracking | Implicit — no way to know which middleware provides what | Explicit — import statement makes dependency visible |
+| Composability | All middleware share one flat `ctx` | Each capability is a separate import, composed explicitly |
+
+This pattern is the counterpart to `"not installed, not available"`:
+consumers also declare their dependencies by importing the
+corresponding accessor — making the capability graph visible in both
+directions.
+
 ## Performance Considerations
 
 Kit was originally designed as a **cold-path facility assembly layer**
