@@ -4,6 +4,7 @@ import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
 
 import * as Adapter from './Adapter.mjs';
+import * as Transaction from './Transaction/index.mjs';
 
 const I_CONSTRUCTOR = Symbol('#constructor');
 const I_KIT = Symbol('#kit');
@@ -14,6 +15,10 @@ const I_DEPLOY = Symbol('#deploy');
 const K_DEPLOYMENT = Symbol('DeploymentKit.DEPLOYMENT');
 
 export const { use: useDeployment } = Kit.Getter(K_DEPLOYMENT);
+
+function ThrowBadAdapter(message, cause) {
+  Ow.Error.Common(`Bad adapter: ${message}`, { cause });
+}
 
 export class KittyWorkflow {
   [I_WORKFLOW] = () => {};
@@ -74,15 +79,29 @@ export class KittyWorkflow {
     const workflow = this[I_WORKFLOW];
 
     async function handleTransaction(TransactionKit) {
+      if (TransactionKit === DeploymentKit) {
+        ThrowBadAdapter('TransactionKit must not be DeploymentKit itself.');
+      }
+
       try {
         useDeployment(TransactionKit);
       } catch (cause) {
-        const messages = [
-          'Bad adapter:',
+        ThrowBadAdapter(
           'TransactionKit not derived from DeploymentKit.',
-        ];
+          cause,
+        );
+      }
 
-        Ow.Error.Common(messages.join(' '), { cause });
+      let transaction;
+
+      try {
+        transaction = Transaction.useTransaction(TransactionKit);
+      } catch (cause) {
+        ThrowBadAdapter('Transaction is not installed.', cause);
+      }
+
+      if (!(transaction instanceof Transaction.Abstract)) {
+        ThrowBadAdapter('Transaction must be instanceof Abstract.');
       }
 
       await workflow(TransactionKit);

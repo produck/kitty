@@ -538,6 +538,58 @@ on trust or demonstrated quality. If an Adapter fails to call `handle`,
 the symptom is clear at runtime (requests hang or error), and the
 consumer can switch to a different Adapter.
 
+### Transaction Template
+
+A Transaction Template defines the standard capability set that every
+`TransactionKit` must provide (e.g. `Method`, `URL`, `Status`,
+`Request`, `Response` — the protocol-agnostic request/response
+abstractions analogous to Koa's `ctx`).
+
+**Design decision**: The Transaction Template lives in the `workflow`
+core package, not as an independent sub-package.
+
+Rationale:
+
+1. **Core contract, not optional plugin**: The Transaction Template is
+   part of the communication protocol between Workflow and Adapter —
+   every Adapter must provide a `TransactionKit` that satisfies it.
+   Making it independent would require every Adapter author to
+   manually import and compose it, adding friction with no benefit.
+
+2. **Implicit registration via import side effect**: Adapters register
+   themselves into the global Adapter registry as a side effect of
+   being imported. Since the Transaction Template is in the same core
+   package, downstream users get both in one import — no separate
+   registration step:
+
+   ```js
+   import '@produck/kitty-adapt-http';
+   // Adapter registered, Transaction Template available — done.
+   ```
+
+3. **Workflow guarantees template installation**: `[I_DEPLOY]`
+   composes the Transaction Template installer with the Adapter's
+   own installer, ensuring the template is always present on every
+   `TransactionKit` without the Adapter author needing to know about
+   it:
+
+   ```js
+   async [I_DEPLOY](install, server, options) {
+     const runtime = Kit.compose(
+       TransactionTemplateInstaller,  // workflow core
+       install,                       // adapter-specific
+     );
+     // ...
+   }
+   ```
+
+   The Adapter only needs to provide protocol-specific capabilities
+   (raw `req`/`res` objects, socket handles, etc.). The standard
+   request/response abstractions are automatically in place.
+
+This keeps the Adapter author's surface area minimal while ensuring
+consistency across all Adapters.
+
 ## Server Lifecycle Ownership
 
 The server passed to `deploy()` / `deployOnce()` remains under the
