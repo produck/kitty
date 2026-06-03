@@ -5,22 +5,18 @@ import * as Composer from '@produck/compose';
 
 import * as Adapter from './Adapter.mjs';
 
-const I_KIT = Symbol('#kit');
-const I_INJECTOR = Symbol('#injector');
 const I_CONSTRUCTOR = Symbol('#constructor');
+const I_KIT = Symbol('#kit');
 const I_WORKFLOW = Symbol('#workflow');
 const I_HANDLER_SEQUENSE = Symbol('#handlerSequence');
+const I_DEPLOY = Symbol('#deploy');
 
-async function deploy(kit, install, server, options) {
-  const DeploymentKit = kit('Kitty<Deployment>');
+const K_DEPLOYMENT = Symbol('DeploymentKit.DEPLOYMENT');
 
-  await Kit.Injector(DeploymentKit).bind(install)(server, options);
-
-  return true;
-}
+export const { use: useDeployment } = Kit.Getter(K_DEPLOYMENT);
 
 export class KittyWorkflow {
-  [I_WORKFLOW] = null;
+  [I_WORKFLOW] = () => {};
   [I_HANDLER_SEQUENSE] = [];
   [I_CONSTRUCTOR] = KittyWorkflow;
 
@@ -28,7 +24,6 @@ export class KittyWorkflow {
     const WorkflowKit = kit('KitWorkflow');
 
     this[I_KIT] = WorkflowKit;
-    this[I_INJECTOR] = Kit.Injector(WorkflowKit);
     this[I_CONSTRUCTOR] = new.target;
     Object.freeze(this);
   }
@@ -74,8 +69,33 @@ export class KittyWorkflow {
     return this[I_WORKFLOW] !== null;
   }
 
+  async [I_DEPLOY](install, server, options) {
+    const DeploymentKit = this[I_KIT]('Kitty<Deployment>');
+    const workflow = this[I_WORKFLOW];
+
+    async function handleTransaction(TransactionKit) {
+      try {
+        useDeployment(TransactionKit);
+      } catch (cause) {
+        const messages = [
+          'Bad adapter:',
+          'TransactionKit not derived from DeploymentKit.',
+        ];
+
+        Ow.Error.Common(messages.join(' '), { cause });
+      }
+
+      await workflow(TransactionKit);
+    }
+
+    DeploymentKit[K_DEPLOYMENT] = Object.freeze({ server, options });
+    await Kit.Injector(DeploymentKit).bind(install)(handleTransaction);
+
+    return true;
+  }
+
   async deploy(server, options) {
-    if (!Adapter.isAvaiableHttpServer(server)) {
+    if (!Adapter.isAvaiableServer(server)) {
       ThrowTypeError('args[0] as server', 'AvaiableHttpServer');
     }
 
@@ -85,7 +105,7 @@ export class KittyWorkflow {
 
     const { install } = Adapter.getByServer(server);
 
-    return deploy(this[I_KIT], install, server, options);
+    return this[I_DEPLOY](install, server, options);
   }
 
   adapt(options) {
@@ -100,7 +120,7 @@ export class KittyWorkflow {
 
     queueMicrotask(() => (available = false));
 
-    return function deployOnce(server, options) {
+    return (server, options) => {
       if (!available) {
         Ow.Error.Common('It should be deployed immediately.');
       }
@@ -115,7 +135,7 @@ export class KittyWorkflow {
         ThrowTypeError('args[0] as server', adapter.name);
       }
 
-      return deploy(this[I_KIT], adapter.install, server, options);
+      return this[I_DEPLOY](adapter.install, server, options);
     };
   }
 }

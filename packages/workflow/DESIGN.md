@@ -52,6 +52,10 @@ constructor(kit) → use(handler) → finalize()
     registration occurs. Designed for one-off custom servers that
     cannot or should not be registered in the auto-discovery
     registry.
+- **Return value**: Both `deploy()` and `adapt()()` resolve to the
+  `server` instance itself. No management object is returned — the
+  server's lifecycle is wholly owned by the caller (see [Server
+  Lifecycle Ownership](#server-lifecycle-ownership)).
 
 ## Kit Hierarchy
 
@@ -222,6 +226,39 @@ import { Getter } from '@produck/kit';
 export const { use: useCookie } = Getter('cookie');
 ```
 
+### Symbol keys
+
+Kit accepts `Symbol` as a property key, which brings additional
+benefits over plain strings when used for internal capability keys:
+
+```js
+// Internal symbol — not exported
+const K_COOKIE = Symbol('cookie');
+
+// Plugin installs under the symbol
+kit[K_COOKIE] = { parse, serialize };
+
+// Getter wraps the symbol
+export const { use: useCookie } = Getter(K_COOKIE);
+```
+
+Advantages of Symbol keys:
+
+- **Collision-free**: Two plugins can never accidentally use the same
+  key name, even if they coincidentally choose the same description.
+- **Consumer-proof**: Consumers cannot construct the Symbol from
+  outside the module — they **must** use the exported accessor. This
+  prevents bypass patterns like `kit['cookie']` and ensures all
+  capability access goes through the intended typed accessor.
+- **Debugging aid**: The Symbol's description (`Symbol(cookie)`)
+  appears in stack traces and error messages, giving readable hints
+  without exposing the internal key as a magic string.
+
+(The Kit Proxy already prevents capability discovery via enumeration
+— `ownKeys` and `enumerate` traps are not provided. Consumers must
+"know it's installed, so they can use it". Symbol keys reinforce this
+contract at the module boundary.)
+
 Consumer usage:
 
 ```js
@@ -236,11 +273,11 @@ const cookie = useCookie(kit);
 
 ### Strict vs tolerant access
 
-| | `use(kit)` | `touch(kit)` |
-|---|---|---|
-| Behaviour | Throws `ReferenceError` if key not found | Returns `undefined` if key not found |
-| Export | Public, the primary API | Internal or unexported; if not exported, rots away via GC |
-| Use case | Production code, where missing deps should fail fast | Migration, optional features, probing |
+|           | `use(kit)`                                           | `touch(kit)`                                              |
+| --------- | ---------------------------------------------------- | --------------------------------------------------------- |
+| Behaviour | Throws `ReferenceError` if key not found             | Returns `undefined` if key not found                      |
+| Export    | Public, the primary API                              | Internal or unexported; if not exported, rots away via GC |
+| Use case  | Production code, where missing deps should fail fast | Migration, optional features, probing                     |
 
 The accessor author decides what to export. `touch` can be kept
 internal for the plugin's own optional probing, while consumers only
@@ -249,12 +286,12 @@ immediately.
 
 ### Comparison with Koa
 
-| | Koa `ctx.body` | Kitty `useBody(kit)` |
-|---|---|---|
-| Type safety | `ctx.body?` (may not exist, TS needs augmentation) | `Body` (guaranteed, or throws) |
-| Runtime feedback | Silent `undefined` | Immediate `ReferenceError` with kit chain trace |
-| Dependency tracking | Implicit — no way to know which middleware provides what | Explicit — import statement makes dependency visible |
-| Composability | All middleware share one flat `ctx` | Each capability is a separate import, composed explicitly |
+|                     | Koa `ctx.body`                                           | Kitty `useBody(kit)`                                      |
+| ------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+| Type safety         | `ctx.body?` (may not exist, TS needs augmentation)       | `Body` (guaranteed, or throws)                            |
+| Runtime feedback    | Silent `undefined`                                       | Immediate `ReferenceError` with kit chain trace           |
+| Dependency tracking | Implicit — no way to know which middleware provides what | Explicit — import statement makes dependency visible      |
+| Composability       | All middleware share one flat `ctx`                      | Each capability is a separate import, composed explicitly |
 
 This pattern is the counterpart to `"not installed, not available"`:
 consumers also declare their dependencies by importing the
@@ -401,6 +438,237 @@ over raw throughput.
   `install` hook). No deferral queue.
 - Plugin dependency negotiation is the plugins' own responsibility —
   the framework does not define or enforce dependency ordering.
+
+## Adapter/Workflow Bridge Protocol
+
+The `handleTransaction` function in `Deployment.mjs` is the sole bridge
+between the Adapter layer (protocol-specific, knows server type) and
+the Workflow layer (application logic, server-agnostic).
+
+### Contract
+
+```text
+Adapter recipe: (DeploymentKit, [handle]) => void
+handle:         (TransactionKit) => Promise<unknown>
+```
+
+- **Adapter recipe** receives `DeploymentKit` and a `handle` callback.
+  It must:
+  1. Extract the server from `DeploymentKit` via `useDeployment(kit)`.
+  2. Attach protocol-specific listeners to the server
+     (`server.on('request', ...)`, `server.on('stream', ...)`, etc.).
+  3. On each incoming transaction, derive a `TransactionKit` from
+     `DeploymentKit` and invoke `handle(TransactionKit)`.
+- **handle** receives a `TransactionKit` and executes the workflow
+  middleware pipeline against it. The Adapter awaits or ignores the
+  returned promise depending on protocol semantics (HTTP/1.x typically
+  awaits the response; HTTP/2 may handle concurrent streams).
+
+### Protocol invariant
+
+The Adapter **must not** assume anything about the Workflow layer:
+
+- It does not know what handlers are registered via `use()`.
+- It does not know what plugins are installed.
+- It does not interact with the `KitWorkflow` kit — only with
+  `DeploymentKit` and `TransactionKit`.
+
+The Workflow layer **must not** assume anything about the transport:
+
+- It does not know whether the server is HTTP/1.1, HTTP/2, or a custom
+  protocol.
+- It does not know the server's event model.
+- It interacts only with capabilities installed on its kit.
+
+### Motivation
+
+Different server types expose fundamentally different event models:
+
+| Server type    | Key events                            |
+| -------------- | ------------------------------------- |
+| `http.Server`  | `request`, `upgrade`, `checkContinue` |
+| `http2.Server` | `session`, `stream`, `goaway`         |
+| `net.Server`   | `connection`, `close`                 |
+
+A unified lifecycle management object at the Workflow level would
+either need to abstract all these into a lowest-common-denominator
+interface (losing type-specific capabilities) or leak server-type
+knowledge into Workflow. The Bridge Protocol avoids both by keeping
+the Adapter as the sole owner of protocol semantics.
+
+### Deployment flow
+
+```text
+deploy(server) / deployOnce(server)
+  │
+  ├─ 1. Create DeploymentKit from KitWorkflow
+  ├─ 2. Store { server, options } on DeploymentKit (Symbol-keyed)
+  ├─ 3. Injector.bind(install)(handleTransaction)
+  │       │
+  │       └─ Adapter recipe executes:
+  │            • Reads server via useDeployment(DeploymentKit)
+  │            • Attaches listeners
+  │            • Per transaction: creates TransactionKit,
+  │              calls handle(TransactionKit)
+  │
+  └─ 4. Returns server (not a management wrapper)
+```
+
+This flow is identical for both `deploy()` and `adapt()` — the only
+difference is how the `install` recipe is sourced (global registry
+vs. inline options).
+
+### Protocol correctness is the Adapter author's responsibility
+
+The Bridge Protocol is a **documented contract**, not a machine-enforced
+constraint. Workflow cannot verify at definition time that an Adapter
+recipe calls `handle` in the right place, or calls it at all — that is
+a runtime behaviour that only emerges when the server processes actual
+requests.
+
+Workflow does not provide test helpers for this verification. The
+Adapter author chooses their own method to prove correctness (unit
+tests, integration tests, manual verification, etc.). This is
+consistent with the project's MIT licensing philosophy — the framework
+defines the protocol; adapter authors are responsible for their own
+implementations.
+
+Downstream consumers (application developers) select an Adapter based
+on trust or demonstrated quality. If an Adapter fails to call `handle`,
+the symptom is clear at runtime (requests hang or error), and the
+consumer can switch to a different Adapter.
+
+## Server Lifecycle Ownership
+
+The server passed to `deploy()` / `deployOnce()` remains under the
+caller's control at all times. Workflow does not:
+
+- Start or stop the server.
+- Track active connections or transactions.
+- Expose a management handle for lifecycle operations.
+
+### Rationale
+
+1. **Server is caller-owned**: The caller constructed or acquired the
+   server before passing it in. It can (and should) manage
+   `server.listen()`, `server.close()`, error handling, and address
+   queries directly.
+
+2. **Protocol diversity**: Different server types have different
+   lifecycle semantics (e.g., HTTP/2 has session lifecycle, HTTP/1.1
+   has keep-alive). A Workflow-level abstraction would either be too
+   thin to be useful or too leaky to be clean.
+
+3. **Separation of concerns**: "How to close a server" is an Adapter
+   concern; "what to do with each request" is a Workflow concern.
+   Mixing them in a single return value conflates the two layers.
+
+### What the caller controls
+
+```js
+const server = http.createServer();
+const app = new Kitty.Workflow(kit);
+
+app.finalize();
+await app.deploy(server); // attaches middleware, does NOT listen
+server.listen(3000); // caller starts accepting
+
+// Later:
+server.close(); // caller stops accepting
+```
+
+### Graceful shutdown
+
+Since Workflow does not track active transactions, a graceful shutdown
+requires the caller to coordinate at the server level:
+
+```js
+server.close(async () => {
+  // All connections drained.
+  // Workflow handlers are no longer invoked.
+});
+```
+
+For more sophisticated draining (e.g., waiting for in-flight
+TransactionKit promises), the Adapter recipe can expose a drain
+capability on `DeploymentKit`:
+
+```js
+// Adapter recipe:
+kit.set('drain', async () => {
+  // Wait for all tracked TransactionKit promises
+  await Promise.all(activeTransactions);
+});
+```
+
+This stays at the Adapter level — Workflow never needs to know about
+it.
+
+## Event & Cross-Cutting Concerns
+
+Kitty does not provide a built-in event bus, pub/sub mechanism, or
+application-level hook system. These are **user-managed
+cross-cutting concerns** placed in the ExternalKit.
+
+### Pattern
+
+1. **User** constructs an ExternalKit with the desired event/capability
+   infrastructure:
+
+   ```js
+   import { EventEmitter } from 'node:events';
+   import * as Kit from '@produck/kit';
+
+   const EVENT_BUS = Symbol('app.eventBus');
+   const kit = Kit.derive(Kit.global, (parent) => {
+     parent.set(EVENT_BUS, new EventEmitter());
+   });
+   ```
+
+2. **User** passes it to `KittyWorkflow`:
+
+   ```js
+   const app = new Kitty.Workflow(kit);
+   ```
+
+3. **External code** subscribes via the same kit:
+
+   ```js
+   kit.get(EVENT_BUS).on('user.login', data => { ... });
+   ```
+
+4. **Business handler** accesses the bus via the kit inheritance chain
+   (ExternalKit → KitWorkflow → DeploymentKit → TransactionKit):
+
+   ```js
+   // Inside a handler registered via use():
+   function handler(TransactionKit, next) {
+     TransactionKit.get(EVENT_BUS).emit('user.login', { userId });
+     return next();
+   }
+   ```
+
+### Why not built-in
+
+- **Type diversity**: Users may want `EventEmitter`, `EventTarget`,
+  Redis pub/sub, or a custom message bus. Workflow should not mandate
+  one.
+- **Zero-dependency principle**: Adding built-in events would make
+  Kitty depend on `node:events` even for users who do not need events.
+- **Kit is already the extension channel**: The ExternalKit user
+  provides at construction time serves as the natural carrier for
+  cross-cutting concerns. No additional framework concepts needed.
+- **Consistency**: If events are just another kit capability, they
+  follow the same "not installed, not available" contract as
+  everything else — no special treatment.
+
+### What this means for handleTransaction
+
+The `handleTransaction` bridge does not need to wire up events.
+Events flow through the kit chain automatically: anything installed
+on ExternalKit is reachable from TransactionKit. The Adapter recipe
+does not need to propagate events — it only creates the
+TransactionKit, and kit inheritance does the rest.
 
 ## Design Constraints
 

@@ -41,7 +41,7 @@ export function normalizeOptions(options) {
   return _options;
 }
 
-function defineServerAdapter(options) {
+function registerServerAdapter(options) {
   const { constructor, name, install } = normalizeOptions(options);
 
   if (registry.has(constructor)) {
@@ -51,7 +51,7 @@ function defineServerAdapter(options) {
   registry.set(constructor, { name, install });
 }
 
-export function isAvaiableHttpServer(value) {
+export function isAvaiableServer(value) {
   for (const Server of registry.keys()) {
     if (value instanceof Server) {
       return true;
@@ -68,4 +68,4 @@ export function getByServer(server) {
   return adapter;
 }
 
-export { defineServerAdapter as define };
+export { registerServerAdapter as register, normalizeOptions as define };
