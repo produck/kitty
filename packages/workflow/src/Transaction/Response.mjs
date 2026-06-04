@@ -10,15 +10,17 @@ class KittyTransactionResponseHeader {
   }
 
   has(key) {
-    return this[I.TRANSACTION][_I.RESPONSE.HEADER.HAS](key);
+    return this.get(key) !== undefined;
   }
 
   keys() {
     return this[I.TRANSACTION][_I.RESPONSE.HEADER.KEYS]();
   }
 
-  entries() {
-    return this[I.TRANSACTION][_I.RESPONSE.HEADER.ENTRIES]();
+  *entries() {
+    for (const key of this.keys()) {
+      yield [key, this.get(key)];
+    }
   }
 
   set(key, value) {
@@ -30,8 +32,8 @@ class KittyTransactionResponseHeader {
   }
 
   clear() {
-    for (const key of this[I.TRANSACTION][_I.RESPONSE.HEADER.KEYS]()) {
-      this[I.TRANSACTION][_I.RESPONSE.HEADER.DELETE](key);
+    for (const key of this.keys()) {
+      this.delete(key);
     }
   }
 }

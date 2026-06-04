@@ -15,14 +15,10 @@ const _I_STATUS_GET = Symbol('._getStatus()');
 const _I_STATUS_SET = Symbol('._setStatus()');
 const _I_IS_FINISHED = Symbol('._isFinished()');
 const _I_REQ_HEADER_GET = Symbol('._getRequestHeader(key)');
-const _I_REQ_HEADER_HAS = Symbol('._hasRequestHeader(key)');
 const _I_REQ_HEADER_KEYS = Symbol('._getRequestHeaderKeys()');
-const _I_REQ_HEADER_ENTRIES = Symbol('._getRequestHeaderEntries()');
 const _I_REQ_BODY_DATA_GET = Symbol('._getRequestBodyData()');
 const _I_RES_HEADER_GET = Symbol('._getResponseHeader(key)');
-const _I_RES_HEADER_HAS = Symbol('._hasResponseHeader(key)');
 const _I_RES_HEADER_KEYS = Symbol('._getResponseHeaderKeys()');
-const _I_RES_HEADER_ENTRIES = Symbol('._getResponseHeaderEntries()');
 const _I_RES_HEADER_SET = Symbol('._setResponseHeader(key, value)');
 const _I_RES_HEADER_DELETE = Symbol('._deleteResponseHeader(key)');
 const _I_RES_BODY_DATA_GET = Symbol('._getResponseBodyData()');
@@ -46,9 +42,7 @@ export const _I = deepFreeze({
   REQUEST: {
     HEADER: {
       GET: _I_REQ_HEADER_GET,
-      HAS: _I_REQ_HEADER_HAS,
       KEYS: _I_REQ_HEADER_KEYS,
-      ENTRIES: _I_REQ_HEADER_ENTRIES,
     },
     BODY: {
       DATA: {
@@ -59,9 +53,7 @@ export const _I = deepFreeze({
   RESPONSE: {
     HEADER: {
       GET: _I_RES_HEADER_GET,
-      HAS: _I_RES_HEADER_HAS,
       KEYS: _I_RES_HEADER_KEYS,
-      ENTRIES: _I_RES_HEADER_ENTRIES,
       SET: _I_RES_HEADER_SET,
       DELETE: _I_RES_HEADER_DELETE,
     },

@@ -22,9 +22,7 @@ function normalizeOptions(options) {
     if (isPlainObject(_meta)) {
       const meta = (_options.meta = {});
 
-      const {
-        name: _name = '<anonymous>',
-      } = _meta;
+      const { name: _name = '<anonymous>' } = _meta;
 
       if (typeof _name === 'string') {
         meta.name = _name;
@@ -105,12 +103,7 @@ function normalizeOptions(options) {
       if (isPlainObject(_header)) {
         const header = (request.header = {});
 
-        const {
-          get: _get,
-          has: _has,
-          keys: _keys,
-          entries: _entries,
-        } = _header;
+        const { get: _get, keys: _keys } = _header;
 
         if (typeof _get === 'function') {
           header.get = _get;
@@ -118,22 +111,10 @@ function normalizeOptions(options) {
           ThrowTypeError('args[0].request.header.get', 'function');
         }
 
-        if (typeof _has === 'function') {
-          header.has = _has;
-        } else {
-          ThrowTypeError('args[0].request.header.has', 'function');
-        }
-
         if (typeof _keys === 'function') {
           header.keys = _keys;
         } else {
           ThrowTypeError('args[0].request.header.keys', 'function');
-        }
-
-        if (typeof _entries === 'function') {
-          header.entries = _entries;
-        } else {
-          ThrowTypeError('args[0].request.header.entries', 'function');
         }
       } else {
         ThrowTypeError('args[0].request.header', 'plain object');
@@ -172,14 +153,7 @@ function normalizeOptions(options) {
       if (isPlainObject(_header)) {
         const header = (response.header = {});
 
-        const {
-          get: _get,
-          has: _has,
-          keys: _keys,
-          entries: _entries,
-          set: _set,
-          delete: _delete,
-        } = _header;
+        const { get: _get, keys: _keys, set: _set, delete: _delete } = _header;
 
         if (typeof _get === 'function') {
           header.get = _get;
@@ -187,22 +161,10 @@ function normalizeOptions(options) {
           ThrowTypeError('args[0].response.header.get', 'function');
         }
 
-        if (typeof _has === 'function') {
-          header.has = _has;
-        } else {
-          ThrowTypeError('args[0].response.header.has', 'function');
-        }
-
         if (typeof _keys === 'function') {
           header.keys = _keys;
         } else {
           ThrowTypeError('args[0].response.header.keys', 'function');
-        }
-
-        if (typeof _entries === 'function') {
-          header.entries = _entries;
-        } else {
-          ThrowTypeError('args[0].response.header.entries', 'function');
         }
 
         if (typeof _set === 'function') {
@@ -265,12 +227,7 @@ export function Implement(options) {
     status: { get: _getStatus, set: _setStatus },
     finished: { is: _isFinished },
     request: {
-      header: {
-        get: _getReqHeader,
-        has: _hasReqHeader,
-        keys: _getReqHeaderKeys,
-        entries: _getReqHeaderEntries,
-      },
+      header: { get: _getReqHeader, keys: _getReqHeaderKeys },
       body: {
         data: { get: _getReqBodyData },
       },
@@ -278,9 +235,7 @@ export function Implement(options) {
     response: {
       header: {
         get: _getResHeader,
-        has: _hasResHeader,
         keys: _getResHeaderKeys,
-        entries: _getResHeaderEntries,
         set: _setResHeader,
         delete: _deleteResHeader,
       },
@@ -320,16 +275,8 @@ export function Implement(options) {
         return _getReqHeader(this, key);
       }
 
-      [_I.REQUEST.HEADER.HAS](key) {
-        return _hasReqHeader(this, key);
-      }
-
       [_I.REQUEST.HEADER.KEYS]() {
         return _getReqHeaderKeys(this);
-      }
-
-      [_I.REQUEST.HEADER.ENTRIES]() {
-        return _getReqHeaderEntries(this);
       }
 
       [_I.REQUEST.BODY.DATA.GET]() {
@@ -340,16 +287,8 @@ export function Implement(options) {
         return _getResHeader(this, key);
       }
 
-      [_I.RESPONSE.HEADER.HAS](key) {
-        return _hasResHeader(this, key);
-      }
-
       [_I.RESPONSE.HEADER.KEYS]() {
         return _getResHeaderKeys(this);
-      }
-
-      [_I.RESPONSE.HEADER.ENTRIES]() {
-        return _getResHeaderEntries(this);
       }
 
       [_I.RESPONSE.HEADER.SET](key, value) {

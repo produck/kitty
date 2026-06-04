@@ -10,15 +10,17 @@ class KittyTransactionRequestHeader {
   }
 
   has(key) {
-    return this[I.TRANSACTION][_I.REQUEST.HEADER.HAS](key);
+    return this.get(key) !== undefined;
   }
 
   keys() {
     return this[I.TRANSACTION][_I.REQUEST.HEADER.KEYS]();
   }
 
-  entries() {
-    return this[I.TRANSACTION][_I.REQUEST.HEADER.ENTRIES]();
+  *entries() {
+    for (const key of this.keys()) {
+      yield [key, this.get(key)];
+    }
   }
 }
 
