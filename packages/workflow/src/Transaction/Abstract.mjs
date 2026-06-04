@@ -52,7 +52,6 @@ export default Abstract(
       [_I.RESPONSE.HEADER.ENTRIES]: M.Method().returns(M.Any),
       [_I.RESPONSE.HEADER.SET]: M.Method().args(M.String, M.Any),
       [_I.RESPONSE.HEADER.DELETE]: M.Method().args(M.String),
-      [_I.RESPONSE.HEADER.CLEAR]: M.Method(),
       [_I.RESPONSE.BODY.DATA.GET]: M.Method().returns(M.Any),
       [_I.RESPONSE.BODY.DATA.SET]: M.Method().args(M.Any),
     }),

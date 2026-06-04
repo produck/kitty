@@ -25,7 +25,6 @@ const _I_RES_HEADER_KEYS = Symbol('._getResponseHeaderKeys()');
 const _I_RES_HEADER_ENTRIES = Symbol('._getResponseHeaderEntries()');
 const _I_RES_HEADER_SET = Symbol('._setResponseHeader(key, value)');
 const _I_RES_HEADER_DELETE = Symbol('._deleteResponseHeader(key)');
-const _I_RES_HEADER_CLEAR = Symbol('._clearResponseHeaders()');
 const _I_RES_BODY_DATA_GET = Symbol('._getResponseBodyData()');
 const _I_RES_BODY_DATA_SET = Symbol('._setResponseBodyData(data)');
 
@@ -65,7 +64,6 @@ export const _I = deepFreeze({
       ENTRIES: _I_RES_HEADER_ENTRIES,
       SET: _I_RES_HEADER_SET,
       DELETE: _I_RES_HEADER_DELETE,
-      CLEAR: _I_RES_HEADER_CLEAR,
     },
     BODY: {
       DATA: {

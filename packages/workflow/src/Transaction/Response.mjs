@@ -30,7 +30,9 @@ class KittyTransactionResponseHeader {
   }
 
   clear() {
-    this[I.TRANSACTION][_I.RESPONSE.HEADER.CLEAR]();
+    for (const key of this[I.TRANSACTION][_I.RESPONSE.HEADER.KEYS]()) {
+      this[I.TRANSACTION][_I.RESPONSE.HEADER.DELETE](key);
+    }
   }
 }
 
