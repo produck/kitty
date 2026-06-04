@@ -15,7 +15,6 @@
   "author": "ChaosLee",
   "workspaces": [
     "packages/workflow",
-    "packages/transaction",
     "packages/adaptor/http2",
     "packages/adaptor/http1.1/http",
     "packages/adaptor/http1.1/https",
