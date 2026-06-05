@@ -596,6 +596,57 @@ Rationale:
 This keeps the Adapter author's surface area minimal while ensuring
 consistency across all Adapters.
 
+### Body scope
+
+Kitty core is responsible for memory safety. The first-class body
+interface is always stream-based:
+
+```js
+tx.response.body.data; // Readable | null
+tx.request.body.data; // Readable | null
+```
+
+- **Readable**: Always stream. Never auto-drains to Buffer. Consumers
+  pipe or read chunks as needed.
+- **null**: No body.
+
+Core provides a default caching strategy (threshold → temp file) with
+a policy controller installed on `DeploymentKit`:
+
+```js
+// Deploy-time configuration
+workflow.deploy(server, {
+  body: { threshold: '10MB', dir: '/tmp/kitty' },
+});
+
+// Handler can adjust per-request via inherited policy
+workflow.use(async (kit, next) => {
+  const policy = kit.get('body.policy');
+  policy.threshold = '500MB'; // this request allows larger body
+  return next();
+});
+```
+
+The policy controller is accessible from `TransactionKit` via kit
+inheritance — no extra installation needed. This keeps the default
+safe while allowing handlers to opt into different behavior.
+
+This illustrates a broader design advantage: in traditional frameworks
+(cache size, body limit, timeouts) are usually locked at middleware
+initialization time. Changing them per-request requires awkward
+workarounds or global state mutation. Kitty's `DeploymentKit` →
+`TransactionKit` inheritance chain makes per-request policy
+adjustment a natural pattern — the controller is installed once and
+inherited by every request, and handlers can tune it without
+affecting others.
+
+Buffer-style convenience (`body.json()`, `body.text()`, etc.) is a
+**plugin-level** concern built on top of the stream interface.
+
+After `transaction.isFinished` is true, `response.body.data` setter
+must reject further writes. This guard belongs in the Transaction
+Template layer.
+
 ## Server Lifecycle Ownership
 
 The server passed to `deploy()` / `deployOnce()` remains under the
@@ -898,6 +949,64 @@ global registry by constructor, without requiring a server instance.
   must not modify DeploymentKit.
 - Both `listeners` and `deploy` share the same listener output — no
   duplicated logic.
+
+### Protocol resources on TransactionKit
+
+The adapter owns the `stream` / `request` event and is responsible
+for creating `TransactionKit` inside it. At that point it can install
+protocol-specific resources directly onto `TransactionKit`:
+
+```js
+server.on('stream', (stream, headers) => {
+  const TransactionKit = DeploymentKit('Kitty<Transaction>');
+  kit.set(K_STREAM, stream);
+  kit.set(K_SESSION, stream.session);
+  // ... install Transaction Template, then handle
+  handle(TransactionKit);
+});
+```
+
+- `stream` gives access to stream-level features (trailers, push,
+  reset).
+- `stream.session` gives access to session-level features (settings,
+  ping, goaway) — available without a separate `session` listener.
+- Handlers import typed accessors (`useStream`, `useSession`) to
+  consume these resources.
+
+These protocol resources are **adapter-specific** and not part of the
+core Transaction Template. They follow the same
+"not installed, not available" contract as any other kit capability.
+
+### Protocol-aware routing
+
+Because all entry points (http1 request, http1 upgrade, http2 stream)
+flow into the same workflow pipeline via `TransactionKit`, the
+protocol becomes a dimension at the handler layer — not an
+infrastructure concern.
+
+```js
+workflow.use((kit, next) => {
+  const tx = useTransaction(kit);
+
+  if (tx.protocol === 'ws') {
+    return handleWebSocket(kit);
+  }
+
+  return next();
+});
+```
+
+This is a novel capability — existing frameworks treat WebSocket and
+other non-HTTP protocols as "exceptions" handled outside the
+middleware pipeline. Kitty's `TransactionKit` unification makes
+protocol a first-class routing dimension.
+
+> **Note (external, to be moved out)**: The semantics of `protocol`
+> and `method` may overlap in ambiguous ways — e.g. `POST` is a
+> method, `ws` is a protocol upgrade, `sse` is content negotiation.
+> A future router module must decide how to express these dimensions
+> without conflating them. The core layer intentionally stays out of
+> this decision.
 
 ## Glossary
 
