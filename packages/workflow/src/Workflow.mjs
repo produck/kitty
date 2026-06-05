@@ -13,7 +13,7 @@ const I_HANDLER_PREFIX_SEQUENSE = Symbol('#handlerPrefixSequence');
 const I_HANDLER_SEQUENSE = Symbol('#handlerSequence');
 const I_DEPLOY = Symbol('#deploy');
 const I_DEPLOYMENT_MODIFIER_LIST = Symbol('#deploymentModifierList');
-const I_INSTALLED_PLUGINS = Symbol('#installedPlugins');
+const I_INSTALLED_MIXINS = Symbol('#installedMixins');
 
 const K_DEPLOYMENT = Symbol('DeploymentKit.DEPLOYMENT');
 
@@ -27,7 +27,7 @@ export class KittyWorkflow {
   [I_CONSTRUCTOR] = KittyWorkflow;
   [I_WORKFLOW] = null;
   [I_HANDLER_SEQUENSE] = [];
-  [I_INSTALLED_PLUGINS] = new Set();
+  [I_INSTALLED_MIXINS] = new Set();
   [I_HANDLER_PREFIX_SEQUENSE] = [];
   [I_DEPLOYMENT_MODIFIER_LIST] = [];
 
@@ -39,7 +39,7 @@ export class KittyWorkflow {
     Object.freeze(this);
   }
 
-  plug(installer) {
+  mixin(installer) {
     if (this.isFinal) {
       Ow.throw('It has been finalized.');
     }
@@ -48,14 +48,14 @@ export class KittyWorkflow {
       ThrowTypeError('args[0] as installer', 'function');
     }
 
-    if (this[I_INSTALLED_PLUGINS].has(installer)) {
-      Ow.throw('It has been installed.');
+    if (this[I_INSTALLED_MIXINS].has(installer)) {
+      Ow.throw('It has been mixed in.');
     }
 
     const WorkflowKit = this[I_KIT];
-    const PluginKit = WorkflowKit('Kitty<Plugin>');
+    const MixinKit = WorkflowKit('Kitty<Mixin>');
 
-    PluginKit.appendPrefixHandler = (...handlerList) => {
+    MixinKit.appendPrefixHandler = (...handlerList) => {
       for (const index in handlerList) {
         const handler = handlerList[index];
 
@@ -67,7 +67,7 @@ export class KittyWorkflow {
       this[I_HANDLER_PREFIX_SEQUENSE].push(...handlerList);
     };
 
-    PluginKit.setWorkflowKit = (key, value) => {
+    MixinKit.setWorkflowKit = (key, value) => {
       if (typeof key !== 'string' && typeof key !== 'symbol') {
         ThrowTypeError('args[0] as dependency key', 'string | symbol');
       }
@@ -75,7 +75,7 @@ export class KittyWorkflow {
       WorkflowKit[key] = value;
     };
 
-    PluginKit.appendDeploymentKitModifier = (modifier) => {
+    MixinKit.appendDeploymentKitModifier = (modifier) => {
       if (typeof modifier !== 'function') {
         ThrowTypeError('args[0] as modifier', 'function');
       }
@@ -83,8 +83,8 @@ export class KittyWorkflow {
       this[I_DEPLOYMENT_MODIFIER_LIST].push(modifier);
     };
 
-    installer(PluginKit);
-    this[I_INSTALLED_PLUGINS].add(installer);
+    installer(MixinKit);
+    this[I_INSTALLED_MIXINS].add(installer);
   }
 
   use(...handlerList) {

@@ -75,10 +75,10 @@ classDiagram
     kit('KitWorkflow')
     Handlers receive this kit
   }
-  class PluginKit {
-    Plugin installer scope
-    kit('Kitty&lt;Plugin&gt;')
-    Created per plug() call
+  class MixinKit {
+    Mixin installer scope
+    kit('Kitty&lt;Mixin&gt;')
+    Created per mixin() call
   }
   class DeploymentKit {
     Deployment-level scope
@@ -97,10 +97,10 @@ classDiagram
   }
 
   ExternalKit <|-- KitWorkflow
-  KitWorkflow <|-- PluginKit
+  KitWorkflow <|-- MixinKit
   KitWorkflow <|-- DeploymentKit
   DeploymentKit <|-- TransactionKit
-  TransactionKit <|-- HandlerKit
+  TransactionKit <|.. HandlerKit
 ```
 
 - **External kit**: Passed to `constructor(kit)`. Defaults to
@@ -110,10 +110,10 @@ classDiagram
 - **`KitWorkflow`**: Derived from the external kit via
   `kit('KitWorkflow')`. This is the kit seen by workflow handlers.
   Its injector (`this[I_INJECTOR]`) is cached for internal use.
-- **`Kitty<Plugin>`** (PluginKit): Derived from `KitWorkflow` per
-  `plug()` call via `kit('Kitty<Plugin>')`. Passed to the installer
+- **`Kitty<Mixin>`** (MixinKit): Derived from `KitWorkflow` per
+  `mixin()` call via `kit('Kitty<Mixin>')`. Passed to the installer
   function, it carries `appendPrefixHandler`, `setWorkflowKit`, and
-  `appendDeploymentKitModifier` as its plugin authoring API.
+  `appendDeploymentKitModifier` as its mixin authoring API.
 - **`Kitty<Deployment>`**: Derived from `KitWorkflow` at deploy time
   via `kit('Kitty<Deployment>')`. The adapter's recipe is bound to
   this kit — the adapter never touches the Workflow-level kit.
@@ -129,6 +129,11 @@ classDiagram
   enables features to be composed as **building blocks** at the
   handler level, not just at the framework level.
 
+  > HandlerKit is shown with a dotted line because it **may not exist**
+  > at all — a handler that does not call `next(kit)` or derive a child
+  > kit simply does not create this layer. The diagram includes it for
+  > conceptual completeness, not as a mandatory scope.
+
 ## Plugin
 
 A Plugin is a **capability installer** for a `KittyWorkflow` instance.
@@ -138,15 +143,15 @@ dependencies onto kit layers and registers handlers.
 ### Plugin shape
 
 A plugin is defined as an **installer function** — a single entry
-point that receives a `PluginKit` derived from `KitWorkflow`:
+point that receives a `MixinKit` derived from `KitWorkflow`:
 
 ```js
-workflow.plug((pluginKit) => {
-  pluginKit.appendPrefixHandler((kit, next) => {
+workflow.mixin((mixinKit) => {
+  mixinKit.appendPrefixHandler((kit, next) => {
     /* runs before main sequence */
   });
-  pluginKit.setWorkflowKit('myDep', someValue); // install on KitWorkflow
-  pluginKit.appendDeploymentKitModifier((kit) => {
+  mixinKit.setWorkflowKit('myDep', someValue); // install on KitWorkflow
+  mixinKit.appendDeploymentKitModifier((kit) => {
     /* modify DeploymentKit */
   });
 });
@@ -156,16 +161,16 @@ The installer runs in a **coherent scope**: all side effects happen
 within the installer call, making the plugin's intent explicit and
 local.
 
-### PluginKit API
+### MixinKit API
 
-`PluginKit` is a `KitProxy` derived from `KitWorkflow` via
-`kit('Kitty<Plugin>')`, with three methods set via Proxy `set` trap:
+`MixinKit` is a `KitProxy` derived from `KitWorkflow` via
+`kit('Kitty<Mixin>')`, with three methods set via Proxy `set` trap:
 
-| Method                                      | Behavior                                                      |
-| ------------------------------------------- | ------------------------------------------------------------- |
-| `pluginKit.appendPrefixHandler(...handler)` | Registers handler(s) into the prefix handler sequence         |
-| `pluginKit.setWorkflowKit(key, value)`      | Sets a dependency on `KitWorkflow`                            |
-| `pluginKit.appendDeploymentKitModifier(fn)` | Registers a modifier to run at deploy time on `DeploymentKit` |
+| Method                                     | Behavior                                                      |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| `mixinKit.appendPrefixHandler(...handler)` | Registers handler(s) into the prefix handler sequence         |
+| `mixinKit.setWorkflowKit(key, value)`      | Sets a dependency on `KitWorkflow`                            |
+| `mixinKit.appendDeploymentKitModifier(fn)` | Registers a modifier to run at deploy time on `DeploymentKit` |
 
 `appendPrefixHandler(...handler)` validates each handler the same way
 as `workflow.use()` and appends it to `I_HANDLER_PREFIX_SEQUENSE`.
@@ -204,7 +209,7 @@ plugins provide composable extensions.
 ### Relationship with `use()`
 
 `use(handler)` adds handlers to the **main handler sequence**, while
-`pluginKit.appendPrefixHandler(handler)` adds them to the **prefix
+`mixinKit.appendPrefixHandler(handler)` adds them to the **prefix
 handler sequence**. Both sequences are composed together at
 `finalize()` — prefix first, then main:
 
@@ -212,15 +217,15 @@ handler sequence**. Both sequences are composed together at
 // Main sequence — registered by workflow.use():
 workflow.use((kit, next) => { ... });
 
-// Prefix sequence — registered by plugin:
-workflow.plug((pluginKit) => {
-  pluginKit.appendPrefixHandler((kit, next) => { ... });
+// Prefix sequence — registered by mixin:
+workflow.mixin((mixinKit) => {
+  mixinKit.appendPrefixHandler((kit, next) => { ... });
 });
 ```
 
 Prefix handlers run before main handlers in the composed pipeline.
-`use()` is the primary API for handler registration; `plug()` with
-`appendPrefixHandler` is the plugin equivalent that also provides
+`use()` is the primary API for handler registration; `mixin()` with
+`appendPrefixHandler` is the mixin equivalent that also provides
 `setWorkflowKit` and `appendDeploymentKitModifier` for broader
 capability installation.
 
@@ -478,11 +483,11 @@ over raw throughput.
 
 ## Governance
 
-- `plugin()` must be called before `finalize()`. After finalization,
-  no more plugins can be added.
-- Plugins are installed **immediately** at `plugin()` call time (for
-  `install` hook). No deferral queue.
-- Plugin dependency negotiation is the plugins' own responsibility —
+- `mixin()` must be called before `finalize()`. After finalization,
+  no more mixins can be added.
+- Mixins are installed **immediately** at `mixin()` call time. No
+  deferral queue.
+- Mixin dependency negotiation is the mixins' own responsibility —
   the framework does not define or enforce dependency ordering.
 
 ## Adapter/Workflow Bridge Protocol
