@@ -1,6 +1,6 @@
 export * as Adapter from './Adapter.mjs';
-export { KittyWorkflow as Workflow, useDeployment } from './Workflow.mjs';
-export {
-  KittyTransaction as Transaction,
-  useTransaction,
-} from './Transaction.mjs';
+export * as Transaction from './Transaction/index.mjs';
+export * as Workflow from './Workflow.mjs';
+
+export { useTransaction } from './Transaction/index.mjs';
+export { useDeployment } from './Workflow.mjs';

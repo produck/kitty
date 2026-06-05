@@ -503,19 +503,25 @@ deploy(server) / deployOnce(server)
   │
   ├─ 1. Create DeploymentKit from KitWorkflow
   ├─ 2. Store { server, options } on DeploymentKit (Symbol-keyed)
-  ├─ 3. Injector.bind(install)(handleTransaction)
+  ├─ 3. Injector.bind(listeners)(handleTransaction)
   │       │
-  │       └─ Adapter recipe executes:
+  │       └─ listeners recipe executes:
   │            • Reads server via useDeployment(DeploymentKit)
-  │            • Attaches listeners
-  │            • Per transaction: creates TransactionKit,
-  │              calls handle(TransactionKit)
+  │            • Installs Transaction dependencies
+  │            • Returns listeners map
+  │              (e.g. { request: (req, res) => {}, upgrade: ... })
   │
-  └─ 4. Returns server (not a management wrapper)
+  ├─ 4. install(server, listeners)
+  │       │
+  │       └─ Attaches each listener to server:
+  │          for (const [event, handler] of Object.entries(listeners))
+  │            server.on(event, handler)
+  │
+  └─ 5. Returns server (not a management wrapper)
 ```
 
 This flow is identical for both `deploy()` and `adapt()` — the only
-difference is how the `install` recipe is sourced (global registry
+difference is how the `listeners` recipe is sourced (global registry
 vs. inline options).
 
 ### Protocol correctness is the Adapter author's responsibility
@@ -803,23 +809,95 @@ Two deployment paths serve different scenarios:
 
 ### 5. Deployment Injection
 
-Each adapter defines an `install` via `Kit.defineRecipe()` — a **Kit
+Each adapter defines `listeners` via `Kit.defineRecipe()` — a **Kit
 recipe** that installs dependencies onto the deployment-level kit
-(`Kitty<Deployment>`). The adapter concerns itself only with this
-kit; it has no access to or effect on the Workflow-level kit
+(`Kitty<Deployment>`) and returns a map of event handlers.
+
+And an `install` — a plain function `(server, listeners) => void`
+that attaches the listeners to a server instance. Unlike `listeners`,
+`install` has no access to DeploymentKit.
+
+The adapter concerns itself only with the deployment-level kit; it
+has no access to or effect on the Workflow-level kit
 (`KitWorkflow`).
 
 Deployment executes via
-`Kit.Injector(kit).bind(install)(server, options)`, which binds the
-recipe to the deployment kit and invokes it with `(server, options)`.
+`Kit.Injector(kit).bind(listeners)(handleTransaction)`, which binds
+the recipe to the deployment kit and invokes it to produce the
+listeners map, then passes it to `install(server, listeners)`.
 
-The `install` source varies by path:
+The `listeners` source varies by path:
 
 - `deploy()`: fetched from the global Adapter registry.
 - `adapt()`: provided directly in the `options` argument.
 
 The internal `deploy` function is module-private and not exposed
 externally.
+
+## Adapter listeners/install split
+
+Split adapter `install` into two phases — `listeners` + `install` —
+to support exporting raw listeners similar to Koa's
+`app.callback()`.
+
+### `listeners`
+
+- Type: `Kit.defineRecipe((DeploymentKit, [handle]) => Record<string, Function>)`
+- Responsibility: Install Transaction dependencies on the
+  DeploymentKit and produce a map of event handlers
+  (e.g. HTTP/1.x adapter produces
+  `{ request: (req, res) => {}, upgrade: (req, socket, head) => {} }`;
+  HTTP/2 adapter produces
+  `{ stream: (stream, headers) => {}, request: (req, res) => {} }`).
+- Side-effect-free. Can be called independently by `callback()`.
+
+### `install`
+
+- Type: `(server, listeners) => void`
+- Responsibility: Attach the default event handlers to the server
+  instance. Each adapter knows its own default — e.g. HTTP/2 adapter
+  installs `stream` only, not `request`. The `request` handler is
+  provided for users who prefer the compatibility shim.
+- **Not a Kit recipe** — must not access DeploymentKit.
+- Called by `deploy(server)` after the listeners phase.
+- Since all Node.js server types inherit from `net.Server` (EventEmitter),
+  the attachment interface is uniform across protocols.
+
+### Flow
+
+```text
+callback(constructor) → listeners phase → returns listeners map
+deploy(server)        → listeners phase → install(server, listeners)
+
+// Basic user: default install strategy (e.g. http2 → stream)
+workflow.deploy(server);
+
+// Advanced user: selective listening via callback()
+const listeners = workflow.callback(http2.Server);
+http2.createServer(listeners.stream).listen(3000);
+// or use the compatibility shim:
+http2.createServer(listeners.request).listen(3000);
+```
+
+### Lookup by constructor
+
+`callback(constructor)` looks up the registered adapter from the
+global registry by constructor, without requiring a server instance.
+
+> **TODO**: Registry currently stores `install` (recipe) and `name`.
+> Need to confirm whether registry stores both `listeners` and
+> `install` separately, or if the new adapter structure combines them.
+
+### Benefits
+
+- Users get raw listeners as flexible as Koa's `app.callback()`.
+- `listeners` returns a map — one adapter can produce multiple event
+  handlers (`request`, `upgrade`, `stream`, etc.) for different
+  protocols.
+- Plain function type for `install` naturally enforces that it
+  must not modify DeploymentKit.
+- Both `listeners` and `deploy` share the same listener output — no
+  duplicated logic.
 
 ## Glossary
 
@@ -829,7 +907,11 @@ externally.
   installer. Works only on the deployment-level kit
   (`Kitty<Deployment>`); has no effect on the Workflow-level kit.
 - **Kit Recipe**: Describes dependencies to install into a kit.
-  Adapter `install` is a recipe defined via `Kit.defineRecipe()`.
+  Adapter `listeners` is a recipe defined via `Kit.defineRecipe()`.
+- **listeners**: A Kit recipe that produces a protocol-specific
+  map of event handlers (e.g. `{ request: (req, res) => {} }`).
+- **install**: A plain function `(server, listener) => void` that
+  attaches a listener to a server instance. Not a Kit recipe.
 - **deploy**: Auto-discovery deployment — looks up installer from
   global Adapter registry by prototype chain.
 - **adapt**: Ephemeral custom deployment — no global registration,
