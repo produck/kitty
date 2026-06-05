@@ -152,7 +152,7 @@ hooks it needs.
    This is a feature that enforces layer boundaries — DeploymentKit
    definitions cannot depend on TransactionKit-level data.
 3. **Explicit composition**: Knowing a kit has a capability is
-   sufficient to use it (`kit.get(...)`). No dynamic discovery or
+   sufficient to use it (`kit[key]`). No dynamic discovery or
    runtime injection is needed.
 
 ### Hook execution timing
@@ -188,7 +188,7 @@ only provides an `onTransaction` hook:
 ```js
 // These are equivalent:
 workflow.use((kit, next) => { ... });
-workflow.plugin({ onTransaction: Kit.defineRecipe(kit => { ... }) });
+workflow.plug({ onTransaction: Kit.defineRecipe(kit => { ... }) });
 ```
 
 This keeps the model uniform — `use()` is just syntactic sugar for
@@ -325,7 +325,7 @@ Kit uses **Proxy + plain object** (`Object.create(null)`), not a Map:
   `set` trap — validates uniqueness and writes to the local
   dependencies object.
 
-The cost of 20 `onTransaction` recipes (each with ~3 `kit.set()`
+The cost of 20 plugin `use()` handlers (each with ~3 `set()`
 calls) plus handler-time property accesses via Proxy is estimated at
 ~20μs per request — negligible alongside typical I/O (5–100ms).
 
@@ -359,7 +359,7 @@ for production code.
 
 - Keep `onTransaction` recipes lean: only install getters / method
   references, never pre-compute values.
-- Minimise the number of `kit.set()` calls per recipe — batch related
+- Minimise the number of `set()` calls per plugin — batch related
   capabilities into fewer installs (namespace bundling).
 - Limit N (total plugins with `onTransaction`) to a reasonable
   ceiling (typical production applications: 3–8).
@@ -378,24 +378,24 @@ directly from handlers is the recommended escape hatch.
 
 ### Mitigations in recipe packaging
 
-A practical way to reduce `kit.set()` calls without changing the Kit
+A practical way to reduce `set()` calls without changing the Kit
 API is **namespace bundling**: group related capabilities under a
 single key rather than installing them individually.
 
 ```js
 // Instead of:
-kit.set('cookies', cookies);
-kit.set('session', session);
-kit.set('body', bodyParser);
+kit['cookies'] = cookies;
+kit['session'] = session;
+kit['body'] = bodyParser;
 
 // Bundle under a namespace:
-kit.set('http', { cookies, session, bodyParser });
-// Or: kit.set('@cookie', { parse, serialize });
+kit['http'] = { cookies, session, bodyParser };
+// Or: kit['@cookie'] = { parse, serialize };
 ```
 
 Benefits:
 
-- **Fewer `kit.set()` calls** — each recipe installs 2–3 namespaces
+- **Fewer `set()` calls** — each plugin installs 2–3 namespaces
   instead of 10+ individual entries, reducing hidden class transitions
   on the Kit store.
 - **Cleaner Kit surface** — consumers find related capabilities under
@@ -420,7 +420,7 @@ significant advantages that justify the cost:
   before use. "Not installed, not available" prevents accidental
   leakage of cross-layer state.
 - **Readability**: The scope chain makes it clear where each
-  capability comes from — `kit.get('http')` vs `this.something` on a
+  capability comes from — `kit['http']` vs `this.something` on a
   flat context.
 - **Adaptive composition**: Adding or removing a plugin changes the
   capability set uniformly across all handlers in the workflow,
@@ -621,7 +621,7 @@ workflow.deploy(server, {
 
 // Handler can adjust per-request via inherited policy
 workflow.use(async (kit, next) => {
-  const policy = kit.get('body.policy');
+  const policy = kit['body.policy'];
   policy.threshold = '500MB'; // this request allows larger body
   return next();
 });
@@ -704,7 +704,7 @@ capability on `DeploymentKit`:
 
 ```js
 // Adapter recipe:
-kit.set('drain', async () => {
+kit['drain'] = async () => {
   // Wait for all tracked TransactionKit promises
   await Promise.all(activeTransactions);
 });
@@ -730,7 +730,7 @@ cross-cutting concerns** placed in the ExternalKit.
 
    const EVENT_BUS = Symbol('app.eventBus');
    const kit = Kit.derive(Kit.global, (parent) => {
-     parent.set(EVENT_BUS, new EventEmitter());
+     parent[EVENT_BUS] = new EventEmitter();
    });
    ```
 
@@ -743,7 +743,7 @@ cross-cutting concerns** placed in the ExternalKit.
 3. **External code** subscribes via the same kit:
 
    ```js
-   kit.get(EVENT_BUS).on('user.login', data => { ... });
+   kit[EVENT_BUS].on('user.login', data => { ... });
    ```
 
 4. **Business handler** accesses the bus via the kit inheritance chain
@@ -752,7 +752,7 @@ cross-cutting concerns** placed in the ExternalKit.
    ```js
    // Inside a handler registered via use():
    function handler(TransactionKit, next) {
-     TransactionKit.get(EVENT_BUS).emit('user.login', { userId });
+     TransactionKit[EVENT_BUS].emit('user.login', { userId });
      return next();
    }
    ```
@@ -959,8 +959,8 @@ protocol-specific resources directly onto `TransactionKit`:
 ```js
 server.on('stream', (stream, headers) => {
   const TransactionKit = DeploymentKit('Kitty<Transaction>');
-  kit.set(K_STREAM, stream);
-  kit.set(K_SESSION, stream.session);
+  kit[K_STREAM] = stream;
+  kit[K_SESSION] = stream.session;
   // ... install Transaction Template, then handle
   handle(TransactionKit);
 });

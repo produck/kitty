@@ -5,12 +5,14 @@ import * as Composer from '@produck/compose';
 
 import * as Adapter from './Adapter.mjs';
 import * as Transaction from './Transaction/index.mjs';
+import * as Plugin from './Plugin.mjs';
 
 const I_CONSTRUCTOR = Symbol('#constructor');
 const I_KIT = Symbol('#kit');
 const I_WORKFLOW = Symbol('#workflow');
 const I_HANDLER_SEQUENSE = Symbol('#handlerSequence');
 const I_DEPLOY = Symbol('#deploy');
+const I_PLUGINS = Symbol('#plugins');
 
 const K_DEPLOYMENT = Symbol('DeploymentKit.DEPLOYMENT');
 
@@ -23,6 +25,7 @@ function ThrowBadAdapter(message, cause) {
 export class KittyWorkflow {
   [I_WORKFLOW] = () => {};
   [I_HANDLER_SEQUENSE] = [];
+  [I_PLUGINS] = [];
   [I_CONSTRUCTOR] = KittyWorkflow;
 
   constructor(kit) {
@@ -33,10 +36,18 @@ export class KittyWorkflow {
     Object.freeze(this);
   }
 
-  install(installer) {
+  plug(installer) {
+    if (this.isFinal) {
+      Ow.throw('It has been finalized.');
+    }
+
     if (typeof installer !== 'function') {
       ThrowTypeError('args[0] as installer', 'function');
     }
+
+    installer(Plugin.Kit(this[I_KIT]));
+
+    return this;
   }
 
   use(...handlerList) {
@@ -63,8 +74,9 @@ export class KittyWorkflow {
     }
 
     const handlerSequense = this[I_HANDLER_SEQUENSE];
+    const preHandlers = this[I_PLUGINS].flatMap((p) => p.preHandlers);
 
-    this[I_WORKFLOW] = Composer.compose(...handlerSequense);
+    this[I_WORKFLOW] = Composer.compose(...preHandlers, ...handlerSequense);
     Object.freeze(handlerSequense);
 
     return this;
