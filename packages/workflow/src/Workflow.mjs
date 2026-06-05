@@ -5,14 +5,15 @@ import * as Composer from '@produck/compose';
 
 import * as Adapter from './Adapter.mjs';
 import * as Transaction from './Transaction/index.mjs';
-import * as Plugin from './Plugin.mjs';
 
 const I_CONSTRUCTOR = Symbol('#constructor');
 const I_KIT = Symbol('#kit');
 const I_WORKFLOW = Symbol('#workflow');
+const I_HANDLER_PREFIX_SEQUENSE = Symbol('#handlerPrefixSequence');
 const I_HANDLER_SEQUENSE = Symbol('#handlerSequence');
 const I_DEPLOY = Symbol('#deploy');
-const I_PLUGINS = Symbol('#plugins');
+const I_DEPLOYMENT_MODIFIER_LIST = Symbol('#deploymentModifierList');
+const I_INSTALLED_PLUGINS = Symbol('#installedPlugins');
 
 const K_DEPLOYMENT = Symbol('DeploymentKit.DEPLOYMENT');
 
@@ -23,10 +24,12 @@ function ThrowBadAdapter(message, cause) {
 }
 
 export class KittyWorkflow {
-  [I_WORKFLOW] = () => {};
-  [I_HANDLER_SEQUENSE] = [];
-  [I_PLUGINS] = [];
   [I_CONSTRUCTOR] = KittyWorkflow;
+  [I_WORKFLOW] = null;
+  [I_HANDLER_SEQUENSE] = [];
+  [I_INSTALLED_PLUGINS] = new Set();
+  [I_HANDLER_PREFIX_SEQUENSE] = [];
+  [I_DEPLOYMENT_MODIFIER_LIST] = [];
 
   constructor(kit) {
     const WorkflowKit = kit('KitWorkflow');
@@ -45,9 +48,43 @@ export class KittyWorkflow {
       ThrowTypeError('args[0] as installer', 'function');
     }
 
-    installer(Plugin.Kit(this[I_KIT]));
+    if (this[I_INSTALLED_PLUGINS].has(installer)) {
+      Ow.throw('It has been installed.');
+    }
 
-    return this;
+    const WorkflowKit = this[I_KIT];
+    const PluginKit = WorkflowKit('Kitty<Plugin>');
+
+    PluginKit.appendPrefixHandler = (...handlerList) => {
+      for (const index in handlerList) {
+        const handler = handlerList[index];
+
+        if (typeof handler !== 'function' || handler.length > 2) {
+          ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
+        }
+      }
+
+      this[I_HANDLER_PREFIX_SEQUENSE].push(...handlerList);
+    };
+
+    PluginKit.setWorkflowKit = (key, value) => {
+      if (typeof key !== 'string' && typeof key !== 'symbol') {
+        ThrowTypeError('args[0] as dependency key', 'string | symbol');
+      }
+
+      WorkflowKit[key] = value;
+    };
+
+    PluginKit.appendDeploymentKitModifier = (modifier) => {
+      if (typeof modifier !== 'function') {
+        ThrowTypeError('args[0] as modifier', 'function');
+      }
+
+      this[I_DEPLOYMENT_MODIFIER_LIST].push(modifier);
+    };
+
+    installer(PluginKit);
+    this[I_INSTALLED_PLUGINS].add(installer);
   }
 
   use(...handlerList) {
@@ -73,11 +110,13 @@ export class KittyWorkflow {
       Ow.throw('It has been finalized.');
     }
 
-    const handlerSequense = this[I_HANDLER_SEQUENSE];
-    const preHandlers = this[I_PLUGINS].flatMap((p) => p.preHandlers);
+    this[I_WORKFLOW] = Composer.compose(
+      ...this[I_HANDLER_PREFIX_SEQUENSE],
+      ...this[I_HANDLER_SEQUENSE],
+    );
 
-    this[I_WORKFLOW] = Composer.compose(...preHandlers, ...handlerSequense);
-    Object.freeze(handlerSequense);
+    Object.freeze(this[I_HANDLER_PREFIX_SEQUENSE]);
+    Object.freeze(this[I_HANDLER_SEQUENSE]);
 
     return this;
   }
@@ -121,6 +160,10 @@ export class KittyWorkflow {
 
     DeploymentKit[K_DEPLOYMENT] = Object.freeze({ server, options });
     await Kit.Injector(DeploymentKit).bind(install)(handleTransaction);
+
+    for (const modifier of this[I_DEPLOYMENT_MODIFIER_LIST]) {
+      modifier(DeploymentKit);
+    }
 
     return true;
   }

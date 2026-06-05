@@ -75,6 +75,11 @@ classDiagram
     kit('KitWorkflow')
     Handlers receive this kit
   }
+  class PluginKit {
+    Plugin installer scope
+    kit('Kitty&lt;Plugin&gt;')
+    Created per plug() call
+  }
   class DeploymentKit {
     Deployment-level scope
     kit('Kitty&lt;Deployment&gt;')
@@ -92,6 +97,7 @@ classDiagram
   }
 
   ExternalKit <|-- KitWorkflow
+  KitWorkflow <|-- PluginKit
   KitWorkflow <|-- DeploymentKit
   DeploymentKit <|-- TransactionKit
   TransactionKit <|-- HandlerKit
@@ -104,6 +110,10 @@ classDiagram
 - **`KitWorkflow`**: Derived from the external kit via
   `kit('KitWorkflow')`. This is the kit seen by workflow handlers.
   Its injector (`this[I_INJECTOR]`) is cached for internal use.
+- **`Kitty<Plugin>`** (PluginKit): Derived from `KitWorkflow` per
+  `plug()` call via `kit('Kitty<Plugin>')`. Passed to the installer
+  function, it carries `appendPrefixHandler`, `setWorkflowKit`, and
+  `appendDeploymentKitModifier` as its plugin authoring API.
 - **`Kitty<Deployment>`**: Derived from `KitWorkflow` at deploy time
   via `kit('Kitty<Deployment>')`. The adapter's recipe is bound to
   this kit — the adapter never touches the Workflow-level kit.
@@ -123,52 +133,63 @@ classDiagram
 
 A Plugin is a **capability installer** for a `KittyWorkflow` instance.
 Unlike a Handler (which processes requests), a Plugin installs
-dependencies onto various kit levels. It is the building block for
-composing features in an orderly, predictable way.
+dependencies onto kit layers and registers handlers.
 
 ### Plugin shape
 
+A plugin is defined as an **installer function** — a single entry
+point that receives a `PluginKit` derived from `KitWorkflow`:
+
 ```js
-workflow.plugin({
-  install:       Kit.defineRecipe(kit => { ... }),   // → KitWorkflow
-  onDeploy:      Kit.defineRecipe(kit => { ... }),   // → DeploymentKit
-  onTransaction: Kit.defineRecipe(kit => { ... }),   // → TransactionKit
+workflow.plug((pluginKit) => {
+  pluginKit.appendPrefixHandler((kit, next) => {
+    /* runs before main sequence */
+  });
+  pluginKit.setWorkflowKit('myDep', someValue); // install on KitWorkflow
+  pluginKit.appendDeploymentKitModifier((kit) => {
+    /* modify DeploymentKit */
+  });
 });
 ```
 
-All three hooks are optional Kit recipes. A plugin provides only the
-hooks it needs.
+The installer runs in a **coherent scope**: all side effects happen
+within the installer call, making the plugin's intent explicit and
+local.
 
-### Design notes on kit layering
+### PluginKit API
 
-1. **No lazy installation**: Kit is designed as "not installed, not
-   available". If a capability is needed, install it explicitly on the
-   target kit layer. There is no lazy/proxy mechanism — the cost of
-   `onTransaction` recipes is simply installing function references,
-   not executing business logic.
-2. **Asymmetric cross-layer access**: A child kit inherits capabilities
-   from its parent (e.g. TransactionKit can access DeploymentKit's
-   APIs), but a parent kit **cannot** reach into a child kit's context.
-   This is a feature that enforces layer boundaries — DeploymentKit
-   definitions cannot depend on TransactionKit-level data.
-3. **Explicit composition**: Knowing a kit has a capability is
-   sufficient to use it (`kit[key]`). No dynamic discovery or
-   runtime injection is needed.
+`PluginKit` is a `KitProxy` derived from `KitWorkflow` via
+`kit('Kitty<Plugin>')`, with three methods set via Proxy `set` trap:
 
-### Hook execution timing
+| Method                                      | Behavior                                                      |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| `pluginKit.appendPrefixHandler(...handler)` | Registers handler(s) into the prefix handler sequence         |
+| `pluginKit.setWorkflowKit(key, value)`      | Sets a dependency on `KitWorkflow`                            |
+| `pluginKit.appendDeploymentKitModifier(fn)` | Registers a modifier to run at deploy time on `DeploymentKit` |
 
-| Hook            | Trigger                                | Target kit       | Purpose                                     |
-| --------------- | -------------------------------------- | ---------------- | ------------------------------------------- |
-| `install`       | `plugin()` called, before `finalize()` | `KitWorkflow`    | Workflow-level deps, register handlers      |
-| `onDeploy`      | `deploy()` / `deployOnce()`            | `DeploymentKit`  | Extend adapter's low-level API              |
-| `onTransaction` | Per HTTP request                       | `TransactionKit` | Per-request context (cookie, body, session) |
+`appendPrefixHandler(...handler)` validates each handler the same way
+as `workflow.use()` and appends it to `I_HANDLER_PREFIX_SEQUENSE`.
+Prefix handlers are composed **before** the main handler sequence in
+`finalize()`, enabling plugins to inject behavior that wraps or guards
+the entire pipeline.
+
+`setWorkflowKit(key, value)` sets a dependency directly on the
+`KitWorkflow` kit. Since all downstream kits (`DeploymentKit`,
+`TransactionKit`) inherit from `KitWorkflow`, the value becomes
+available to all handler layers.
+
+`appendDeploymentKitModifier(modifier)` stores a callback to be
+invoked during `deploy()` / `adapt()()` after the adapter has
+installed its low-level protocol API on `DeploymentKit`. Each
+modifier receives the `DeploymentKit` and can extend it with
+higher-level capabilities (e.g. body parsing, cookie handling).
 
 ### Execution order at deploy
 
 ```text
 1. Create DeploymentKit
 2. Adapter.install → installs low-level protocol API
-3. Plugin.onDeploy hooks → extend with higher-level capabilities
+3. Plugin onDeploy hooks → extend with higher-level capabilities
 4. Start server
 ```
 
@@ -182,17 +203,42 @@ plugins provide composable extensions.
 
 ### Relationship with `use()`
 
-`use(handler)` is conceptually a lightweight anonymous plugin that
-only provides an `onTransaction` hook:
+`use(handler)` adds handlers to the **main handler sequence**, while
+`pluginKit.appendPrefixHandler(handler)` adds them to the **prefix
+handler sequence**. Both sequences are composed together at
+`finalize()` — prefix first, then main:
 
 ```js
-// These are equivalent:
+// Main sequence — registered by workflow.use():
 workflow.use((kit, next) => { ... });
-workflow.plug({ onTransaction: Kit.defineRecipe(kit => { ... }) });
+
+// Prefix sequence — registered by plugin:
+workflow.plug((pluginKit) => {
+  pluginKit.appendPrefixHandler((kit, next) => { ... });
+});
 ```
 
-This keeps the model uniform — `use()` is just syntactic sugar for
-the most common case.
+Prefix handlers run before main handlers in the composed pipeline.
+`use()` is the primary API for handler registration; `plug()` with
+`appendPrefixHandler` is the plugin equivalent that also provides
+`setWorkflowKit` and `appendDeploymentKitModifier` for broader
+capability installation.
+
+### Design notes on kit layering
+
+1. **No lazy installation**: Kit is designed as "not installed, not
+   available". If a capability is needed, install it explicitly on the
+   target kit layer. There is no lazy/proxy mechanism — the cost of
+   `onDeploy` recipes is simply installing function references,
+   not executing business logic.
+2. **Asymmetric cross-layer access**: A child kit inherits capabilities
+   from its parent (e.g. TransactionKit can access DeploymentKit's
+   APIs), but a parent kit **cannot** reach into a child kit's context.
+   This is a feature that enforces layer boundaries — DeploymentKit
+   definitions cannot depend on TransactionKit-level data.
+3. **Explicit composition**: Knowing a kit has a capability is
+   sufficient to use it (`kit[key]`). No dynamic discovery or
+   runtime injection is needed.
 
 ## Typed Capability Accessors
 
