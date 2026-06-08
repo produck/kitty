@@ -13,8 +13,6 @@ const I_HANDLER_PREFIX_SEQUENSE = Symbol('#handlerPrefixSequence');
 const I_HANDLER_SEQUENSE = Symbol('#handlerSequence');
 const I_DEPLOY = Symbol('#deploy');
 const I_DEPLOYMENT_MODIFIER_LIST = Symbol('#deploymentModifierList');
-const I_INSTALLED_MIXINS = Symbol('#installedMixins');
-
 const K_DEPLOYMENT = Symbol('DeploymentKit.DEPLOYMENT');
 
 export const { use: useDeployment } = Kit.Getter(K_DEPLOYMENT);
@@ -27,14 +25,15 @@ export class KittyWorkflow {
   [I_CONSTRUCTOR] = KittyWorkflow;
   [I_WORKFLOW] = null;
   [I_HANDLER_SEQUENSE] = [];
-  [I_INSTALLED_MIXINS] = new Set();
   [I_HANDLER_PREFIX_SEQUENSE] = [];
   [I_DEPLOYMENT_MODIFIER_LIST] = [];
 
   constructor(kit) {
-    const WorkflowKit = kit('KitWorkflow');
+    if (!Kit.isKit(kit)) {
+      ThrowTypeError('args[0] as kit', 'Kit');
+    }
 
-    this[I_KIT] = WorkflowKit;
+    this[I_KIT] = kit('Kitty<Workflow>');
     this[I_CONSTRUCTOR] = new.target;
     Object.freeze(this);
   }
@@ -46,10 +45,6 @@ export class KittyWorkflow {
 
     if (typeof installer !== 'function') {
       ThrowTypeError('args[0] as installer', 'function');
-    }
-
-    if (this[I_INSTALLED_MIXINS].has(installer)) {
-      Ow.throw('It has been mixed in.');
     }
 
     const WorkflowKit = this[I_KIT];
@@ -84,7 +79,8 @@ export class KittyWorkflow {
     };
 
     installer(MixinKit);
-    this[I_INSTALLED_MIXINS].add(installer);
+
+    return this;
   }
 
   use(...handlerList) {
@@ -159,10 +155,13 @@ export class KittyWorkflow {
     }
 
     DeploymentKit[K_DEPLOYMENT] = Object.freeze({ server, options });
-    await Kit.Injector(DeploymentKit).bind(install)(handleTransaction);
+
+    const DeploymentKitInjector = Kit.Injector(DeploymentKit);
+
+    await DeploymentKitInjector.bind(install)(handleTransaction);
 
     for (const modifier of this[I_DEPLOYMENT_MODIFIER_LIST]) {
-      modifier(DeploymentKit);
+      DeploymentKitInjector.bind(modifier)();
     }
 
     return true;

@@ -30,7 +30,7 @@ server handlers under this philosophy.
 
 ```text
 constructor(kit) → use(handler) → finalize()
-  → deploy(server) / adapt(options)
+  → deploy(server) / compile(constructor) / adapt(options)
   → (request) → TransactionKit
 ```
 
@@ -41,21 +41,18 @@ constructor(kit) → use(handler) → finalize()
 - **Finalization**: `finalize()` composes the registered handler
   sequence into a single workflow. After this, `use()` is no longer
   allowed.
+- **Compile**:
+  - `compile(constructor, options?)` — **standalone listeners**:
+    Produces a listeners map `{ request, upgrade, ... }` from the
+    registered adapter without attaching to a server. The caller
+    receives raw event handlers for custom wiring.
 - **Deployment**:
-  - `deploy(server)` — **auto-discovery path**: Pass an existing HTTP
-    server instance. The matching adapter (constructor → installer
-    mapping) is looked up from the global registry by traversing the
-    server's prototype chain.
-  - `adapt(options)()` — **ephemeral custom path**: Pass an options
-    object (`constructor` + `install`) to get a `deployOnce`
-    function, then invoke it immediately. No global registry
-    registration occurs. Designed for one-off custom servers that
-    cannot or should not be registered in the auto-discovery
-    registry.
-- **Return value**: Both `deploy()` and `adapt()()` resolve to the
-  `server` instance itself. No management object is returned — the
-  server's lifecycle is wholly owned by the caller (see [Server
-  Lifecycle Ownership](#server-lifecycle-ownership)).
+  - `deploy(server, options?)` — **auto-discovery path**: Pass an
+    existing HTTP server instance. Runs `[I_COMPILE]` then links
+    listeners to the server.
+  - `adapt(options)` — **ephemeral custom path**: Returns
+    `{ compileOnce, deployOnce }` for one-off adapters. No global
+    registration.
 
 ## Kit Hierarchy
 
@@ -223,7 +220,25 @@ workflow.mixin((mixinKit) => {
 });
 ```
 
-Prefix handlers run before main handlers in the composed pipeline.
+**Why MixinKit does not provide a `use()` shortcut.** The onion model
+dictates that abstract/infrastructure layers wrap concrete/business
+layers. Mixins install infrastructure capabilities (body parsing,
+cookie handling, session, auth) — these must always reside **outside**
+the business pipeline. Allowing mixins to inject handlers into the
+main sequence via `use()` would break the
+"abstract-before-concrete" invariant, because a mixin's handler could
+end up **after** a business handler depending on call order, creating
+an invisible dependency inversion. By restricting mixins to
+`appendPrefixHandler`, every reader knows at a glance: **everything
+from a mixin runs before the main sequence** — no ordering guesswork.
+
+If a user needs handlers from a specific mixin to run in a precise
+position relative to business handlers, they already have a tool:
+place `workflow.use(...)` immediately after the relevant
+`workflow.mixin(...)` call. Mixin and `use` operate in separate
+worlds — the sequence of `mixin()` and `use()` calls at call site is
+the user's ordering mechanism, not a method on MixinKit.
+
 `use()` is the primary API for handler registration; `mixin()` with
 `appendPrefixHandler` is the mixin equivalent that also provides
 `setWorkflowKit` and `appendDeploymentKitModifier` for broader
@@ -487,8 +502,32 @@ over raw throughput.
   no more mixins can be added.
 - Mixins are installed **immediately** at `mixin()` call time. No
   deferral queue.
+- Workflow does **not** enforce single-install — the same mixin may
+  be applied multiple times. Downstream should decide their own dedup
+  strategy.
 - Mixin dependency negotiation is the mixins' own responsibility —
   the framework does not define or enforce dependency ordering.
+
+### Recommended dedup pattern
+
+If a mixin should only be installed once, use `setWorkflowKit` with a
+Symbol flag:
+
+```js
+import { Getter, isKit } from '@produck/kit';
+
+const K_INSTALLED = Symbol('my-mixin:installed');
+const { touch } = Getter(K_INSTALLED);
+
+workflow.mixin((mixinKit) => {
+  if (touch(mixinKit) !== undefined) {
+    throw new Error('MyMixin has already been installed.');
+  }
+
+  mixinKit.setWorkflowKit(K_INSTALLED, true);
+  // ... install logic ...
+});
+```
 
 ## Adapter/Workflow Bridge Protocol
 
@@ -550,26 +589,35 @@ the Adapter as the sole owner of protocol semantics.
 ### Deployment flow
 
 ```text
-deploy(server) / deployOnce(server)
+deploy(server, options?) / deployOnce(server, options?)
   │
-  ├─ 1. Create DeploymentKit from KitWorkflow
-  ├─ 2. Store { server, options } on DeploymentKit (Symbol-keyed)
-  ├─ 3. Injector.bind(listeners)(handleTransaction)
+  ├─ 1. [I_COMPILE](installRecipe, server, options)
   │       │
-  │       └─ listeners recipe executes:
-  │            • Reads server via useDeployment(DeploymentKit)
-  │            • Installs Transaction dependencies
-  │            • Returns listeners map
-  │              (e.g. { request: (req, res) => {}, upgrade: ... })
+  │       ├─ Create DeploymentKit from KitWorkflow
+  │       ├─ Store { server, options } on DeploymentKit (Symbol-keyed)
+  │       └─ listeners = Injector.bind(installRecipe)(handleTransaction)
+  │          Returns listeners map
   │
-  ├─ 4. install(server, listeners)
+  ├─ 2. install(server, listeners)       ← "link" phase
   │       │
   │       └─ Attaches each listener to server:
   │          for (const [event, handler] of Object.entries(listeners))
   │            server.on(event, handler)
   │
-  └─ 5. Returns server (not a management wrapper)
+  ├─ 3. Run modifiers on DeploymentKit
+  │
+  └─ 4. Returns true
 ```
+
+The "link" step (step 2) is analogous to assembly linking — the
+listeners have been compiled into a standalone map; `install` binds
+them to a concrete server instance. `compile()` / `compileOnce()`
+stop after step 1 and return the raw listeners map, leaving the
+linking to the caller.
+
+This flow is identical for both `deploy()` and `adapt()` — the only
+difference is how the `installRecipe` is sourced (global registry
+vs. inline options).
 
 This flow is identical for both `deploy()` and `adapt()` — the only
 difference is how the `listeners` recipe is sourced (global registry
@@ -891,23 +939,78 @@ Two deployment paths serve different scenarios:
 
 - **Discovery**
   - `deploy()`: Reverse lookup via Adapter registry (`Adapter.getByServer`).
-  - `adapt()()`: Explicit `options.constructor`, checked via `instanceof`.
+  - `adapt()`: Explicit `options.constructor`, checked via `instanceof`.
 - **Registry**
   - `deploy()`: Relies on global registry of constructor → installer
     mappings, pre-populated by Kitty official adapters.
-  - `adapt()()`: No global registration — ephemeral, one-off usage.
+  - `adapt()`: No global registration — ephemeral, one-off usage.
 - **Use case**
   - `deploy()`: Standard server instances where the matching adapter is already
     registered.
-  - `adapt()()`: Custom server variants not covered by official adapters, or when
+  - `adapt()`: Custom server variants not covered by official adapters, or when
     the user does not want to pollute the auto-discovery registry (e.g. a
     constructor slot is already occupied and cannot be overridden).
 - **Reusability**
   - `deploy()`: Unlimited — can be called multiple times with different servers.
-  - `adapt()()`: Once only — `deployOnce` rejects repeated calls.
+  - `adapt()`: Each returned function (`compileOnce`, `deployOnce`) is
+    usable at most once.
+- **Returns**
+  - `deploy()`: `true` (indicates completion).
+  - `adapt()`: `{ compileOnce, deployOnce }` — two independent
+    one-shot operations sharing the same adapter options.
 - **Timing**
   - `deploy()`: No constraint.
-  - `adapt()()`: Must be called synchronously within the same tick as `adapt()`.
+  - `adapt()`: Both `compileOnce` and `deployOnce` must be called
+    synchronously within the same microtask as `adapt()`.
+
+#### `compileOnce(server, options?)`
+
+Runs the adapter's listeners recipe against a `DeploymentKit` created
+for the given `server`. Returns the listeners map
+`{ request, upgrade, ... }`.
+
+Key difference from `deployOnce`: modifiers registered by mixins
+(`appendDeploymentKitModifier`) are **not** executed, and listeners
+are **not** linked to the server. `compileOnce` produces the raw
+protocol wiring only.
+
+#### `deployOnce(server, options?)`
+
+Runs `[I_COMPILE]` to produce listeners, then links them to the
+server via `install(server, listeners)`, and finally executes all
+deployment modifiers.
+
+#### Lock sharing
+
+`compileOnce` and `deployOnce` share a single execution lock — only
+one may be called per `adapt()` invocation. If both are needed,
+call `adapt()` again.
+
+#### Relationship between `compile()` and `compileOnce`
+
+Both run the same listeners phase logic:
+
+|                  | `compile(constructor, options?)` | `compileOnce(server, options?)` |
+| ---------------- | -------------------------------- | ------------------------------- |
+| Adapter source   | Global registry                  | Inline `adapt()` options        |
+| Server discovery | Lookup by constructor            | Server passed directly          |
+| Scope            | Public API                       | Returned from `adapt()`         |
+
+#### Options scoping
+
+`options` belongs to the **compile phase** — it affects how the
+listeners recipe behaves (e.g. body threshold, protocol options).
+The link phase (`install`) currently does not accept options from
+downstream; if future linkers need configuration, it will be defined
+by Kitty core, not exposed to users at the `deploy()` call site.
+
+#### Lock sharing between `compileOnce` and `deployOnce`
+
+`compileOnce` and `deployOnce` share a single execution lock — only
+one of them may be called per `adapt()` invocation. This makes
+behavior predictable: a given `adapt()` call produces exactly one
+outcome (compile or deploy). If the user needs both, they can call
+`adapt()` a second time — the cost is negligible.
 
 ### 5. Deployment Injection
 
@@ -923,18 +1026,62 @@ The adapter concerns itself only with the deployment-level kit; it
 has no access to or effect on the Workflow-level kit
 (`KitWorkflow`).
 
-Deployment executes via
-`Kit.Injector(kit).bind(listeners)(handleTransaction)`, which binds
-the recipe to the deployment kit and invokes it to produce the
-listeners map, then passes it to `install(server, listeners)`.
+### 6. Internal `[I_COMPILE]` and `[I_DEPLOY]`
 
-The `listeners` source varies by path:
+`[I_COMPILE]` is the core internal mechanism shared by `compile()`,
+`compileOnce()`, `deploy()`, and `deployOnce()`:
 
-- `deploy()`: fetched from the global Adapter registry.
-- `adapt()`: provided directly in the `options` argument.
+```text
+[I_COMPILE](installRecipe, server, options?)
+  → Creates DeploymentKit
+  → Stores { server, options } on DeploymentKit
+  → Binds installRecipe to DeploymentKit via Injector
+  → Returns listeners map: { [event: string]: Function }
+```
 
-The internal `deploy` function is module-private and not exposed
-externally.
+`[I_DEPLOY]` builds on `[I_COMPILE]`:
+
+```text
+[I_DEPLOY](installRecipe, installFn, server, options?)
+  → listeners = await [I_COMPILE](installRecipe, server, options)
+  → installFn(server, listeners)          // "link" to server
+  → Run modifiers on DeploymentKit
+  → Return true
+```
+
+The `installFn` must not access DeploymentKit — it is a pure
+`(server, listeners) => void` binding step.
+
+### 7. Adapter Format
+
+An adapter in the registry stores two fields:
+
+```js
+registry.set(Constructor, {
+  name: 'http',
+  listeners: Kit.defineRecipe((DeploymentKit, [handle]) => ({
+    request: (req, res) => {
+      /* ... */
+    },
+    upgrade: (req, socket, head) => {
+      /* ... */
+    },
+  })),
+  install: (server, listeners) => {
+    server.on('request', listeners.request);
+    // only default events, not all
+  },
+});
+```
+
+- `listeners`: Kit recipe that installs Transaction dependencies and
+  produces event handlers. Side-effect-free. Can be called
+  independently by `compile()` / `compileOnce()`.
+- `install`: Plain function. Not a Kit recipe. Attaches default
+  listeners to server. Called by `deploy()` / `deployOnce()` after
+  the listeners phase. Since all Node.js server types inherit from
+  `net.Server` (EventEmitter), the attachment interface is uniform
+  across protocols.
 
 ## Adapter listeners/install split
 
@@ -951,7 +1098,7 @@ to support exporting raw listeners similar to Koa's
   `{ request: (req, res) => {}, upgrade: (req, socket, head) => {} }`;
   HTTP/2 adapter produces
   `{ stream: (stream, headers) => {}, request: (req, res) => {} }`).
-- Side-effect-free. Can be called independently by `callback()`.
+- Side-effect-free. Can be called independently by `compile()`.
 
 ### `install`
 
@@ -968,14 +1115,18 @@ to support exporting raw listeners similar to Koa's
 ### Flow
 
 ```text
-callback(constructor) → listeners phase → returns listeners map
-deploy(server)        → listeners phase → install(server, listeners)
+compile(constructor, options?) → [I_COMPILE] → returns listeners map
+deploy(server, options?)       → [I_COMPILE] → install(listeners) → run modifiers
 
 // Basic user: default install strategy (e.g. http2 → stream)
 workflow.deploy(server);
 
-// Advanced user: selective listening via callback()
-const listeners = workflow.callback(http2.Server);
+// Advanced user: selective listening via compile()
+const listeners = workflow.compile(http2.Server, { /* options */ });
+http2.createServer(listeners.stream).listen(3000);
+
+// Advanced user: selective listening via compile()
+const listeners = workflow.compile(http2.Server);
 http2.createServer(listeners.stream).listen(3000);
 // or use the compatibility shim:
 http2.createServer(listeners.request).listen(3000);
@@ -983,7 +1134,7 @@ http2.createServer(listeners.request).listen(3000);
 
 ### Lookup by constructor
 
-`callback(constructor)` looks up the registered adapter from the
+`compile(constructor)` looks up the registered adapter from the
 global registry by constructor, without requiring a server instance.
 
 > **TODO**: Registry currently stores `install` (recipe) and `name`.
