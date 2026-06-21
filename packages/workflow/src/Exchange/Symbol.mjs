@@ -9,6 +9,8 @@ export const I = deepFreeze({
 });
 
 const _I_INTERNAL = Symbol('._internal');
+const _I_SERVER_GET = Symbol('._getServer()');
+const _I_MODE_GET = Symbol('._getMode()');
 const _I_METHOD_GET = Symbol('._getMethod()');
 const _I_URL_GET = Symbol('._getURL()');
 const _I_STATUS_GET = Symbol('._getStatus()');
@@ -26,6 +28,12 @@ const _I_RES_BODY_DATA_SET = Symbol('._setResponseBodyData(data)');
 
 export const _I = deepFreeze({
   INTERNAL: _I_INTERNAL,
+  SERVER: {
+    GET: _I_SERVER_GET,
+  },
+  MODE: {
+    GET: _I_MODE_GET,
+  },
   METHOD: {
     GET: _I_METHOD_GET,
   },

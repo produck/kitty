@@ -1,3 +1,4 @@
+import * as net from 'node:net';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
 import { Iterable } from './Assert.mjs';
@@ -34,8 +35,13 @@ export default Abstract(
     get isFinished() {
       return this[_I.FINISHED.IS]();
     }
+
+    get server() {
+      return this[_I.SERVER.GET]();
+    }
   },
   Abstract({
+    [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
     [_I.METHOD.GET]: M.Method().returns(M.String),
     [_I.URL.GET]: M.Method().returns(M.String),
     [_I.STATUS.GET]: M.Method().returns(M.Number),

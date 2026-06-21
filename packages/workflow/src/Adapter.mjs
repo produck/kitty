@@ -12,43 +12,54 @@ export function normalizeOptions(options) {
   const _options = {
     constructor: net.Server,
     name: '',
-    // install: async (kit, [server, options]) => {},
-    options: () => {},
+    listeners: Kit.defineRecipe(() => ({})),
+    install: () => {},
   };
 
   if (isPlainObject(options)) {
     const {
       constructor: _constructor,
       name: _name,
+      listeners: _listeners,
       install: _install,
     } = options;
 
-    if (!isSubConstructor(options.constructor, net.Server)) {
+    if (isSubConstructor(_constructor, net.Server)) {
       _options.constructor = _constructor;
     } else {
-      ThrowTypeError('args[0] as TargetServer', 'sub net.Server');
+      ThrowTypeError('options.constructor', 'sub class of net.Server');
     }
 
-    if (typeof _install !== 'function') {
-      _options.install = Kit.defineRecipe(_install);
-    } else {
-      ThrowTypeError('args[1] as adapter', 'function');
+    if (_name) {
+      _options.name = _name;
+    }
+
+    if (typeof _listeners === 'function') {
+      _options.listeners = Kit.defineRecipe(_listeners);
+    } else if (_listeners !== undefined) {
+      ThrowTypeError('options.listeners', 'function');
+    }
+
+    if (typeof _install === 'function') {
+      _options.install = _install;
+    } else if (_install !== undefined) {
+      ThrowTypeError('options.install', 'function');
     }
   } else {
-    ThrowTypeError('args[0] as options', 'plain object');
+    ThrowTypeError('options', 'plain object');
   }
 
   return _options;
 }
 
 function registerServerAdapter(options) {
-  const { constructor, name, install } = normalizeOptions(options);
+  const { constructor, name, listeners, install } = normalizeOptions(options);
 
   if (registry.has(constructor)) {
     Ow.Error.Common(`Server constructor(${constructor.name}) exists.`);
   }
 
-  registry.set(constructor, { name, install });
+  registry.set(constructor, { name, listeners, install });
 }
 
 export function isAvaiableServer(value) {
@@ -66,6 +77,23 @@ export function getByServer(server) {
   const adapter = registry.get(constructor);
 
   return adapter;
+}
+
+export function installAdapterKitArtifact(AdapterKit) {
+  const artifact = {
+    listeners: {},
+    link: () => {},
+  };
+
+  AdapterKit.exportListener = function (eventName, listener) {
+    artifact.listeners[eventName] = listener;
+  };
+
+  AdapterKit.setServerLinker = function (link) {
+    artifact.link = link;
+  };
+
+  return artifact;
 }
 
 export { registerServerAdapter as register, normalizeOptions as define };

@@ -1,7 +1,9 @@
 import * as Kit from '@produck/kit';
 
-const K_TRANSACTION = Symbol('KittyTransaction');
+const K_EXCHANGE = Symbol('KittyExchange');
 
-export const { use: useTransaction } = Kit.Getter(K_TRANSACTION);
+export const { use: useExchange, touch: touchExchange } =
+  Kit.Getter(K_EXCHANGE);
+
 export { default as Abstract } from './Abstract.mjs';
 export { Implement } from './Implement.mjs';

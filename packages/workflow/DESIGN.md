@@ -18,7 +18,7 @@ Kitty addresses this by treating features as **composable building
 blocks**: capabilities are added to the pipeline in an orderly,
 predictable, and observable way. Nothing is hardcoded — every feature
 must be explicitly composed, and every layer has a well-defined
-boundary (Kit → Workflow → Deployment → Transaction). This makes the
+boundary (Kit → Workflow → Deployment → Exchange). This makes the
 system adaptable to scenarios Koa's monolithic middleware model
 handles poorly, while keeping the core simple and the extension path
 clear.
@@ -26,33 +26,69 @@ clear.
 `KittyWorkflow` is the central design object for orchestrating HTTP
 server handlers under this philosophy.
 
-## Lifecycle
+## Architecture Overview
+
+`KittyWorkflow` is split into two layers:
+
+- **Abstract layer** (`Abstract.mjs`): Defines the lifecycle template
+  — `constructor(kit)` → `use(handler)` → `finalize()` →
+  `compile()`/`deploy()`/`adapt()`. It exposes four extension point
+  hooks (`_I` namespace) for subclasses to fill in: compose extension,
+  adapter compilation, adapter linking, and deploy-time behavior. The
+  abstract layer knows nothing about mixin or adapter — it is purely a
+  extensible skeleton.
+
+- **Composition layer** (`Compound.mjs`): Extends the abstract layer
+  and implements two orthogonal domains — **Mixin** and **Adapter** —
+  each responsible for a distinct kind of capability injection.
+
+## Lifecycle (Abstract Layer)
 
 ```text
 constructor(kit) → use(handler) → finalize()
-  → deploy(server) / compile(constructor) / adapt(options)
-  → (request) → TransactionKit
+  → deploy(server, options?) / compile(server, options?) / adapt(options)
+  → (request) → ExchangeKit
 ```
 
 - **Construction**: Injects the `KitWorkflow` kit instance, freezes the
   object.
 - **Orchestration**: Registers middleware handlers via `use()`,
-  supports chaining.
+  supports chaining. In the composition layer, `mixin(installer)` is
+  also available before finalization to register mixin-based plugins.
 - **Finalization**: `finalize()` composes the registered handler
-  sequence into a single workflow. After this, `use()` is no longer
-  allowed.
+  sequence into a single workflow. After this, `use()` and `mixin()`
+  are no longer allowed.
 - **Compile**:
-  - `compile(constructor, options?)` — **standalone listeners**:
-    Produces a listeners map `{ request, upgrade, ... }` from the
-    registered adapter without attaching to a server. The caller
-    receives raw event handlers for custom wiring.
+  - `compile(server, options?)` — **standalone listeners**:
+    Produces a listeners map from the registered adapter without
+    attaching to a server. The caller receives raw event handlers for
+    custom wiring.
 - **Deployment**:
   - `deploy(server, options?)` — **auto-discovery path**: Pass an
-    existing HTTP server instance. Runs `[I_COMPILE]` then links
-    listeners to the server.
+    existing HTTP server instance suitable for the registered adapter.
+    Runs `compile()` internally then links listeners to the server.
   - `adapt(options)` — **ephemeral custom path**: Returns
-    `{ compileOnce, deployOnce }` for one-off adapters. No global
-    registration.
+    `{ compile: compileOnce, deploy: deployOnce }` for one-off
+    adapters. No global registration.
+
+### Composition Layer Extensions
+
+`CompoundKittyWorkflow` overrides the abstract layer hooks to
+introduce two domains:
+
+- **Mixin domain**: Provides `mixin(installer)` API and manages
+  prefix handler registration and deployment modifiers.
+- **Adapter domain**: Provides server-type-aware compilation and
+  linking via a registry of adapter definitions.
+
+The full lifecycle in the composition layer becomes:
+
+```text
+constructor(kit) → mixin(installer)* → use(handler)* → finalize()
+  → deploy(server) / compile(server) / adapt(options)
+  → Adapter.install → DeploymentKit prepared
+  → (request) → ExchangeKit → Exchange created → workflow pipeline
+```
 
 ## Kit Hierarchy
 
@@ -63,41 +99,45 @@ creates a deployment-level child kit. The inheritance chain:
 ```mermaid
 classDiagram
   class ExternalKit {
-    User-supplied kit
-    Typically Kit.global
-    Can carry custom deps
+    <<external>>
+    ...
   }
-  class KitWorkflow {
-    Workflow-level scope
-    kit('KitWorkflow')
-    Handlers receive this kit
+  class WorkflowKit {
+    <<mixinable>>
+    ...
   }
-  class MixinKit {
-    Mixin installer scope
-    kit('Kitty&lt;Mixin&gt;')
-    Created per mixin() call
+  class MixinKit["⚙️MixinKit"] {
+    +appendPrefixHandler(handler) void
+    +setWorkflowKit(key, any) void
+    +appendDeploymentKitModifier() void
   }
   class DeploymentKit {
-    Deployment-level scope
-    kit('Kitty&lt;Deployment&gt;')
-    Adapter recipe targets here
+    <<mixinable>>
+    +~self~ true
+    +Transaction transaction
+    ...
   }
-  class TransactionKit {
-    Per-request scope
-    Created per HTTP transaction
-    Provides req-res context
+  class AdapterKit["⚙️AdapterKit"] {
+    +exportListener(name, listener) void
+    +setDeployment(key, any) void
+    +setServerInstaller(install) void
   }
-  class HandlerKit {
-    Handler-level scope
-    Optional, derived by handlers
-    For sub-capability isolation
+  class TransactionKit["⚡TransactionKit"] {
+    <<mixinable>>
+    ...
+  }
+  class HandlerKit["⚡HandlerKit"] {
+    <<mixinable>>
+    ...
   }
 
-  ExternalKit <|-- KitWorkflow
-  KitWorkflow <|-- MixinKit
-  KitWorkflow <|-- DeploymentKit
+  ExternalKit <|-- WorkflowKit
+  WorkflowKit <|-- MixinKit
+  WorkflowKit <|-- DeploymentKit
   DeploymentKit <|-- TransactionKit
-  TransactionKit <|.. HandlerKit
+  DeploymentKit <|-- AdapterKit
+  TransactionKit .. HandlerKit
+
 ```
 
 - **External kit**: Passed to `constructor(kit)`. Defaults to
@@ -114,32 +154,41 @@ classDiagram
 - **`Kitty<Deployment>`**: Derived from `KitWorkflow` at deploy time
   via `kit('Kitty<Deployment>')`. The adapter's recipe is bound to
   this kit — the adapter never touches the Workflow-level kit.
-- **TransactionKit** (conceptual): Derived from `Kitty<Deployment>`
-  per-request when a request arrives. Provides transaction-scoped
-  context including request/response APIs (`Method`, `URL`, `Status`,
-  `Request`, `Response`, etc.). Created and disposed per HTTP
-  transaction.
-- **HandlerKit** (conceptual, optional): Any handler inside the
-  Transaction phase may further derive a child kit for sub-capability
+- **ExchangeKit** (conceptually TransactionKit): Derived from
+  `Kitty<Deployment>` per-request when a request arrives. Provides
+  exchange-scoped context including request/response APIs (`Method`,
+  `URL`, `Status`, `Request`, `Response`, etc.). Created and disposed
+  per HTTP exchange. Unlike parent kits (created once at setup),
+  ExchangeKit is **frequently created** — one per incoming request.
+  The concrete implementation uses the `Exchange` abstraction
+  (`Exchange/` directory) to decouple from server-specific protocols.
+- **HandlerKit** ⚡ (conceptual, optional): Any handler inside the
+  Exchange phase may further derive a child kit for sub-capability
   isolation. This is entirely at the handler's discretion — the
   framework does not mandate or limit the depth of derivation. This
   enables features to be composed as **building blocks** at the
-  handler level, not just at the framework level.
+  handler level, not just at the framework level. Created per-handler
+  invocation when derived, so also **frequently created**.
 
   > HandlerKit is shown with a dotted line because it **may not exist**
   > at all — a handler that does not call `next(kit)` or derive a child
   > kit simply does not create this layer. The diagram includes it for
   > conceptual completeness, not as a mandatory scope.
 
-## Plugin
+## Mixin Domain
 
-A Plugin is a **capability installer** for a `KittyWorkflow` instance.
-Unlike a Handler (which processes requests), a Plugin installs
+The Mixin domain is one of the two composition domains in
+`CompoundKittyWorkflow`. It is responsible for **purely extending
+high-level features** on top of the low-level Exchange abstraction
+provided by the Adapter domain.
+
+A Mixin is a **capability installer** for a `KittyWorkflow` instance.
+Unlike a Handler (which processes requests), a Mixin installs
 dependencies onto kit layers and registers handlers.
 
-### Plugin shape
+### Mixin shape
 
-A plugin is defined as an **installer function** — a single entry
+A mixin is defined as an **installer function** — a single entry
 point that receives a `MixinKit` derived from `KitWorkflow`:
 
 ```js
@@ -155,7 +204,7 @@ workflow.mixin((mixinKit) => {
 ```
 
 The installer runs in a **coherent scope**: all side effects happen
-within the installer call, making the plugin's intent explicit and
+within the installer call, making the mixin's intent explicit and
 local.
 
 ### MixinKit API
@@ -190,18 +239,21 @@ higher-level capabilities (e.g. body parsing, cookie handling).
 
 ```text
 1. Create DeploymentKit
-2. Adapter.install → installs low-level protocol API
-3. Plugin onDeploy hooks → extend with higher-level capabilities
+2. Adapter.install → installs low-level protocol API (event wiring,
+   Exchange creation per request)
+3. Mixin deployment modifiers → extend DeploymentKit with
+   higher-level capabilities (body parsing, cookie handling, etc.)
 4. Start server
 ```
 
 ### Relationship with Adapter
 
 Adapter provides the **low-level protocol API** on `DeploymentKit`
-(e.g. raw header access, stream read/write). Plugin's `onDeploy` hook
-builds higher-level abstractions on top (e.g. cookie parser wraps
-header read/write, body parser wraps stream). Adapters stay lean;
-plugins provide composable extensions.
+(e.g. Exchange creation, raw header access, stream read/write).
+Mixin's deployment modifiers build higher-level abstractions on top
+(e.g. cookie parser wraps header read/write, body parser wraps
+stream). Adapters stay lean (per-server-type protocol bridging);
+mixins provide composable high-level extensions.
 
 ### Relationship with `use()`
 
@@ -252,13 +304,94 @@ capability installation.
    `onDeploy` recipes is simply installing function references,
    not executing business logic.
 2. **Asymmetric cross-layer access**: A child kit inherits capabilities
-   from its parent (e.g. TransactionKit can access DeploymentKit's
+   from its parent (e.g. ExchangeKit can access DeploymentKit's
    APIs), but a parent kit **cannot** reach into a child kit's context.
    This is a feature that enforces layer boundaries — DeploymentKit
-   definitions cannot depend on TransactionKit-level data.
+   definitions cannot depend on ExchangeKit-level data.
 3. **Explicit composition**: Knowing a kit has a capability is
    sufficient to use it (`kit[key]`). No dynamic discovery or
    runtime injection is needed.
+
+## Adapter Domain
+
+The Adapter domain is the second composition domain in
+`CompoundKittyWorkflow`. It is responsible for **server-type-specific
+protocol bridging** — translating the raw events of a particular
+server implementation (node `http.Server`, `http2.Server`, etc.) into
+the uniform `Exchange` abstraction consumed by the workflow pipeline.
+
+### Adapter Registration
+
+Adapters are registered globally via `Adapter.register(options)`:
+
+```js
+import * as http from 'node:http';
+import * as Kitty from '@produck/kitty-workflow';
+
+Kitty.Adapter.register({
+  name: 'http.http11.nodejs',
+  constructor: http.Server,
+  listeners: Kit.defineRecipe((DeploymentKit, [handle]) => ({
+    request: (req, res) => {
+      const ExchangeKit = DeploymentKit('Kitty<Exchange>');
+      // wire req/res into Exchange abstract interface
+      handle(ExchangeKit);
+    },
+  })),
+  install: Kit.defineRecipe((DeploymentKit, [listeners]) => {
+    const { server } = Kitty.useDeployment(DeploymentKit);
+    server.on('request', listeners.request);
+  }),
+});
+```
+
+| Option        | Description                                                      |
+| ------------- | ---------------------------------------------------------------- |
+| `constructor` | Subclass of `net.Server` that this adapter targets               |
+| `name`        | Human-readable identifier for the adapter                        |
+| `listeners`   | Recipe that produces a listeners map `{ request, upgrade, ... }` |
+| `install`     | Recipe that wires the listeners onto the server instance         |
+
+### Lookup
+
+At deploy time, `CompoundKittyWorkflow` calls
+`Adapter.getByServer(server)` to find the matching adapter by
+walking the server's prototype chain against registered constructors.
+
+### AdapterKit API
+
+When an adapter's `listeners`/`install` recipes are invoked, they
+receive an `AdapterKit` derived from `DeploymentKit` with the
+following API:
+
+| Method                                           | Behavior                                            |
+| ------------------------------------------------ | --------------------------------------------------- |
+| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline    |
+| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output map |
+| `adapterKit.setDeploymentKit(key, value)`        | Sets a value on `DeploymentKit` for downstream use  |
+| `adapterKit.setServerInstaller(install)`         | Overrides the default server event wiring function  |
+
+`handleExchange(ExchangeKit)` is the primary entry point — it is
+called when a new request/stream arrives. It validates that the
+ExchangeKit is derived from the correct DeploymentKit and then
+forwards it to the composed workflow pipeline.
+
+### Lifecycle role
+
+The Adapter domain operates **before** the Mixin domain at deploy
+time:
+
+```text
+1. Create DeploymentKit
+2. Adapter.install → installs low-level protocol API
+   → Exchange created per request → handleExchange → workflow pipeline
+3. Mixin deployment modifiers → extend DeploymentKit with
+   higher-level capabilities
+```
+
+This ordering ensures that when mixin modifiers run, the low-level
+protocol surface (Exchange creation, event wiring) is already in
+place and available for abstraction building.
 
 ## Typed Capability Accessors
 

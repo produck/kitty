@@ -11,6 +11,7 @@ function normalizeOptions(options) {
   if (isPlainObject(options)) {
     const {
       meta: _meta,
+      mode: _mode,
       method: _method,
       URL: _URL,
       status: _status,
@@ -45,6 +46,20 @@ function normalizeOptions(options) {
       }
     } else {
       ThrowTypeError('args[0].method', 'plain object');
+    }
+
+    if (isPlainObject(_mode)) {
+      const mode = (_options.mode = {});
+
+      const { get: _get } = _mode;
+
+      if (typeof _get === 'function') {
+        mode.get = _get;
+      } else {
+        ThrowTypeError('args[0].mode.get', 'function');
+      }
+    } else {
+      ThrowTypeError('args[0].mode', 'plain object');
     }
 
     if (isPlainObject(_URL)) {
