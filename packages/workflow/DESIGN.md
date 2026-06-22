@@ -800,19 +800,27 @@ on trust or demonstrated quality. If an Adapter fails to call `handle`,
 the symptom is clear at runtime (requests hang or error), and the
 consumer can switch to a different Adapter.
 
-### Planned: logical exchange identity via `_I.INTERNAL`
+### Planned: logical exchange identity getter
 
 Current runtime guard rejects repeated dispatch of the same `Exchange`
 instance. A stronger guard for logical duplicates is planned.
 
 Direction:
 
-- Adapter implementations should expose a stable identity getter from
-  `_I.INTERNAL` object groups.
+- `_I.INTERNAL` remains the internal object-group surface.
+- Adapter implementations should expose a separate identity-specific
+  symbol/getter for logical exchange deduplication.
 - The identity should represent one logical exchange in the underlying
   protocol runtime (for example req/res pair, stream, or equivalent).
-- Workflow bridge may use this identity to reject duplicate dispatches
-  even when a new `Exchange` wrapper instance is created.
+- Identity consumption is enforced in Exchange construction rather than
+  in `handleExchange`.
+
+Planned binding model:
+
+- Exchange layer validates identity object semantics at construction
+  time to enforce identity-exchange strong binding.
+- `handleExchange` keeps duplicate-dispatch checks to enforce
+  exchange-workflow execution strong binding.
 
 This is an adapter contract extension and remains an adapter
 responsibility boundary.
@@ -1424,8 +1432,10 @@ member-level API requirements:
   `_I.INTERNAL`) for logical exchange deduplication.
 - Identity getter should return a stable marker for one logical
   exchange in the underlying protocol runtime.
-- Core bridge may consume this identity to reject duplicate dispatches
-  even when a new `Exchange` wrapper instance is created.
+- Exchange construction should validate identity semantics to ensure
+  identity-exchange strong binding.
+- Core bridge keeps Exchange-instance duplicate-dispatch checks; it
+  does not consume identity for logical deduplication.
 
 ### Non-goal at this layer
 

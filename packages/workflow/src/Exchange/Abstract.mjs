@@ -1,4 +1,5 @@
 import * as net from 'node:net';
+import * as Ow from '@produck/ow';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
 import { Iterable } from './Assert.mjs';
@@ -6,13 +7,24 @@ import { I, _I } from './Symbol.mjs';
 import KittyExchangeRequest from './Request.mjs';
 import KittyExchangeResponse from './Response.mjs';
 
+const CONSUMED_IDENTITY = new WeakSet();
+
 export default Abstract(
   class KittyExchange {
     request = new KittyExchangeRequest(this);
     response = new KittyExchangeResponse(this);
 
-    constructor() {
+    constructor(internal) {
       this[I.CONSTRUCTOR] = new.target;
+      this[_I.INTERNAL] = internal;
+
+      const identity = this[_I.IDENTITY.GET]();
+
+      if (CONSUMED_IDENTITY.has(identity)) {
+        Ow.Error.Common('Adapter identity object has already been consumed.');
+      }
+
+      CONSUMED_IDENTITY.add(identity);
       Object.freeze(this);
     }
 
@@ -40,6 +52,10 @@ export default Abstract(
       return this[_I.SERVER.GET]();
     }
   },
+  Abstract({
+    [_I.INTERNAL]: M.Any(),
+    [_I.IDENTITY.GET]: M.Method().args().rest().returns(M.Object),
+  }),
   Abstract({
     [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
     [_I.METHOD.GET]: M.Method().returns(M.String),
