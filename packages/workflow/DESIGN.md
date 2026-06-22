@@ -708,6 +708,25 @@ The Workflow layer **must not** assume anything about the transport:
 - It does not know the server's event model.
 - It interacts only with capabilities installed on its kit.
 
+### handleExchange guardrails
+
+Before any workflow handler runs, `handleExchange` should reject bad
+adapter input at the bridge boundary.
+
+- `ExchangeKit` must be derived from the current `DeploymentKit`.
+- `ExchangeKit` must not be the `DeploymentKit` itself.
+- `Exchange` must already be installed on `ExchangeKit`.
+- Installed `Exchange` must be an instance of the Exchange
+  abstraction.
+- `Exchange` must be linked to the current server.
+- The same `Exchange` instance must not be dispatched more than once.
+
+Responsibility boundary:
+
+- Violations here are Adapter errors, not handler errors.
+- `.use()` handlers may assume a validated `ExchangeKit` once
+  workflow execution begins.
+
 ### Motivation
 
 Different server types expose fundamentally different event models:
@@ -780,6 +799,23 @@ Downstream consumers (application developers) select an Adapter based
 on trust or demonstrated quality. If an Adapter fails to call `handle`,
 the symptom is clear at runtime (requests hang or error), and the
 consumer can switch to a different Adapter.
+
+### Planned: logical exchange identity via `_I.INTERNAL`
+
+Current runtime guard rejects repeated dispatch of the same `Exchange`
+instance. A stronger guard for logical duplicates is planned.
+
+Direction:
+
+- Adapter implementations should expose a stable identity getter from
+  `_I.INTERNAL` object groups.
+- The identity should represent one logical exchange in the underlying
+  protocol runtime (for example req/res pair, stream, or equivalent).
+- Workflow bridge may use this identity to reject duplicate dispatches
+  even when a new `Exchange` wrapper instance is created.
+
+This is an adapter contract extension and remains an adapter
+responsibility boundary.
 
 ### Exchange Template
 
@@ -879,6 +915,18 @@ affecting others.
 
 Buffer-style convenience (`body.json()`, `body.text()`, etc.) is a
 **plugin-level** concern built on top of the stream interface.
+
+Payload consumption is managed by Kitty core. Once consumed, payload
+data follows core policy (memory threshold with temp-file fallback) so
+downstream handlers can re-access it transparently as stream-based data
+or via one-shot fan-in accessors built on top of the same policy.
+
+Goal:
+
+- Keep memory safety and temporary storage lifecycle in core.
+- Keep handler consumption behavior transparent and consistent.
+- Avoid forcing downstream code to manually coordinate finished-state
+  edge cases for common payload reads.
 
 After `exchange.isFinished` is true, `response.body.data` setter
 must reject further writes. This guard belongs in the Exchange
@@ -1347,6 +1395,43 @@ protocol a first-class routing dimension.
 > A future router module must decide how to express these dimensions
 > without conflating them. The core layer intentionally stays out of
 > this decision.
+
+## Adapter Compliance Baseline (Draft)
+
+This section captures a practical compliance baseline for adapter
+authors. It is intentionally split into current requirements and
+planned requirements that are still under design.
+
+### Current required behaviors
+
+- Build `ExchangeKit` from the provided `DeploymentKit` for each
+  incoming logical exchange.
+- Install a valid `Exchange` instance on `ExchangeKit` before calling
+  `handleExchange`.
+- Ensure `Exchange` links to the same server instance associated with
+  `DeploymentKit`.
+- Never dispatch the same `Exchange` instance more than once.
+- Treat bridge errors as adapter implementation errors and fail fast.
+
+### Planned adapter contract extensions
+
+The following are directionally agreed but not finalized as complete
+member-level API requirements:
+
+- Keep `_I.INTERNAL` as the internal object group surface (for example,
+  req/res, stream/session, socket, parser state, etc.).
+- Add an additional identity-specific symbol/getter (separate from
+  `_I.INTERNAL`) for logical exchange deduplication.
+- Identity getter should return a stable marker for one logical
+  exchange in the underlying protocol runtime.
+- Core bridge may consume this identity to reject duplicate dispatches
+  even when a new `Exchange` wrapper instance is created.
+
+### Non-goal at this layer
+
+- Business-level idempotency is not an adapter responsibility.
+- Adapter compliance focuses on protocol mapping correctness and bridge
+  invariants only.
 
 ## Glossary
 

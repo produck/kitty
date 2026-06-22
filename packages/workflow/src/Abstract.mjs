@@ -108,7 +108,6 @@ export default class KittyWorkflow {
 
   async deploy(server, ...args) {
     this[I.ASSERT.FINALIZED]();
-    this[I.COMPILE](server, ...args);
 
     //TODO args.length <= 1 as options of deployment.
 

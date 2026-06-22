@@ -27,6 +27,24 @@ here.
 - Exchange state access is mediated through the Exchange abstraction.
 - Naming uses Exchange consistently; transaction terminology is retired.
 
+## handleExchange Guardrails
+
+handleExchange is the adapter-to-workflow bridge. It must reject bad
+adapter input before any workflow handler runs.
+
+- ExchangeKit must be derived from the current DeploymentKit.
+- ExchangeKit must not be the DeploymentKit itself.
+- Exchange must already be installed on ExchangeKit.
+- Installed Exchange must be an instance of the Exchange abstraction.
+- Exchange must be linked to the current server.
+- The same Exchange instance must not be dispatched more than once.
+
+Responsibility boundary:
+
+- Violations at this boundary are adapter errors, not handler errors.
+- `.use()` handlers may assume a validated ExchangeKit once workflow
+  execution begins.
+
 ## Incremental Migration Rule
 
 When moving content from DESIGN.md to this file:

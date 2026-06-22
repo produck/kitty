@@ -11,6 +11,8 @@ const registry = new Map();
 export function normalizeOptions(options) {
   const _options = {
     constructor: net.Server,
+    //TODO redesign adapter identity surface; legacy name metadata is too weak for
+    //protocol-level invariants such as logical exchange identity.
     name: '',
     listeners: Kit.defineRecipe(() => ({})),
     install: () => {},

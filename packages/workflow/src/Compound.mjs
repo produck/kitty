@@ -9,7 +9,7 @@ import * as Adapter from './Adapter.mjs';
 
 import * as WORKFLOW from './Symbol.mjs';
 
-function ThrowBadAdapter(message, cause) {
+function ThrowAdapter(message, cause) {
   Ow.Error.Common(`Bad adapter: ${message}`, { cause });
 }
 
@@ -36,6 +36,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
   [_I.ADAPTER.COMPILE](DeploymentKit) {
     const server = Abstract.useServer(DeploymentKit);
     const adapt = Adapter.getByServer(server);
+    const handledExchanges = new WeakSet();
 
     //TODO assert adapt existed
 
@@ -47,26 +48,32 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
         try {
           void ExchangeKit[Abstract.K_DEPLOYMENT_SELF];
         } catch (cause) {
-          ThrowBadAdapter('ExchangeKit not derived from DeploymentKit.', cause);
+          ThrowAdapter('ExchangeKit not derived from DeploymentKit.', cause);
         }
 
         if (ExchangeKit === DeploymentKit) {
-          ThrowBadAdapter('ExchangeKit MUST NOT be a DeploymentKit.');
+          ThrowAdapter('ExchangeKit MUST NOT be a DeploymentKit.');
         }
 
         const exchange = Exchange.touchExchange(ExchangeKit);
 
         if (exchange === undefined) {
-          ThrowBadAdapter('Exchange is not installed.');
+          ThrowAdapter('Exchange is not installed.');
         }
 
         if (!(exchange instanceof Exchange.Abstract)) {
-          ThrowBadAdapter('It MUST be an Exchange instance.');
+          ThrowAdapter('It MUST be an Exchange instance.');
         }
 
         if (exchange.server !== server) {
-          ThrowBadAdapter('Bad linked server.');
+          ThrowAdapter('Bad linked server.');
         }
+
+        if (handledExchanges.has(exchange)) {
+          ThrowAdapter('Adapter dispatched one Exchange more than once.');
+        }
+
+        handledExchanges.add(exchange);
 
         await this[WORKFLOW.$I.WORKFLOW](ExchangeKit);
       },
