@@ -1,12 +1,12 @@
 import { I, _I } from './Symbol.mjs';
 
-class KittyTransactionResponseHeader {
-  constructor(transaction) {
-    this[I.TRANSACTION] = transaction;
+class KittyExchangeResponseHeader {
+  constructor(exchange) {
+    this[I.EXCHANGE] = exchange;
   }
 
   get(key) {
-    return this[I.TRANSACTION][_I.RESPONSE.HEADER.GET](key);
+    return this[I.EXCHANGE][_I.RESPONSE.HEADER.GET](key);
   }
 
   has(key) {
@@ -14,7 +14,7 @@ class KittyTransactionResponseHeader {
   }
 
   keys() {
-    return this[I.TRANSACTION][_I.RESPONSE.HEADER.KEYS]();
+    return this[I.EXCHANGE][_I.RESPONSE.HEADER.KEYS]();
   }
 
   *entries() {
@@ -24,11 +24,11 @@ class KittyTransactionResponseHeader {
   }
 
   set(key, value) {
-    this[I.TRANSACTION][_I.RESPONSE.HEADER.SET](key, value);
+    this[I.EXCHANGE][_I.RESPONSE.HEADER.SET](key, value);
   }
 
   delete(key) {
-    this[I.TRANSACTION][_I.RESPONSE.HEADER.DELETE](key);
+    this[I.EXCHANGE][_I.RESPONSE.HEADER.DELETE](key);
   }
 
   clear() {
@@ -38,33 +38,33 @@ class KittyTransactionResponseHeader {
   }
 }
 
-class KittyTransactionResponseBody {
-  constructor(transaction) {
-    this[I.TRANSACTION] = transaction;
+class KittyExchangeResponseBody {
+  constructor(exchange) {
+    this[I.EXCHANGE] = exchange;
   }
 
   get data() {
-    return this[I.TRANSACTION][_I.RESPONSE.BODY.DATA.GET]();
+    return this[I.EXCHANGE][_I.RESPONSE.BODY.DATA.GET]();
   }
 
   set data(value) {
-    this[I.TRANSACTION][_I.RESPONSE.BODY.DATA.SET](value);
+    this[I.EXCHANGE][_I.RESPONSE.BODY.DATA.SET](value);
   }
 }
 
-export default class KittyTransactionResponse {
-  constructor(transaction) {
-    this[I.TRANSACTION] = transaction;
-    this.header = new KittyTransactionResponseHeader(transaction);
-    this.body = new KittyTransactionResponseBody(transaction);
+export default class KittyExchangeResponse {
+  constructor(exchange) {
+    this[I.EXCHANGE] = exchange;
+    this.header = new KittyExchangeResponseHeader(exchange);
+    this.body = new KittyExchangeResponseBody(exchange);
     Object.freeze(this);
   }
 
   get status() {
-    return this[I.TRANSACTION].status;
+    return this[I.EXCHANGE].status;
   }
 
   set status(value) {
-    this[I.TRANSACTION].status = value;
+    this[I.EXCHANGE].status = value;
   }
 }

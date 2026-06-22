@@ -1,11 +1,11 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_CONSTRUCTOR = Symbol('.#constructor');
-const I_TRANSACTION = Symbol('.#transaction');
+const I_EXCHANGE = Symbol('.#exchange');
 
 export const I = deepFreeze({
   CONSTRUCTOR: I_CONSTRUCTOR,
-  TRANSACTION: I_TRANSACTION,
+  EXCHANGE: I_EXCHANGE,
 });
 
 const _I_INTERNAL = Symbol('._internal');

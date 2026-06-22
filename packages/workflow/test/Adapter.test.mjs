@@ -12,11 +12,11 @@ describe('::Adapter', () => {
         constructor: http.Server,
         listener: Kit.defineRecipe(function MockHttp(DeploymentKit, [handle]) {
           return (_req, _res) => {
-            const TransactionKit = DeploymentKit('Kitty<Transaction>');
+            const ExchangeKit = DeploymentKit('Kitty<Exchange>');
 
-            //TODO append useTransaction deps.
+            //TODO append useExchange deps.
 
-            handle(TransactionKit);
+            handle(ExchangeKit);
           };
         }),
         install: Kit.defineRecipe(function MockHttp(DeploymentKit, [listener]) {

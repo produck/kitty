@@ -1,5 +1,10 @@
 # KittyWorkflow Design Conventions
 
+## Document Scope
+
+DESIGN.md is the working draft for AI collaboration and exploration.
+Stable conclusions should be moved into ARCHITECTURE.md.
+
 ## Philosophy
 
 Kitty shares a similar core design with Koa — middleware pipeline
@@ -114,7 +119,7 @@ classDiagram
   class DeploymentKit {
     <<mixinable>>
     +~self~ true
-    +Transaction transaction
+    +Exchange exchange
     ...
   }
   class AdapterKit["⚙️AdapterKit"] {
@@ -122,7 +127,7 @@ classDiagram
     +setDeployment(key, any) void
     +setServerInstaller(install) void
   }
-  class TransactionKit["⚡TransactionKit"] {
+  class ExchangeKit["⚡ExchangeKit"] {
     <<mixinable>>
     ...
   }
@@ -134,9 +139,9 @@ classDiagram
   ExternalKit <|-- WorkflowKit
   WorkflowKit <|-- MixinKit
   WorkflowKit <|-- DeploymentKit
-  DeploymentKit <|-- TransactionKit
+  DeploymentKit <|-- ExchangeKit
   DeploymentKit <|-- AdapterKit
-  TransactionKit .. HandlerKit
+  ExchangeKit .. HandlerKit
 
 ```
 
@@ -154,7 +159,7 @@ classDiagram
 - **`Kitty<Deployment>`**: Derived from `KitWorkflow` at deploy time
   via `kit('Kitty<Deployment>')`. The adapter's recipe is bound to
   this kit — the adapter never touches the Workflow-level kit.
-- **ExchangeKit** (conceptually TransactionKit): Derived from
+- **ExchangeKit**: Derived from
   `Kitty<Deployment>` per-request when a request arrives. Provides
   exchange-scoped context including request/response APIs (`Method`,
   `URL`, `Status`, `Request`, `Response`, etc.). Created and disposed
@@ -226,7 +231,7 @@ the entire pipeline.
 
 `setWorkflowKit(key, value)` sets a dependency directly on the
 `KitWorkflow` kit. Since all downstream kits (`DeploymentKit`,
-`TransactionKit`) inherit from `KitWorkflow`, the value becomes
+`ExchangeKit`) inherit from `KitWorkflow`, the value becomes
 available to all handler layers.
 
 `appendDeploymentKitModifier(modifier)` stores a callback to be
@@ -507,7 +512,7 @@ cached. Since Kit property access was not on the hot path, JIT
 optimisation was not a concern.
 
 Kitty extends Kit's role into **hot-path (per-request) territory**
-via `onTransaction` hooks.
+via `onExchange` hooks.
 
 ### Actual cost model
 
@@ -532,7 +537,7 @@ calls) plus handler-time property accesses via Proxy is estimated at
 
 Since dependencies are stored as **fixed named properties** on a
 plain object (not Map entries), V8 can generate hidden classes. If
-`onTransaction` recipes consistently set the same set of properties
+`onExchange` recipes consistently set the same set of properties
 in the same order across requests, the shape stabilises and Proxy
 `get` can be JIT-optimised as monomorphic.
 
@@ -556,11 +561,11 @@ for production code.
 
 ### Mitigations in recipe design
 
-- Keep `onTransaction` recipes lean: only install getters / method
+- Keep `onExchange` recipes lean: only install getters / method
   references, never pre-compute values.
 - Minimise the number of `set()` calls per plugin — batch related
   capabilities into fewer installs (namespace bundling).
-- Limit N (total plugins with `onTransaction`) to a reasonable
+- Limit N (total plugins with `onExchange`) to a reasonable
   ceiling (typical production applications: 3–8).
 
 ### When it matters
@@ -572,7 +577,7 @@ budget — Kit's per-request overhead is negligible.
 This becomes a genuine concern only in **ultra-low-latency hot paths**
 such as reverse proxies, request routers, or transparent gateways
 where handler logic itself is near-zero. For those scenarios,
-avoiding `onTransaction` and accessing DeploymentKit-level utilities
+avoiding `onExchange` and accessing DeploymentKit-level utilities
 directly from handlers is the recommended escape hatch.
 
 ### Mitigations in recipe packaging
@@ -602,7 +607,7 @@ Benefits:
 - **Reusability** — a namespace bundle can be shared across recipes
   and layers.
 
-The per-request overhead of 20 `onTransaction` recipes is estimated
+The per-request overhead of 20 `onExchange` recipes is estimated
 at ~20μs. Compared against typical handler I/O (5–100ms), this is
 <0.5% of total latency — acceptable for the vast majority of use
 cases.
@@ -664,7 +669,7 @@ workflow.mixin((mixinKit) => {
 
 ## Adapter/Workflow Bridge Protocol
 
-The `handleTransaction` function in `Deployment.mjs` is the sole bridge
+The `handleExchange` function in `Deployment.mjs` is the sole bridge
 between the Adapter layer (protocol-specific, knows server type) and
 the Workflow layer (application logic, server-agnostic).
 
@@ -672,7 +677,7 @@ the Workflow layer (application logic, server-agnostic).
 
 ```text
 Adapter recipe: (DeploymentKit, [handle]) => void
-handle:         (TransactionKit) => Promise<unknown>
+handle:         (ExchangeKit) => Promise<unknown>
 ```
 
 - **Adapter recipe** receives `DeploymentKit` and a `handle` callback.
@@ -680,9 +685,9 @@ handle:         (TransactionKit) => Promise<unknown>
   1. Extract the server from `DeploymentKit` via `useDeployment(kit)`.
   2. Attach protocol-specific listeners to the server
      (`server.on('request', ...)`, `server.on('stream', ...)`, etc.).
-  3. On each incoming transaction, derive a `TransactionKit` from
-     `DeploymentKit` and invoke `handle(TransactionKit)`.
-- **handle** receives a `TransactionKit` and executes the workflow
+  3. On each incoming exchange, derive an `ExchangeKit` from
+     `DeploymentKit` and invoke `handle(ExchangeKit)`.
+- **handle** receives an `ExchangeKit` and executes the workflow
   middleware pipeline against it. The Adapter awaits or ignores the
   returned promise depending on protocol semantics (HTTP/1.x typically
   awaits the response; HTTP/2 may handle concurrent streams).
@@ -694,7 +699,7 @@ The Adapter **must not** assume anything about the Workflow layer:
 - It does not know what handlers are registered via `use()`.
 - It does not know what plugins are installed.
 - It does not interact with the `KitWorkflow` kit — only with
-  `DeploymentKit` and `TransactionKit`.
+  `DeploymentKit` and `ExchangeKit`.
 
 The Workflow layer **must not** assume anything about the transport:
 
@@ -728,7 +733,7 @@ deploy(server, options?) / deployOnce(server, options?)
   │       │
   │       ├─ Create DeploymentKit from KitWorkflow
   │       ├─ Store { server, options } on DeploymentKit (Symbol-keyed)
-  │       └─ listeners = Injector.bind(installRecipe)(handleTransaction)
+  │       └─ listeners = Injector.bind(installRecipe)(handleExchange)
   │          Returns listeners map
   │
   ├─ 2. install(server, listeners)       ← "link" phase
@@ -776,45 +781,45 @@ on trust or demonstrated quality. If an Adapter fails to call `handle`,
 the symptom is clear at runtime (requests hang or error), and the
 consumer can switch to a different Adapter.
 
-### Transaction Template
+### Exchange Template
 
-A Transaction Template defines the standard capability set that every
-`TransactionKit` must provide (e.g. `Method`, `URL`, `Status`,
+An Exchange Template defines the standard capability set that every
+`ExchangeKit` must provide (e.g. `Method`, `URL`, `Status`,
 `Request`, `Response` — the protocol-agnostic request/response
 abstractions analogous to Koa's `ctx`).
 
-**Design decision**: The Transaction Template lives in the `workflow`
+**Design decision**: The Exchange Template lives in the `workflow`
 core package, not as an independent sub-package.
 
 Rationale:
 
-1. **Core contract, not optional plugin**: The Transaction Template is
+1. **Core contract, not optional plugin**: The Exchange Template is
    part of the communication protocol between Workflow and Adapter —
-   every Adapter must provide a `TransactionKit` that satisfies it.
+   every Adapter must provide an `ExchangeKit` that satisfies it.
    Making it independent would require every Adapter author to
    manually import and compose it, adding friction with no benefit.
 
 2. **Implicit registration via import side effect**: Adapters register
    themselves into the global Adapter registry as a side effect of
-   being imported. Since the Transaction Template is in the same core
+   being imported. Since the Exchange Template is in the same core
    package, downstream users get both in one import — no separate
    registration step:
 
    ```js
    import '@produck/kitty-adapt-http';
-   // Adapter registered, Transaction Template available — done.
+   // Adapter registered, Exchange Template available — done.
    ```
 
 3. **Workflow guarantees template installation**: `[I_DEPLOY]`
-   composes the Transaction Template installer with the Adapter's
+   composes the Exchange Template installer with the Adapter's
    own installer, ensuring the template is always present on every
-   `TransactionKit` without the Adapter author needing to know about
+   `ExchangeKit` without the Adapter author needing to know about
    it:
 
    ```js
    async [I_DEPLOY](install, server, options) {
      const runtime = Kit.compose(
-       TransactionTemplateInstaller,  // workflow core
+       ExchangeTemplateInstaller,  // workflow core
        install,                       // adapter-specific
      );
      // ...
@@ -859,7 +864,7 @@ workflow.use(async (kit, next) => {
 });
 ```
 
-The policy controller is accessible from `TransactionKit` via kit
+The policy controller is accessible from `ExchangeKit` via kit
 inheritance — no extra installation needed. This keeps the default
 safe while allowing handlers to opt into different behavior.
 
@@ -867,7 +872,7 @@ This illustrates a broader design advantage: in traditional frameworks
 (cache size, body limit, timeouts) are usually locked at middleware
 initialization time. Changing them per-request requires awkward
 workarounds or global state mutation. Kitty's `DeploymentKit` →
-`TransactionKit` inheritance chain makes per-request policy
+`ExchangeKit` inheritance chain makes per-request policy
 adjustment a natural pattern — the controller is installed once and
 inherited by every request, and handlers can tune it without
 affecting others.
@@ -875,8 +880,8 @@ affecting others.
 Buffer-style convenience (`body.json()`, `body.text()`, etc.) is a
 **plugin-level** concern built on top of the stream interface.
 
-After `transaction.isFinished` is true, `response.body.data` setter
-must reject further writes. This guard belongs in the Transaction
+After `exchange.isFinished` is true, `response.body.data` setter
+must reject further writes. This guard belongs in the Exchange
 Template layer.
 
 ## Server Lifecycle Ownership
@@ -885,7 +890,7 @@ The server passed to `deploy()` / `deployOnce()` remains under the
 caller's control at all times. Workflow does not:
 
 - Start or stop the server.
-- Track active connections or transactions.
+- Track active connections or exchanges.
 - Expose a management handle for lifecycle operations.
 
 ### Rationale
@@ -920,7 +925,7 @@ server.close(); // caller stops accepting
 
 ### Graceful shutdown
 
-Since Workflow does not track active transactions, a graceful shutdown
+Since Workflow does not track active exchanges, a graceful shutdown
 requires the caller to coordinate at the server level:
 
 ```js
@@ -931,14 +936,14 @@ server.close(async () => {
 ```
 
 For more sophisticated draining (e.g., waiting for in-flight
-TransactionKit promises), the Adapter recipe can expose a drain
+ExchangeKit promises), the Adapter recipe can expose a drain
 capability on `DeploymentKit`:
 
 ```js
 // Adapter recipe:
 kit['drain'] = async () => {
-  // Wait for all tracked TransactionKit promises
-  await Promise.all(activeTransactions);
+  // Wait for all tracked ExchangeKit promises
+  await Promise.all(activeExchanges);
 });
 ```
 
@@ -979,12 +984,12 @@ cross-cutting concerns** placed in the ExternalKit.
    ```
 
 4. **Business handler** accesses the bus via the kit inheritance chain
-   (ExternalKit → KitWorkflow → DeploymentKit → TransactionKit):
+   (ExternalKit → KitWorkflow → DeploymentKit → ExchangeKit):
 
    ```js
    // Inside a handler registered via use():
-   function handler(TransactionKit, next) {
-     TransactionKit[EVENT_BUS].emit('user.login', { userId });
+   function handler(ExchangeKit, next) {
+     ExchangeKit[EVENT_BUS].emit('user.login', { userId });
      return next();
    }
    ```
@@ -1003,13 +1008,13 @@ cross-cutting concerns** placed in the ExternalKit.
   follow the same "not installed, not available" contract as
   everything else — no special treatment.
 
-### What this means for handleTransaction
+### What this means for handleExchange
 
-The `handleTransaction` bridge does not need to wire up events.
+The `handleExchange` bridge does not need to wire up events.
 Events flow through the kit chain automatically: anything installed
-on ExternalKit is reachable from TransactionKit. The Adapter recipe
+on ExternalKit is reachable from ExchangeKit. The Adapter recipe
 does not need to propagate events — it only creates the
-TransactionKit, and kit inheritance does the rest.
+ExchangeKit, and kit inheritance does the rest.
 
 ## Design Constraints
 
@@ -1207,7 +1212,7 @@ registry.set(Constructor, {
 });
 ```
 
-- `listeners`: Kit recipe that installs Transaction dependencies and
+- `listeners`: Kit recipe that installs Exchange dependencies and
   produces event handlers. Side-effect-free. Can be called
   independently by `compile()` / `compileOnce()`.
 - `install`: Plain function. Not a Kit recipe. Attaches default
@@ -1225,7 +1230,7 @@ to support exporting raw listeners similar to Koa's
 ### `listeners`
 
 - Type: `Kit.defineRecipe((DeploymentKit, [handle]) => Record<string, Function>)`
-- Responsibility: Install Transaction dependencies on the
+- Responsibility: Install Exchange dependencies on the
   DeploymentKit and produce a map of event handlers
   (e.g. HTTP/1.x adapter produces
   `{ request: (req, res) => {}, upgrade: (req, socket, head) => {} }`;
@@ -1285,19 +1290,19 @@ global registry by constructor, without requiring a server instance.
 - Both `listeners` and `deploy` share the same listener output — no
   duplicated logic.
 
-### Protocol resources on TransactionKit
+### Protocol resources on ExchangeKit
 
 The adapter owns the `stream` / `request` event and is responsible
-for creating `TransactionKit` inside it. At that point it can install
-protocol-specific resources directly onto `TransactionKit`:
+for creating `ExchangeKit` inside it. At that point it can install
+protocol-specific resources directly onto `ExchangeKit`:
 
 ```js
 server.on('stream', (stream, headers) => {
-  const TransactionKit = DeploymentKit('Kitty<Transaction>');
+  const ExchangeKit = DeploymentKit('Kitty<Exchange>');
   kit[K_STREAM] = stream;
   kit[K_SESSION] = stream.session;
-  // ... install Transaction Template, then handle
-  handle(TransactionKit);
+  // ... install Exchange Template, then handle
+  handle(ExchangeKit);
 });
 ```
 
@@ -1309,21 +1314,21 @@ server.on('stream', (stream, headers) => {
   consume these resources.
 
 These protocol resources are **adapter-specific** and not part of the
-core Transaction Template. They follow the same
+core Exchange Template. They follow the same
 "not installed, not available" contract as any other kit capability.
 
 ### Protocol-aware routing
 
 Because all entry points (http1 request, http1 upgrade, http2 stream)
-flow into the same workflow pipeline via `TransactionKit`, the
+flow into the same workflow pipeline via `ExchangeKit`, the
 protocol becomes a dimension at the handler layer — not an
 infrastructure concern.
 
 ```js
 workflow.use((kit, next) => {
-  const tx = useTransaction(kit);
+  const exchange = useExchange(kit);
 
-  if (tx.protocol === 'ws') {
+  if (exchange.protocol === 'ws') {
     return handleWebSocket(kit);
   }
 
@@ -1333,7 +1338,7 @@ workflow.use((kit, next) => {
 
 This is a novel capability — existing frameworks treat WebSocket and
 other non-HTTP protocols as "exceptions" handled outside the
-middleware pipeline. Kitty's `TransactionKit` unification makes
+middleware pipeline. Kitty's `ExchangeKit` unification makes
 protocol a first-class routing dimension.
 
 > **Note (external, to be moved out)**: The semantics of `protocol`

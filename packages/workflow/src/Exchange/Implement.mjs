@@ -2,7 +2,7 @@ import { isPlainObject } from 'is-plain-object';
 import { ThrowTypeError } from '@produck/type-error';
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
-import AbstractTransaction from './Abstract.mjs';
+import AbstractExchange from './Abstract.mjs';
 import { _I } from './Symbol.mjs';
 
 function normalizeOptions(options) {
@@ -261,7 +261,7 @@ export function Implement(options) {
   } = normalizeOptions(options);
 
   return SCP(
-    class ImplementedTransaction extends AbstractTransaction {
+    class ImplementedExchange extends AbstractExchange {
       static get meta() {
         return { ..._meta };
       }

@@ -1,12 +1,12 @@
 import { I, _I } from './Symbol.mjs';
 
-class KittyTransactionRequestHeader {
-  constructor(transaction) {
-    this[I.TRANSACTION] = transaction;
+class KittyExchangeRequestHeader {
+  constructor(exchange) {
+    this[I.EXCHANGE] = exchange;
   }
 
   get(key) {
-    return this[I.TRANSACTION][_I.REQUEST.HEADER.GET](key);
+    return this[I.EXCHANGE][_I.REQUEST.HEADER.GET](key);
   }
 
   has(key) {
@@ -14,7 +14,7 @@ class KittyTransactionRequestHeader {
   }
 
   keys() {
-    return this[I.TRANSACTION][_I.REQUEST.HEADER.KEYS]();
+    return this[I.EXCHANGE][_I.REQUEST.HEADER.KEYS]();
   }
 
   *entries() {
@@ -24,29 +24,29 @@ class KittyTransactionRequestHeader {
   }
 }
 
-class KittyTransactionRequestBody {
-  constructor(transaction) {
-    this[I.TRANSACTION] = transaction;
+class KittyExchangeRequestBody {
+  constructor(exchange) {
+    this[I.EXCHANGE] = exchange;
   }
 
   get data() {
-    return this[I.TRANSACTION][_I.REQUEST.BODY.DATA.GET]();
+    return this[I.EXCHANGE][_I.REQUEST.BODY.DATA.GET]();
   }
 }
 
-export default class KittyTransactionRequest {
-  constructor(transaction) {
-    this[I.TRANSACTION] = transaction;
-    this.header = new KittyTransactionRequestHeader(transaction);
-    this.body = new KittyTransactionRequestBody(transaction);
+export default class KittyExchangeRequest {
+  constructor(exchange) {
+    this[I.EXCHANGE] = exchange;
+    this.header = new KittyExchangeRequestHeader(exchange);
+    this.body = new KittyExchangeRequestBody(exchange);
     Object.freeze(this);
   }
 
   get method() {
-    return this[I.TRANSACTION].method;
+    return this[I.EXCHANGE].method;
   }
 
   get URL() {
-    return this[I.TRANSACTION].URL;
+    return this[I.EXCHANGE].URL;
   }
 }

@@ -3,13 +3,13 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 
 import { Iterable } from './Assert.mjs';
 import { I, _I } from './Symbol.mjs';
-import KittyTransactionRequest from './Request.mjs';
-import KittyTransactionResponse from './Response.mjs';
+import KittyExchangeRequest from './Request.mjs';
+import KittyExchangeResponse from './Response.mjs';
 
 export default Abstract(
-  class KittyTransaction {
-    request = new KittyTransactionRequest(this);
-    response = new KittyTransactionResponse(this);
+  class KittyExchange {
+    request = new KittyExchangeRequest(this);
+    response = new KittyExchangeResponse(this);
 
     constructor() {
       this[I.CONSTRUCTOR] = new.target;
