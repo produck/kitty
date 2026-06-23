@@ -13,6 +13,12 @@ const K_DEPLOYMENT_OPTIONS = Symbol('DeploymentKit.options');
 export const { use: useServer } = Kit.Getter(K_DEPLOYMENT_SERVER);
 export const { use: useOptions } = Kit.Getter(K_DEPLOYMENT_OPTIONS);
 
+export function initializeDeploymentKit(DeploymentKit, server, options) {
+  DeploymentKit[K_DEPLOYMENT_SELF] = true;
+  DeploymentKit[K_DEPLOYMENT_SERVER] = server;
+  DeploymentKit[K_DEPLOYMENT_OPTIONS] = options;
+}
+
 const DEFAULT_PASSTHOUGH = (_ctx, next) => next();
 
 export default class KittyWorkflow {
@@ -77,9 +83,7 @@ export default class KittyWorkflow {
   async [I.COMPILE](server, options) {
     const DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
 
-    DeploymentKit[K_DEPLOYMENT_SELF] = true;
-    DeploymentKit[K_DEPLOYMENT_SERVER] = server;
-    DeploymentKit[K_DEPLOYMENT_OPTIONS] = options;
+    initializeDeploymentKit(DeploymentKit, server, options);
 
     const deploymentArtifact = this[_I.ADAPTER.COMPILE](DeploymentKit);
 
@@ -101,7 +105,9 @@ export default class KittyWorkflow {
 
     //TODO args.length <= 1 as options of deployment.
 
-    return this[_I.COMPILE](server, ...args);
+    const { listeners } = await this[I.COMPILE](server, ...args);
+
+    return listeners;
   }
 
   async deploy(server, ...args) {

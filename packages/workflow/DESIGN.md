@@ -5,6 +5,9 @@
 DESIGN.md is the working draft for AI collaboration and exploration.
 Stable conclusions should be moved into ARCHITECTURE.md.
 
+Deployment paths are discussed in more detail in
+[DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Philosophy
 
 Kitty shares a similar core design with Koa — middleware pipeline
@@ -65,16 +68,18 @@ constructor(kit) → use(handler) → finalize()
   are no longer allowed.
 - **Compile**:
   - `compile(server, options?)` — **standalone listeners**:
-    Produces a listeners map from the registered adapter without
-    attaching to a server. The caller receives raw event handlers for
-    custom wiring.
+    Produces the listener record from the registered adapter's
+    deployment artifact without linking it to the server. The caller
+    receives raw event handlers for custom wiring.
 - **Deployment**:
   - `deploy(server, options?)` — **auto-discovery path**: Pass an
     existing HTTP server instance suitable for the registered adapter.
-    Runs `compile()` internally then links listeners to the server.
+    Looks up the standard adapter, compiles a deployment artifact, and
+    calls its `link(server, listeners)` function.
   - `adapt(options)` — **ephemeral custom path**: Returns
     `{ compile: compileOnce, deploy: deployOnce }` for one-off
-    adapters. No global registration.
+    adapters. It gives downstream code a chance to provide a temporary
+    deployment adapter without global registration.
 
 ### Composition Layer Extensions
 
@@ -91,7 +96,7 @@ The full lifecycle in the composition layer becomes:
 ```text
 constructor(kit) → mixin(installer)* → use(handler)* → finalize()
   → deploy(server) / compile(server) / adapt(options)
-  → Adapter.install → DeploymentKit prepared
+  → Adapter.Registry / temporary adapter → DeploymentKit prepared
   → (request) → ExchangeKit → Exchange created → workflow pipeline
 ```
 
@@ -125,7 +130,7 @@ classDiagram
   class AdapterKit["⚙️AdapterKit"] {
     +exportListener(name, listener) void
     +setDeployment(key, any) void
-    +setServerInstaller(install) void
+    +setServerLinker(link) void
   }
   class ExchangeKit["⚡ExchangeKit"] {
     <<mixinable>>
@@ -327,54 +332,54 @@ the uniform `Exchange` abstraction consumed by the workflow pipeline.
 
 ### Adapter Registration
 
-Adapters are registered globally via `Adapter.register(options)`:
+Adapters are registered globally via `Adapter.Registry.register(options)`:
 
 ```js
 import * as http from 'node:http';
 import * as Kitty from '@produck/kitty-workflow';
 
-Kitty.Adapter.register({
+Kitty.Adapter.Registry.register({
   name: 'http.http11.nodejs',
   constructor: http.Server,
-  listeners: Kit.defineRecipe((DeploymentKit, [handle]) => ({
-    request: (req, res) => {
-      const ExchangeKit = DeploymentKit('Kitty<Exchange>');
+  adapt(AdapterKit) {
+    AdapterKit.exportListener('request', (req, res) => {
+      const ExchangeKit = AdapterKit('Kitty<Exchange>');
       // wire req/res into Exchange abstract interface
-      handle(ExchangeKit);
-    },
-  })),
-  install: Kit.defineRecipe((DeploymentKit, [listeners]) => {
-    const { server } = Kitty.useDeployment(DeploymentKit);
-    server.on('request', listeners.request);
-  }),
+      AdapterKit.handleExchange(ExchangeKit);
+    });
+
+    AdapterKit.setServerLinker((server, listeners) => {
+      server.on('request', listeners.request);
+    });
+  },
 });
 ```
 
-| Option        | Description                                                      |
-| ------------- | ---------------------------------------------------------------- |
-| `constructor` | Subclass of `net.Server` that this adapter targets               |
-| `name`        | Human-readable identifier for the adapter                        |
-| `listeners`   | Recipe that produces a listeners map `{ request, upgrade, ... }` |
-| `install`     | Recipe that wires the listeners onto the server instance         |
+| Option        | Description                                        |
+| ------------- | -------------------------------------------------- |
+| `constructor` | Subclass of `net.Server` that this adapter targets |
+| `name`        | Logical adapter identifier                         |
+| `adapt`       | Function that installs AdapterKit behavior         |
 
 ### Lookup
 
 At deploy time, `CompoundKittyWorkflow` calls
-`Adapter.getByServer(server)` to find the matching adapter by
-walking the server's prototype chain against registered constructors.
+`Adapter.Registry.getByServer(server)` to find the matching adapter
+entry by walking the server's prototype chain against registered
+constructors. The registry value is `{ name, adapt }`; `name` is the
+logical adapter name and is distinct from the server constructor name.
 
 ### AdapterKit API
 
-When an adapter's `listeners`/`install` recipes are invoked, they
-receive an `AdapterKit` derived from `DeploymentKit` with the
-following API:
+When an adapter's `adapt(AdapterKit)` function is invoked, it receives
+an `AdapterKit` derived from `DeploymentKit` with the following API:
 
 | Method                                           | Behavior                                            |
 | ------------------------------------------------ | --------------------------------------------------- |
 | `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline    |
 | `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output map |
 | `adapterKit.setDeploymentKit(key, value)`        | Sets a value on `DeploymentKit` for downstream use  |
-| `adapterKit.setServerInstaller(install)`         | Overrides the default server event wiring function  |
+| `adapterKit.setServerLinker(link)`               | Sets `(server, listeners) => unknown` link function |
 
 `handleExchange(ExchangeKit)` is the primary entry point — it is
 called when a new request/stream arrives. It validates that the
@@ -748,18 +753,17 @@ the Adapter as the sole owner of protocol semantics.
 ```text
 deploy(server, options?) / deployOnce(server, options?)
   │
-  ├─ 1. [I_COMPILE](installRecipe, server, options)
+  ├─ 1. [I_COMPILE](adapter, server, options)
   │       │
   │       ├─ Create DeploymentKit from KitWorkflow
   │       ├─ Store { server, options } on DeploymentKit (Symbol-keyed)
-  │       └─ listeners = Injector.bind(installRecipe)(handleExchange)
-  │          Returns listeners map
+  │       ├─ Create AdapterKit from DeploymentKit
+  │       ├─ adapter.adapt(AdapterKit)
+  │       └─ Returns deployment artifact { listeners, link }
   │
-  ├─ 2. install(server, listeners)       ← "link" phase
+  ├─ 2. link(server, listeners)
   │       │
-  │       └─ Attaches each listener to server:
-  │          for (const [event, handler] of Object.entries(listeners))
-  │            server.on(event, handler)
+  │       └─ Attaches the artifact listeners to the concrete server
   │
   ├─ 3. Run modifiers on DeploymentKit
   │
@@ -767,18 +771,15 @@ deploy(server, options?) / deployOnce(server, options?)
 ```
 
 The "link" step (step 2) is analogous to assembly linking — the
-listeners have been compiled into a standalone map; `install` binds
+listeners have been compiled into a standalone record; `link` binds
 them to a concrete server instance. `compile()` / `compileOnce()`
-stop after step 1 and return the raw listeners map, leaving the
+stop after step 1 and return the raw listeners record, leaving the
 linking to the caller.
 
 This flow is identical for both `deploy()` and `adapt()` — the only
-difference is how the `installRecipe` is sourced (global registry
-vs. inline options).
-
-This flow is identical for both `deploy()` and `adapt()` — the only
-difference is how the `listeners` recipe is sourced (global registry
-vs. inline options).
+difference is how the adapter is sourced: `deploy()` uses the global
+registry, while `adapt()` uses a temporary adapter supplied by
+downstream code.
 
 ### Protocol correctness is the Adapter author's responsibility
 
@@ -1089,7 +1090,7 @@ ExchangeKit, and kit inheritance does the rest.
 - The `deployOnce` function returned by `adapt()` **must be called
   synchronously and exactly once**, enforced via `queueMicrotask`.
   Rationale: since `deployOnce` bypasses the global Adapter registry
-  and couples directly to a custom installer, it must be consumed
+  and couples directly to a custom adapter, it must be consumed
   immediately at the call site — deferring or storing it risks
   inconsistent or orphaned state:
 
@@ -1129,13 +1130,36 @@ handler: ([kit[, next]]) => any
 
 ### 4. Deployment Paths
 
-Two deployment paths serve different scenarios:
+Three deployment paths serve different scenarios:
+
+- **Deploy**: `deploy(server, options?)` uses the global registry to
+  find the standard adapter for the server constructor. It compiles a
+  deployment artifact and immediately calls `link(server, listeners)`.
+- **Compile**: `compile(server, options?)` uses the same standard
+  adapter source as `deploy()`, but returns the artifact listeners so
+  callers can wire them manually.
+- **Adapt**: `adapt(options)` creates an ephemeral deployment adapter
+  scope. It lets downstream code provide a one-off adapter that can
+  replace the registry-selected standard adapter for a single compile
+  or deploy operation.
+
+The plug analogy is useful:
+
+- `deploy()` uses the standard plug to connect the workflow to a
+  compatible server.
+- `compile()` removes the plug and exposes the wires (`listeners`) for
+  manual wiring.
+- `adapt()` lets the workflow use a temporary custom deployment kit,
+  with core adapter behavior plus downstream custom capabilities, for
+  one deployment opportunity.
+
+Operational differences:
 
 - **Discovery**
-  - `deploy()`: Reverse lookup via Adapter registry (`Adapter.getByServer`).
+  - `deploy()`: Reverse lookup via `Adapter.Registry.getByServer`.
   - `adapt()`: Explicit `options.constructor`, checked via `instanceof`.
 - **Registry**
-  - `deploy()`: Relies on global registry of constructor → installer
+  - `deploy()`: Relies on global registry of constructor → adapter
     mappings, pre-populated by Kitty official adapters.
   - `adapt()`: No global registration — ephemeral, one-off usage.
 - **Use case**
@@ -1159,9 +1183,9 @@ Two deployment paths serve different scenarios:
 
 #### `compileOnce(server, options?)`
 
-Runs the adapter's listeners recipe against a `DeploymentKit` created
-for the given `server`. Returns the listeners map
-`{ request, upgrade, ... }`.
+Runs the temporary adapter against an `AdapterKit` derived from the
+given server's `DeploymentKit`. Returns the listeners record from the
+deployment artifact, for example `{ request, upgrade, ... }`.
 
 Key difference from `deployOnce`: modifiers registered by mixins
 (`appendDeploymentKitModifier`) are **not** executed, and listeners
@@ -1170,8 +1194,8 @@ protocol wiring only.
 
 #### `deployOnce(server, options?)`
 
-Runs `[I_COMPILE]` to produce listeners, then links them to the
-server via `install(server, listeners)`, and finally executes all
+Runs `[I_COMPILE]` to produce a deployment artifact, then links it to
+the server via `link(server, listeners)`, and finally executes all
 deployment modifiers.
 
 #### Lock sharing
@@ -1193,10 +1217,10 @@ Both run the same listeners phase logic:
 #### Options scoping
 
 `options` belongs to the **compile phase** — it affects how the
-listeners recipe behaves (e.g. body threshold, protocol options).
-The link phase (`install`) currently does not accept options from
-downstream; if future linkers need configuration, it will be defined
-by Kitty core, not exposed to users at the `deploy()` call site.
+adapter behaves (e.g. body threshold, protocol options). The link
+phase currently does not accept options from downstream; if future
+linkers need configuration, it will be defined by Kitty core, not
+exposed to users at the `deploy()` call site.
 
 #### Lock sharing between `compileOnce` and `deployOnce`
 
@@ -1208,13 +1232,23 @@ outcome (compile or deploy). If the user needs both, they can call
 
 ### 5. Deployment Injection
 
-Each adapter defines `listeners` via `Kit.defineRecipe()` — a **Kit
-recipe** that installs dependencies onto the deployment-level kit
-(`Kitty<Deployment>`) and returns a map of event handlers.
+Each adapter configures an `AdapterKit` derived from the
+deployment-level kit (`Kitty<Deployment>`). The adapter may install
+dependencies onto `DeploymentKit`, export listeners, and set a link
+function.
 
-And an `install` — a plain function `(server, listeners) => void`
-that attaches the listeners to a server instance. Unlike `listeners`,
-`install` has no access to DeploymentKit.
+The resulting deployment artifact contains two fields:
+
+```js
+{
+  listeners,
+  link,
+}
+```
+
+`listeners` is the protocol event-handler record. `link` is the
+plain `(server, listeners) => unknown` binding step that attaches
+selected listeners to a concrete server instance.
 
 The adapter concerns itself only with the deployment-level kit; it
 has no access to or effect on the Workflow-level kit
@@ -1226,25 +1260,26 @@ has no access to or effect on the Workflow-level kit
 `compileOnce()`, `deploy()`, and `deployOnce()`:
 
 ```text
-[I_COMPILE](installRecipe, server, options?)
+[I_COMPILE](adapter, server, options?)
   → Creates DeploymentKit
   → Stores { server, options } on DeploymentKit
-  → Binds installRecipe to DeploymentKit via Injector
-  → Returns listeners map: { [event: string]: Function }
+  → Creates AdapterKit from DeploymentKit
+  → Runs adapter.adapt(AdapterKit)
+  → Returns deployment artifact: { listeners, link }
 ```
 
 `[I_DEPLOY]` builds on `[I_COMPILE]`:
 
 ```text
-[I_DEPLOY](installRecipe, installFn, server, options?)
-  → listeners = await [I_COMPILE](installRecipe, server, options)
-  → installFn(server, listeners)          // "link" to server
+[I_DEPLOY](adapter, server, options?)
+  → artifact = await [I_COMPILE](adapter, server, options)
+  → artifact.link(server, artifact.listeners)
   → Run modifiers on DeploymentKit
   → Return true
 ```
 
-The `installFn` must not access DeploymentKit — it is a pure
-`(server, listeners) => void` binding step.
+The `link` function should not rely on DeploymentKit. It receives the
+server and the artifact listeners directly.
 
 ### 7. Adapter Format
 
@@ -1253,55 +1288,55 @@ An adapter in the registry stores two fields:
 ```js
 registry.set(Constructor, {
   name: 'http',
-  listeners: Kit.defineRecipe((DeploymentKit, [handle]) => ({
-    request: (req, res) => {
+  adapt(AdapterKit) {
+    AdapterKit.exportListener('request', (req, res) => {
       /* ... */
-    },
-    upgrade: (req, socket, head) => {
+    });
+    AdapterKit.exportListener('upgrade', (req, socket, head) => {
       /* ... */
-    },
-  })),
-  install: (server, listeners) => {
-    server.on('request', listeners.request);
-    // only default events, not all
+    });
+    AdapterKit.setServerLinker((server, listeners) => {
+      server.on('request', listeners.request);
+    });
   },
 });
 ```
 
-- `listeners`: Kit recipe that installs Exchange dependencies and
-  produces event handlers. Side-effect-free. Can be called
-  independently by `compile()` / `compileOnce()`.
-- `install`: Plain function. Not a Kit recipe. Attaches default
-  listeners to server. Called by `deploy()` / `deployOnce()` after
-  the listeners phase. Since all Node.js server types inherit from
-  `net.Server` (EventEmitter), the attachment interface is uniform
-  across protocols.
+- `name`: Logical adapter name. It is not the same concept as the
+  server constructor's `.name`.
+- `adapt`: Plain function that configures an `AdapterKit`. It exports
+  event listeners and sets a linker for the deployment artifact.
+- `listeners`: Record of event handlers produced by the artifact
+  installation process.
+- `link`: Plain function `(server, listeners) => unknown` that
+  attaches selected listeners to a concrete server instance.
 
-## Adapter listeners/install split
+## Adapter Artifact Split
 
-Split adapter `install` into two phases — `listeners` + `install` —
-to support exporting raw listeners similar to Koa's
-`app.callback()`.
+Adapter compilation produces an artifact split into `listeners` and
+`link`. This supports exporting raw listeners similar to Koa's
+`app.callback()`, while still allowing `deploy()` to link the artifact
+automatically.
 
 ### `listeners`
 
-- Type: `Kit.defineRecipe((DeploymentKit, [handle]) => Record<string, Function>)`
-- Responsibility: Install Exchange dependencies on the
-  DeploymentKit and produce a map of event handlers
+- Type: `Record<string | symbol, Function>`.
+- Responsibility: Provide protocol event handlers
   (e.g. HTTP/1.x adapter produces
   `{ request: (req, res) => {}, upgrade: (req, socket, head) => {} }`;
   HTTP/2 adapter produces
   `{ stream: (stream, headers) => {}, request: (req, res) => {} }`).
-- Side-effect-free. Can be called independently by `compile()`.
+- Can be returned independently by `compile()`.
 
-### `install`
+### `link`
 
-- Type: `(server, listeners) => void`
+- Type: `(server, listeners) => unknown`.
 - Responsibility: Attach the default event handlers to the server
   instance. Each adapter knows its own default — e.g. HTTP/2 adapter
   installs `stream` only, not `request`. The `request` handler is
   provided for users who prefer the compatibility shim.
-- **Not a Kit recipe** — must not access DeploymentKit.
+- **Not a Kit recipe** — it receives the server and listener record
+  directly.
 - Called by `deploy(server)` after the listeners phase.
 - Since all Node.js server types inherit from `net.Server` (EventEmitter),
   the attachment interface is uniform across protocols.
@@ -1309,8 +1344,9 @@ to support exporting raw listeners similar to Koa's
 ### Flow
 
 ```text
-compile(constructor, options?) → [I_COMPILE] → returns listeners map
-deploy(server, options?)       → [I_COMPILE] → install(listeners) → run modifiers
+compile(server, options?) → [I_COMPILE] → returns listeners record
+deploy(server, options?)  → [I_COMPILE] → link(server, listeners)
+                         → run modifiers
 
 // Basic user: default install strategy (e.g. http2 → stream)
 workflow.deploy(server);
@@ -1353,7 +1389,10 @@ for creating `ExchangeKit` inside it. At that point it can install
 protocol-specific resources directly onto `ExchangeKit`:
 
 ```js
-server.on('stream', (stream, headers) => {
+(
+  server: object,
+  listeners: Record<string | symbol, (...args: any[]) => any>,
+) => unknown
   const ExchangeKit = DeploymentKit('Kitty<Exchange>');
   kit[K_STREAM] = stream;
   kit[K_SESSION] = stream.session;
@@ -1448,15 +1487,16 @@ member-level API requirements:
 - **Workflow**: The composed handler pipeline, produced by
   `Composer.compose()`.
 - **Adapter**: A mapping between a server constructor and its
-  installer. Works only on the deployment-level kit
-  (`Kitty<Deployment>`); has no effect on the Workflow-level kit.
+  adapter entry `{ name, adapt }`. Works only on the deployment-level
+  kit (`Kitty<Deployment>`); has no effect on the Workflow-level kit.
 - **Kit Recipe**: Describes dependencies to install into a kit.
-  Adapter `listeners` is a recipe defined via `Kit.defineRecipe()`.
-- **listeners**: A Kit recipe that produces a protocol-specific
-  map of event handlers (e.g. `{ request: (req, res) => {} }`).
-- **install**: A plain function `(server, listener) => void` that
-  attaches a listener to a server instance. Not a Kit recipe.
-- **deploy**: Auto-discovery deployment — looks up installer from
+  Adapter functions may still use recipes, but registry adapters are
+  currently plain `adapt(AdapterKit)` functions.
+- **listeners**: A protocol-specific record of event handlers, for
+  example `{ request: (req, res) => {} }`.
+- **link**: A plain function `(server, listeners) => unknown` that
+  attaches artifact listeners to a server instance.
+- **deploy**: Auto-discovery deployment — looks up an adapter from
   global Adapter registry by prototype chain.
 - **adapt**: Ephemeral custom deployment — no global registration,
-  one-off use with immediate invocation guard.|
+  one-off use with immediate invocation guard.

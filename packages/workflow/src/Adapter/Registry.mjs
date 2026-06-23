@@ -55,13 +55,13 @@ export function normalizeOptions(options) {
 }
 
 function registerServerAdapter(options) {
-  const { constructor, adapt } = normalizeOptions(options);
+  const { constructor, name, adapt } = normalizeOptions(options);
 
   if (registry.has(constructor)) {
     Ow.Error.Common(`Server constructor(${constructor.name}) exists.`);
   }
 
-  registry.set(constructor, adapt);
+  registry.set(constructor, { name, adapt });
 }
 
 export function isAvaiableServer(value) {
