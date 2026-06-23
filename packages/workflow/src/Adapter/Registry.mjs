@@ -2,11 +2,19 @@ import * as net from 'node:net';
 
 import * as Ow from '@produck/ow';
 import { ThrowTypeError } from '@produck/type-error';
-import { isPlainObject } from 'is-plain-object';
 import { isSubConstructor } from '@produck/is-sub-constructor';
-import * as Kit from '@produck/kit';
 
 const registry = new Map();
+
+function isOptionsRecord(value) {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+
+  return prototype === null || prototype === Object.prototype;
+}
 
 export function normalizeOptions(options) {
   const _options = {
@@ -14,16 +22,14 @@ export function normalizeOptions(options) {
     //TODO redesign adapter identity surface; legacy name metadata is too weak for
     //protocol-level invariants such as logical exchange identity.
     name: '',
-    listeners: Kit.defineRecipe(() => ({})),
-    install: () => {},
+    adapt: () => {},
   };
 
-  if (isPlainObject(options)) {
+  if (isOptionsRecord(options)) {
     const {
-      constructor: _constructor,
+      constructor: _constructor = net.Server,
       name: _name,
-      listeners: _listeners,
-      install: _install,
+      adapt: _adapt,
     } = options;
 
     if (isSubConstructor(_constructor, net.Server)) {
@@ -36,16 +42,10 @@ export function normalizeOptions(options) {
       _options.name = _name;
     }
 
-    if (typeof _listeners === 'function') {
-      _options.listeners = Kit.defineRecipe(_listeners);
-    } else if (_listeners !== undefined) {
-      ThrowTypeError('options.listeners', 'function');
-    }
-
-    if (typeof _install === 'function') {
-      _options.install = _install;
-    } else if (_install !== undefined) {
-      ThrowTypeError('options.install', 'function');
+    if (typeof _adapt === 'function') {
+      _options.adapt = _adapt;
+    } else if (_adapt !== undefined) {
+      ThrowTypeError('options.adapt', 'function');
     }
   } else {
     ThrowTypeError('options', 'plain object');
@@ -55,13 +55,13 @@ export function normalizeOptions(options) {
 }
 
 function registerServerAdapter(options) {
-  const { constructor, name, listeners, install } = normalizeOptions(options);
+  const { constructor, adapt } = normalizeOptions(options);
 
   if (registry.has(constructor)) {
     Ow.Error.Common(`Server constructor(${constructor.name}) exists.`);
   }
 
-  registry.set(constructor, { name, listeners, install });
+  registry.set(constructor, adapt);
 }
 
 export function isAvaiableServer(value) {

@@ -36,10 +36,10 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
   [_I.ADAPTER.COMPILE](DeploymentKit) {
     const server = Abstract.useServer(DeploymentKit);
     const adapt = Adapter.Registry.getByServer(server);
-    const handledExchanges = new WeakSet();
 
     //TODO assert adapt existed
 
+    const handledExchanges = new WeakSet();
     const AdapterKit = DeploymentKit('Kitty<Adapter>');
     const artifact = Adapter.Artifact.installAdapterKitArtifact(AdapterKit);
 

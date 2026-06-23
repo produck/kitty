@@ -34,14 +34,8 @@ export default class KittyWorkflow {
     this[I.WORKFLOW] = Composer.compose(...handler, this[I.WORKFLOW]);
   }
 
-  [$I.COMPOSE.SUFFIX](...handler) {
-    this[I.WORKFLOW] = Composer.compose(this[I.WORKFLOW], ...handler);
-  }
-
   use(...handlerList) {
-    if (this.isFinalized) {
-      Ow.throw('It has been finalized.');
-    }
+    this[I.ASSERT.NOT_FINALIZED]();
 
     for (const index in handlerList) {
       const handler = handlerList[index];
@@ -57,10 +51,7 @@ export default class KittyWorkflow {
   }
 
   finalize() {
-    if (this.isFinalized) {
-      Ow.throw('It has been finalized.');
-    }
-
+    this[I.ASSERT.NOT_FINALIZED]();
     this[$I.COMPOSE.PREFIX](...Object.freeze(this[I.HANDLER_LIST]));
     this[_I.COMPOSE.EXTEND]();
 
@@ -74,6 +65,12 @@ export default class KittyWorkflow {
   [I.ASSERT.FINALIZED]() {
     if (!this.isFinalized) {
       Ow.throw('It MUST be finalized.');
+    }
+  }
+
+  [I.ASSERT.NOT_FINALIZED]() {
+    if (this.isFinalized) {
+      Ow.throw('It has been finalized.');
     }
   }
 
@@ -113,21 +110,5 @@ export default class KittyWorkflow {
     //TODO args.length <= 1 as options of deployment.
 
     return this[I.DEPLOY](server, ...args);
-  }
-
-  adapt() {
-    this[I.ASSERT.FINALIZED]();
-
-    const compileOnce = async (server, options) => {
-      const { listeners: record } = await this[I.COMPILE](server, options);
-
-      return record;
-    };
-
-    const deployOnce = (server, options) => {
-      return this[I.DEPLOY](server, options);
-    };
-
-    return Object.freeze({ compile: compileOnce, deploy: deployOnce });
   }
 }

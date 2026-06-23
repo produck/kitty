@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import * as http from 'node:http';
 import { describe, it } from 'node:test';
 
-import * as Kit from '@produck/kit';
 import * as Adapter from '../src/Adapter/index.mjs';
 
 describe('::Adapter', () => {
@@ -53,16 +52,7 @@ describe('::Adapter', () => {
       Adapter.Registry.define({
         name: 'http.http11.nodejs',
         constructor: http.Server,
-        listener: Kit.defineRecipe(function MockHttp(DeploymentKit, [handle]) {
-          return (_req, _res) => {
-            const ExchangeKit = DeploymentKit('Kitty<Exchange>');
-
-            //TODO append useExchange deps.
-
-            handle(ExchangeKit);
-          };
-        }),
-        install: Kit.defineRecipe(function MockHttp() {}),
+        adapt() {},
       });
     });
   });
