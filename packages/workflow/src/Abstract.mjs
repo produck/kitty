@@ -3,6 +3,7 @@ import { ThrowTypeError } from '@produck/type-error';
 import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
 
+import * as Adapter from './Adapter/index.mjs';
 import { $I, I, _I } from './Symbol.mjs';
 
 export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
@@ -24,7 +25,7 @@ export default class KittyWorkflow {
       ThrowTypeError('args[0] as kit', 'Kit');
     }
 
-    this[I.KIT] = kit('Kitty<Workflow>');
+    this[$I.KIT] = kit('Kitty<Workflow>');
     this[I.CONSTRUCTOR] = new.target;
     Object.freeze(this);
   }
@@ -38,7 +39,7 @@ export default class KittyWorkflow {
   }
 
   use(...handlerList) {
-    if (this.isFinal) {
+    if (this.isFinalized) {
       Ow.throw('It has been finalized.');
     }
 
@@ -56,7 +57,7 @@ export default class KittyWorkflow {
   }
 
   finalize() {
-    if (this.isFinal) {
+    if (this.isFinalized) {
       Ow.throw('It has been finalized.');
     }
 
@@ -66,34 +67,34 @@ export default class KittyWorkflow {
     return this;
   }
 
-  get isFinal() {
+  get isFinalized() {
     return this[I.WORKFLOW] !== DEFAULT_PASSTHOUGH;
   }
 
   [I.ASSERT.FINALIZED]() {
-    if (!this.isFinal) {
+    if (!this.isFinalized) {
       Ow.throw('It MUST be finalized.');
     }
   }
 
   async [I.COMPILE](server, options) {
-    const DeploymentKit = this[I.KIT]('Kitty<Deployment>');
+    const DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
 
     DeploymentKit[K_DEPLOYMENT_SELF] = true;
     DeploymentKit[K_DEPLOYMENT_SERVER] = server;
     DeploymentKit[K_DEPLOYMENT_OPTIONS] = options;
 
-    const listeners = this[_I.ADAPTER.COMPILE](DeploymentKit);
+    const deploymentArtifact = this[_I.ADAPTER.COMPILE](DeploymentKit);
 
-    //TODO check listeners shape
+    Adapter.Artifact.assertDeploymentArtifact(deploymentArtifact);
 
-    return listeners;
+    return deploymentArtifact;
   }
 
   async [I.DEPLOY](server, options) {
-    const listeners = this[I.COMPILE](server, options);
+    const { listeners, link } = await this[I.COMPILE](server, options);
 
-    await this[_I.ADAPTER.LINK](server, listeners);
+    link(server, listeners);
 
     return true;
   }

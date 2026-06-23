@@ -81,21 +81,4 @@ export function getByServer(server) {
   return adapter;
 }
 
-export function installAdapterKitArtifact(AdapterKit) {
-  const artifact = {
-    listeners: {},
-    link: () => {},
-  };
-
-  AdapterKit.exportListener = function (eventName, listener) {
-    artifact.listeners[eventName] = listener;
-  };
-
-  AdapterKit.setServerLinker = function (link) {
-    artifact.link = link;
-  };
-
-  return artifact;
-}
-
 export { registerServerAdapter as register, normalizeOptions as define };

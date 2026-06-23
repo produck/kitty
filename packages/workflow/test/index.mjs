@@ -1,0 +1,1 @@
+import './Adapter.test.mjs';

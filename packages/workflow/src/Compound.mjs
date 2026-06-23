@@ -5,7 +5,7 @@ import { $I, _I } from './Symbol.mjs';
 import * as Exchange from './Exchange/index.mjs';
 import AbstractKittyWorkflow, * as Abstract from './Abstract.mjs';
 import * as Mixin from './Mixin.mjs';
-import * as Adapter from './Adapter.mjs';
+import * as Adapter from './Adapter/index.mjs';
 
 import * as WORKFLOW from './Symbol.mjs';
 
@@ -35,13 +35,13 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
 
   [_I.ADAPTER.COMPILE](DeploymentKit) {
     const server = Abstract.useServer(DeploymentKit);
-    const adapt = Adapter.getByServer(server);
+    const adapt = Adapter.Registry.getByServer(server);
     const handledExchanges = new WeakSet();
 
     //TODO assert adapt existed
 
     const AdapterKit = DeploymentKit('Kitty<Adapter>');
-    const artifact = Adapter.installAdapterKitArtifact(AdapterKit);
+    const artifact = Adapter.Artifact.installAdapterKitArtifact(AdapterKit);
 
     Object.assign(AdapterKit, {
       handleExchange: async (ExchangeKit) => {
@@ -85,6 +85,12 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
     adapt(AdapterKit);
 
     return artifact;
+  }
+
+  mixin() {
+    const MixinKit = this[$I.KIT]('Kitty<Mixin>');
+
+    void MixinKit;
   }
 }
 
