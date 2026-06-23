@@ -22,14 +22,14 @@ export function normalizeOptions(options) {
     //TODO redesign adapter identity surface; legacy name metadata is too weak for
     //protocol-level invariants such as logical exchange identity.
     name: '',
-    adapt: () => {},
+    install: () => {},
   };
 
   if (isOptionsRecord(options)) {
     const {
       constructor: _constructor = net.Server,
       name: _name,
-      adapt: _adapt,
+      install: _install,
     } = options;
 
     if (isSubConstructor(_constructor, net.Server)) {
@@ -42,10 +42,10 @@ export function normalizeOptions(options) {
       _options.name = _name;
     }
 
-    if (typeof _adapt === 'function') {
-      _options.adapt = _adapt;
-    } else if (_adapt !== undefined) {
-      ThrowTypeError('options.adapt', 'function');
+    if (typeof _install === 'function') {
+      _options.install = _install;
+    } else if (_install !== undefined) {
+      ThrowTypeError('options.install', 'function');
     }
   } else {
     ThrowTypeError('options', 'plain object');
@@ -55,13 +55,13 @@ export function normalizeOptions(options) {
 }
 
 function registerServerAdapter(options) {
-  const { constructor, name, adapt } = normalizeOptions(options);
+  const { constructor, name, install } = normalizeOptions(options);
 
   if (registry.has(constructor)) {
     Ow.Error.Common(`Server constructor(${constructor.name}) exists.`);
   }
 
-  registry.set(constructor, { name, adapt });
+  registry.set(constructor, { name, install });
 }
 
 export function isAvaiableServer(value) {

@@ -3,7 +3,6 @@ import { ThrowTypeError } from '@produck/type-error';
 import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
 
-import * as Adapter from './Adapter/index.mjs';
 import { $I, I, _I } from './Symbol.mjs';
 
 export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
@@ -41,7 +40,7 @@ export default class KittyWorkflow {
   }
 
   use(...handlerList) {
-    this[I.ASSERT.NOT_FINALIZED]();
+    this[$I.ASSERT.NOT_FINALIZED]();
 
     for (const index in handlerList) {
       const handler = handlerList[index];
@@ -57,7 +56,7 @@ export default class KittyWorkflow {
   }
 
   finalize() {
-    this[I.ASSERT.NOT_FINALIZED]();
+    this[$I.ASSERT.NOT_FINALIZED]();
     this[$I.COMPOSE.PREFIX](...Object.freeze(this[I.HANDLER_LIST]));
     this[_I.COMPOSE.EXTEND]();
 
@@ -68,13 +67,13 @@ export default class KittyWorkflow {
     return this[I.WORKFLOW] !== DEFAULT_PASSTHOUGH;
   }
 
-  [I.ASSERT.FINALIZED]() {
+  [$I.ASSERT.FINALIZED]() {
     if (!this.isFinalized) {
       Ow.throw('It MUST be finalized.');
     }
   }
 
-  [I.ASSERT.NOT_FINALIZED]() {
+  [$I.ASSERT.NOT_FINALIZED]() {
     if (this.isFinalized) {
       Ow.throw('It has been finalized.');
     }
@@ -85,11 +84,7 @@ export default class KittyWorkflow {
 
     initializeDeploymentKit(DeploymentKit, server, options);
 
-    const deploymentArtifact = this[_I.ADAPTER.COMPILE](DeploymentKit);
-
-    Adapter.Artifact.assertDeploymentArtifact(deploymentArtifact);
-
-    return deploymentArtifact;
+    return this[_I.ADAPTER.COMPILE](DeploymentKit);
   }
 
   async [I.DEPLOY](server, options) {
@@ -101,7 +96,7 @@ export default class KittyWorkflow {
   }
 
   async compile(server, ...args) {
-    this[I.ASSERT.FINALIZED]();
+    this[$I.ASSERT.FINALIZED]();
 
     //TODO args.length <= 1 as options of deployment.
 
@@ -111,7 +106,7 @@ export default class KittyWorkflow {
   }
 
   async deploy(server, ...args) {
-    this[I.ASSERT.FINALIZED]();
+    this[$I.ASSERT.FINALIZED]();
 
     //TODO args.length <= 1 as options of deployment.
 

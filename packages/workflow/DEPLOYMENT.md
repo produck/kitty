@@ -63,7 +63,7 @@ listeners and leaves linking to the caller.
    constructor.
 2. Create `DeploymentKit` from the workflow kit.
 3. Create `AdapterKit` from `DeploymentKit`.
-4. Run `adapter.adapt(AdapterKit)`.
+4. Run `adapter.install(AdapterKit)`.
 5. Validate the resulting deployment artifact.
 6. Call `artifact.link(server, artifact.listeners)`.
 7. Run deployment modifiers registered by mixins.
@@ -74,7 +74,7 @@ function:
 ```js
 {
   name,
-  adapt,
+  install,
 }
 ```
 

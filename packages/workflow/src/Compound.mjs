@@ -2,17 +2,23 @@ import * as Ow from '@produck/ow';
 import * as Kit from '@produck/kit';
 import { ThrowTypeError } from '@produck/type-error';
 
-import { $I, I, _I } from './Symbol.mjs';
+import { $I, _I } from './Symbol.mjs';
 import * as Exchange from './Exchange/index.mjs';
 import AbstractKittyWorkflow, * as Abstract from './Abstract.mjs';
 import * as Mixin from './Mixin.mjs';
 import * as Adapter from './Adapter/index.mjs';
 
 function ThrowAdapter(message, cause) {
-  Ow.Error.Common(`Bad adapter: ${message}`, { cause });
+  const throwArgs = [`Bad adapter: ${message}`];
+
+  if (cause !== undefined) {
+    throwArgs.push({ cause });
+  }
+
+  Ow.Error.Common(...throwArgs);
 }
 
-function compileByAdapter(workflow, DeploymentKit, adapter) {
+function buildDeploymentArtifact(workflow, DeploymentKit, adapter) {
   const server = Abstract.useServer(DeploymentKit);
   const handledExchanges = new WeakSet();
   const AdapterKit = DeploymentKit('Kitty<Adapter>');
@@ -53,11 +59,13 @@ function compileByAdapter(workflow, DeploymentKit, adapter) {
       await workflow[$I.WORKFLOW](ExchangeKit);
     },
     setDeploymentKit: (key, value) => {
+      //TODO check key
       DeploymentKit[key] = value;
     },
   });
 
-  adapter.adapt(AdapterKit);
+  adapter.install(AdapterKit);
+  Adapter.Artifact.assertDeploymentArtifact(artifact);
 
   return artifact;
 }
@@ -86,13 +94,13 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
     const server = Abstract.useServer(DeploymentKit);
     const adapter = Adapter.Registry.getByServer(server);
 
-    //TODO assert adapt existed
+    //TODO assert install existed
 
-    return compileByAdapter(this, DeploymentKit, adapter);
+    return buildDeploymentArtifact(this, DeploymentKit, adapter);
   }
 
   adapt(adapter) {
-    this[I.ASSERT.FINALIZED]();
+    this[$I.ASSERT.FINALIZED]();
 
     const DeploymentKit = this[$I.KIT]('Kitty<Deployment:OneTime>');
     const finalAdapter = Adapter.Registry.normalizeOptions(adapter);
@@ -100,10 +108,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
 
     function assertServer(server) {
       if (!(server instanceof finalAdapter.constructor)) {
-        ThrowTypeError(
-          'args[0] as server',
-          `instance of ${finalAdapter.constructor.name}`,
-        );
+        ThrowTypeError('args[0] as server', finalAdapter.constructor.name);
       }
     }
 
@@ -113,14 +118,9 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       }
 
       state.compiled = true;
-
       Abstract.initializeDeploymentKit(DeploymentKit, server, options);
 
-      const artifact = compileByAdapter(this, DeploymentKit, finalAdapter);
-
-      Adapter.Artifact.assertDeploymentArtifact(artifact);
-
-      return artifact;
+      return buildDeploymentArtifact(this, DeploymentKit, finalAdapter);
     };
 
     const compileOnce = (server, ...args) => {

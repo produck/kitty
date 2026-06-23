@@ -4,24 +4,20 @@ const I_CONSTRUCTOR = Symbol('.#constructor');
 const I_HANDLER_LIST = Symbol('.#handlerList');
 const I_DEPLOY = Symbol('.#deploy()');
 const I_COMPILE = Symbol('.#compile()');
-const I_ASSERT_FINALIZED = Symbol('.#assertFinalized()');
-const I_ASSERT_NOT_FINALIZED = Symbol('.#assertNotFinalized()');
 
 export const I = deepFreeze({
   CONSTRUCTOR: I_CONSTRUCTOR,
   HANDLER_LIST: I_HANDLER_LIST,
   DEPLOY: I_DEPLOY,
   COMPILE: I_COMPILE,
-  ASSERT: {
-    FINALIZED: I_ASSERT_FINALIZED,
-    NOT_FINALIZED: I_ASSERT_NOT_FINALIZED,
-  },
 });
 
 const $I_KIT = Symbol('.$kit');
 const $I_WORKFLOW = Symbol('.$workflow');
 const $I_HANDLE_EXCHANGE = Symbol('.$handleExchange()');
 const $I_COMPOSE_PREFIX = Symbol('.$composePrefix()');
+const $I_ASSERT_FINALIZED = Symbol('.$assertFinalized()');
+const $I_ASSERT_NOT_FINALIZED = Symbol('.$assertNotFinalized()');
 
 export const $I = deepFreeze({
   KIT: $I_KIT,
@@ -29,6 +25,10 @@ export const $I = deepFreeze({
   HANDLE_EXCHANGE: $I_HANDLE_EXCHANGE,
   COMPOSE: {
     PREFIX: $I_COMPOSE_PREFIX,
+  },
+  ASSERT: {
+    FINALIZED: $I_ASSERT_FINALIZED,
+    NOT_FINALIZED: $I_ASSERT_NOT_FINALIZED,
   },
 });
 

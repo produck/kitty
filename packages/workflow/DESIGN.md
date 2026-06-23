@@ -341,7 +341,7 @@ import * as Kitty from '@produck/kitty-workflow';
 Kitty.Adapter.Registry.register({
   name: 'http.http11.nodejs',
   constructor: http.Server,
-  adapt(AdapterKit) {
+  install(AdapterKit) {
     AdapterKit.exportListener('request', (req, res) => {
       const ExchangeKit = AdapterKit('Kitty<Exchange>');
       // wire req/res into Exchange abstract interface
@@ -359,20 +359,25 @@ Kitty.Adapter.Registry.register({
 | ------------- | -------------------------------------------------- |
 | `constructor` | Subclass of `net.Server` that this adapter targets |
 | `name`        | Logical adapter identifier                         |
-| `adapt`       | Function that installs AdapterKit behavior         |
+| `install`     | Function that installs deployment adapter behavior |
 
 ### Lookup
 
 At deploy time, `CompoundKittyWorkflow` calls
 `Adapter.Registry.getByServer(server)` to find the matching adapter
 entry by walking the server's prototype chain against registered
-constructors. The registry value is `{ name, adapt }`; `name` is the
+constructors. The registry value is `{ name, install }`; `name` is the
 logical adapter name and is distinct from the server constructor name.
 
 ### AdapterKit API
 
-When an adapter's `adapt(AdapterKit)` function is invoked, it receives
+When an adapter's `install(AdapterKit)` function is invoked, it receives
 an `AdapterKit` derived from `DeploymentKit` with the following API:
+
+`AdapterKit` is a one-time isolation port. It keeps adapter authors
+from mutating `DeploymentKit` directly while still allowing the adapter
+to install deployment behavior: listeners, a server linker, and
+deployment-scoped dependencies.
 
 | Method                                           | Behavior                                            |
 | ------------------------------------------------ | --------------------------------------------------- |
@@ -758,7 +763,7 @@ deploy(server, options?) / deployOnce(server, options?)
   │       ├─ Create DeploymentKit from KitWorkflow
   │       ├─ Store { server, options } on DeploymentKit (Symbol-keyed)
   │       ├─ Create AdapterKit from DeploymentKit
-  │       ├─ adapter.adapt(AdapterKit)
+  │       ├─ adapter.install(AdapterKit)
   │       └─ Returns deployment artifact { listeners, link }
   │
   ├─ 2. link(server, listeners)
@@ -1264,7 +1269,7 @@ has no access to or effect on the Workflow-level kit
   → Creates DeploymentKit
   → Stores { server, options } on DeploymentKit
   → Creates AdapterKit from DeploymentKit
-  → Runs adapter.adapt(AdapterKit)
+  → Runs adapter.install(AdapterKit)
   → Returns deployment artifact: { listeners, link }
 ```
 
@@ -1288,7 +1293,7 @@ An adapter in the registry stores two fields:
 ```js
 registry.set(Constructor, {
   name: 'http',
-  adapt(AdapterKit) {
+  install(AdapterKit) {
     AdapterKit.exportListener('request', (req, res) => {
       /* ... */
     });
@@ -1304,8 +1309,9 @@ registry.set(Constructor, {
 
 - `name`: Logical adapter name. It is not the same concept as the
   server constructor's `.name`.
-- `adapt`: Plain function that configures an `AdapterKit`. It exports
-  event listeners and sets a linker for the deployment artifact.
+- `install`: Plain function that installs deployment behavior through
+  `AdapterKit`. It exports event listeners and sets a linker for the
+  deployment artifact.
 - `listeners`: Record of event handlers produced by the artifact
   installation process.
 - `link`: Plain function `(server, listeners) => unknown` that
@@ -1487,11 +1493,11 @@ member-level API requirements:
 - **Workflow**: The composed handler pipeline, produced by
   `Composer.compose()`.
 - **Adapter**: A mapping between a server constructor and its
-  adapter entry `{ name, adapt }`. Works only on the deployment-level
+  adapter entry `{ name, install }`. Works only on the deployment-level
   kit (`Kitty<Deployment>`); has no effect on the Workflow-level kit.
 - **Kit Recipe**: Describes dependencies to install into a kit.
   Adapter functions may still use recipes, but registry adapters are
-  currently plain `adapt(AdapterKit)` functions.
+  currently plain `install(AdapterKit)` functions.
 - **listeners**: A protocol-specific record of event handlers, for
   example `{ request: (req, res) => {} }`.
 - **link**: A plain function `(server, listeners) => unknown` that

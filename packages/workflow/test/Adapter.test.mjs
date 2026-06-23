@@ -52,7 +52,7 @@ describe('::Adapter', () => {
       Adapter.Registry.define({
         name: 'http.http11.nodejs',
         constructor: http.Server,
-        adapt() {},
+        install() {},
       });
     });
   });
