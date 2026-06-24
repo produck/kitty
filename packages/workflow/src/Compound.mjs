@@ -104,47 +104,57 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
 
     const DeploymentKit = this[$I.KIT]('Kitty<Deployment:OneTime>');
     const finalAdapter = Adapter.Registry.normalizeOptions(adapter);
-    const state = { compiled: false };
+    let expired = false;
+    let consumed = false;
 
-    function assertServer(server) {
+    queueMicrotask(() => (expired = true));
+
+    function consumeBy(context, server) {
+      if (context !== deployer) {
+        Ow.Error.Common('Must consume through its deployer.');
+      }
+
       if (!(server instanceof finalAdapter.constructor)) {
         ThrowTypeError('args[0] as server', finalAdapter.constructor.name);
       }
-    }
 
-    const compileArtifactOnce = (server, options) => {
-      if (state.compiled) {
+      if (consumed) {
         Ow.Error.Common('One-time deployment adapter has already been used.');
       }
 
-      state.compiled = true;
+      if (expired) {
+        Ow.Error.Common(
+          'One-time deployment adapter MUST be consumed immediately.',
+        );
+      }
+
+      consumed = true;
+    }
+
+    const compileArtifactOnce = (server, options) => {
       Abstract.initializeDeploymentKit(DeploymentKit, server, options);
 
       return buildDeploymentArtifact(this, DeploymentKit, finalAdapter);
     };
 
-    const compileOnce = (server, ...args) => {
-      assertServer(server);
+    const deployer = Object.freeze({
+      compile: function compileOnce(server, ...args) {
+        consumeBy(this, server);
 
-      const { listeners } = compileArtifactOnce(server, ...args);
+        const { listeners } = compileArtifactOnce(server, ...args);
 
-      return listeners;
-    };
+        return listeners;
+      },
+      deploy: function deployOnce(server, ...args) {
+        consumeBy(this, server);
 
-    const deployOnce = (server, ...args) => {
-      assertServer(server);
+        const { listeners, link } = compileArtifactOnce(server, ...args);
 
-      const { listeners, link } = compileArtifactOnce(server, ...args);
-
-      link(server, listeners);
-
-      return true;
-    };
-
-    return Object.freeze({
-      compile: compileOnce,
-      deploy: deployOnce,
+        link(server, listeners);
+      },
     });
+
+    return deployer;
   }
 
   mixin() {

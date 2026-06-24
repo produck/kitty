@@ -1,8 +1,8 @@
 # Deployment Paths
 
 This document describes the deployment-facing features of
-`KittyWorkflow`: `deploy()`, `compile()`, and the planned ephemeral
-`adapt()` path.
+`KittyWorkflow`: `deploy()`, `compile()`, and the ephemeral `adapt()`
+path.
 
 `KittyWorkflow` is similar to Koa in that both organize request
 handling around a middleware pipeline. Kitty differs at the deployment
@@ -97,14 +97,21 @@ embedding Kitty listeners into a larger server lifecycle.
 
 ## Ephemeral Adapt
 
-`adapt(options)` is a planned path for temporary adapter replacement.
-It should not register anything globally and should not occupy the
-constructor slot in `Adapter.Registry`.
+`adapt(options)` is the path for temporary adapter replacement. It is
+a stable Composition-layer decision, not part of the Abstract
+workflow lifecycle skeleton. The Abstract layer provides the normal
+`compile()` / `deploy()` lifecycle and deployment-kit initialization;
+`CompoundKittyWorkflow` owns `adapt()` because it is the layer that
+combines Workflow, Mixin, and Adapter domains.
+
+The temporary adapter should not register anything globally and should
+not occupy the constructor slot in `Adapter.Registry`.
 
 Instead, it creates a one-off deployment adapter scope. Downstream code
 can provide a temporary adapter with core bridge behavior plus extra
-custom deployment capabilities. The returned operations should be used
-for exactly one outcome: compile once or deploy once.
+custom deployment capabilities. The returned operations must be
+consumed synchronously for exactly one outcome: compile once or deploy
+once.
 
 This is one of Kitty's interesting differences from Koa. Koa primarily
 extends request processing through middleware. Kitty can also offer a
@@ -123,9 +130,14 @@ Useful cases include:
 
 ## One-Shot Constraint
 
-The ephemeral adapter path should be one-shot. A single `adapt()` call
-creates one temporary deployment opportunity. If a caller needs both a
-manual compile and a deploy, it should call `adapt()` twice.
+The ephemeral adapter path is one-shot and same-tick. A single
+`adapt()` call creates one temporary deployment opportunity. Exactly
+one of the returned `compile()` or `deploy()` operations must be
+called synchronously at the call site, before the queued microtask
+expires the scope.
+
+If a caller needs both a manual compile and a deploy, it should call
+`adapt()` twice.
 
 This keeps the deployment state simple: each temporary adapter scope has
 one outcome, and the workflow avoids retaining ambiguous partially used

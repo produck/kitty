@@ -91,8 +91,6 @@ export default class KittyWorkflow {
     const { listeners, link } = await this[I.COMPILE](server, options);
 
     link(server, listeners);
-
-    return true;
   }
 
   async compile(server, ...args) {

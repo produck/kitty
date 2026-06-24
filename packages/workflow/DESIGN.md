@@ -40,21 +40,23 @@ server handlers under this philosophy.
 
 - **Abstract layer** (`Abstract.mjs`): Defines the lifecycle template
   — `constructor(kit)` → `use(handler)` → `finalize()` →
-  `compile()`/`deploy()`/`adapt()`. It exposes four extension point
-  hooks (`_I` namespace) for subclasses to fill in: compose extension,
-  adapter compilation, adapter linking, and deploy-time behavior. The
-  abstract layer knows nothing about mixin or adapter — it is purely a
-  extensible skeleton.
+  `compile()`/`deploy()`. It exposes extension point hooks (`_I`
+  namespace) for subclasses to fill in: compose extension, adapter
+  compilation, and deploy-time behavior. The abstract layer knows
+  nothing about mixin, adapter registry, or temporary adapters — it is
+  purely an extensible skeleton.
 
 - **Composition layer** (`Compound.mjs`): Extends the abstract layer
   and implements two orthogonal domains — **Mixin** and **Adapter** —
-  each responsible for a distinct kind of capability injection.
+  each responsible for a distinct kind of capability injection. The
+  composition layer also owns `adapt(options)`, because temporary
+  adapters only make sense after the Adapter domain has been introduced.
 
 ## Lifecycle (Abstract Layer)
 
 ```text
 constructor(kit) → use(handler) → finalize()
-  → deploy(server, options?) / compile(server, options?) / adapt(options)
+  → deploy(server, options?) / compile(server, options?)
   → (request) → ExchangeKit
 ```
 
@@ -76,10 +78,6 @@ constructor(kit) → use(handler) → finalize()
     existing HTTP server instance suitable for the registered adapter.
     Looks up the standard adapter, compiles a deployment artifact, and
     calls its `link(server, listeners)` function.
-  - `adapt(options)` — **ephemeral custom path**: Returns
-    `{ compile: compileOnce, deploy: deployOnce }` for one-off
-    adapters. It gives downstream code a chance to provide a temporary
-    deployment adapter without global registration.
 
 ### Composition Layer Extensions
 
@@ -90,6 +88,10 @@ introduce two domains:
   prefix handler registration and deployment modifiers.
 - **Adapter domain**: Provides server-type-aware compilation and
   linking via a registry of adapter definitions.
+- **Ephemeral adapter path**: Provides `adapt(options)` as a
+  Compound-layer deployment extension. It returns
+  `{ compile, deploy }` for one-off adapters without global
+  registration.
 
 The full lifecycle in the composition layer becomes:
 
@@ -240,8 +242,8 @@ the entire pipeline.
 available to all handler layers.
 
 `appendDeploymentKitModifier(modifier)` stores a callback to be
-invoked during `deploy()` / `adapt()()` after the adapter has
-installed its low-level protocol API on `DeploymentKit`. Each
+invoked during `deploy()` / `adapt()` after the adapter has installed
+its low-level protocol API on `DeploymentKit`. Each
 modifier receives the `DeploymentKit` and can extend it with
 higher-level capabilities (e.g. body parsing, cookie handling).
 
@@ -756,7 +758,7 @@ the Adapter as the sole owner of protocol semantics.
 ### Deployment flow
 
 ```text
-deploy(server, options?) / deployOnce(server, options?)
+deploy(server, options?) / adapt(options).deploy(server, options?)
   │
   ├─ 1. [I_COMPILE](adapter, server, options)
   │       │
@@ -777,9 +779,9 @@ deploy(server, options?) / deployOnce(server, options?)
 
 The "link" step (step 2) is analogous to assembly linking — the
 listeners have been compiled into a standalone record; `link` binds
-them to a concrete server instance. `compile()` / `compileOnce()`
-stop after step 1 and return the raw listeners record, leaving the
-linking to the caller.
+them to a concrete server instance. `compile()` /
+`adapt(options).compile()` stop after step 1 and return the raw
+listeners record, leaving the linking to the caller.
 
 This flow is identical for both `deploy()` and `adapt()` — the only
 difference is how the adapter is sourced: `deploy()` uses the global
@@ -948,7 +950,7 @@ Template layer.
 
 ## Server Lifecycle Ownership
 
-The server passed to `deploy()` / `deployOnce()` remains under the
+The server passed to `deploy()` / `adapt().deploy()` remains under the
 caller's control at all times. Workflow does not:
 
 - Start or stop the server.
@@ -1092,19 +1094,19 @@ ExchangeKit, and kit inheritance does the rest.
 - `isFinal` guard: `finalize()` / `deploy()` / `adapt()` all check
   whether the workflow has already been finalized. Repeated calls
   throw.
-- The `deployOnce` function returned by `adapt()` **must be called
-  synchronously and exactly once**, enforced via `queueMicrotask`.
-  Rationale: since `deployOnce` bypasses the global Adapter registry
-  and couples directly to a custom adapter, it must be consumed
-  immediately at the call site — deferring or storing it risks
-  inconsistent or orphaned state:
+- The scope returned by `adapt()` **must be consumed synchronously and
+  exactly once**, enforced via `queueMicrotask`. Rationale: since the
+  returned `compile()` / `deploy()` operations bypass the global
+  Adapter registry and couple directly to a custom adapter, one of
+  them must be consumed immediately at the call site. Deferring or
+  storing the scope weakens the temporary-adapter contract:
 
   ```js
   let deployed = false,
     available = true;
   queueMicrotask(() => (available = false));
 
-  return function deployOnce(server, options) {
+  return function consumeOnce(server, options) {
     if (!available) {
       /* not called immediately */
     }
@@ -1120,7 +1122,7 @@ ExchangeKit, and kit inheritance does the rest.
     window: calling within the same tick passes, calling later is
     rejected.
   - `deployed` is set before validation completes, ensuring only the
-    first call proceeds past the guard.
+    first `compile()` or `deploy()` call proceeds past the guard.
 
 ### 3. Handler Signature
 
@@ -1175,29 +1177,29 @@ Operational differences:
     constructor slot is already occupied and cannot be overridden).
 - **Reusability**
   - `deploy()`: Unlimited — can be called multiple times with different servers.
-  - `adapt()`: Each returned function (`compileOnce`, `deployOnce`) is
-    usable at most once.
+  - `adapt()`: The returned scope is usable at most once; exactly one
+    of its `compile()` or `deploy()` operations may be called.
 - **Returns**
-  - `deploy()`: `true` (indicates completion).
-  - `adapt()`: `{ compileOnce, deployOnce }` — two independent
-    one-shot operations sharing the same adapter options.
+  - `deploy()`: no completion value; it links the artifact to the server.
+  - `adapt()`: `{ compile, deploy }` — two mutually exclusive
+    operations sharing the same adapter options.
 - **Timing**
   - `deploy()`: No constraint.
-  - `adapt()`: Both `compileOnce` and `deployOnce` must be called
-    synchronously within the same microtask as `adapt()`.
+  - `adapt()`: One returned operation must be called synchronously at
+    the call site before the queued microtask expires the scope.
 
-#### `compileOnce(server, options?)`
+#### `adapt(options).compile(server, options?)`
 
 Runs the temporary adapter against an `AdapterKit` derived from the
 given server's `DeploymentKit`. Returns the listeners record from the
 deployment artifact, for example `{ request, upgrade, ... }`.
 
-Key difference from `deployOnce`: modifiers registered by mixins
-(`appendDeploymentKitModifier`) are **not** executed, and listeners
-are **not** linked to the server. `compileOnce` produces the raw
-protocol wiring only.
+Key difference from `adapt(options).deploy()`: modifiers registered
+by mixins (`appendDeploymentKitModifier`) are **not** executed, and
+listeners are **not** linked to the server. `adapt(options).compile()`
+produces the raw protocol wiring only.
 
-#### `deployOnce(server, options?)`
+#### `adapt(options).deploy(server, options?)`
 
 Runs `[I_COMPILE]` to produce a deployment artifact, then links it to
 the server via `link(server, listeners)`, and finally executes all
@@ -1205,19 +1207,19 @@ deployment modifiers.
 
 #### Lock sharing
 
-`compileOnce` and `deployOnce` share a single execution lock — only
-one may be called per `adapt()` invocation. If both are needed,
-call `adapt()` again.
+The returned `compile` and `deploy` operations share a single execution
+lock — only one may be called per `adapt()` invocation. If both are
+needed, call `adapt()` again.
 
-#### Relationship between `compile()` and `compileOnce`
+#### Relationship between `compile()` and `adapt(options).compile()`
 
 Both run the same listeners phase logic:
 
-|                  | `compile(constructor, options?)` | `compileOnce(server, options?)` |
-| ---------------- | -------------------------------- | ------------------------------- |
-| Adapter source   | Global registry                  | Inline `adapt()` options        |
-| Server discovery | Lookup by constructor            | Server passed directly          |
-| Scope            | Public API                       | Returned from `adapt()`         |
+|                  | `compile(constructor, options?)` | `adapt().compile(server, options?)` |
+| ---------------- | -------------------------------- | ----------------------------------- |
+| Adapter source   | Global registry                  | Inline `adapt()` options            |
+| Server discovery | Lookup by constructor            | Server passed directly              |
+| Scope            | Public API                       | Returned from `adapt()`             |
 
 #### Options scoping
 
@@ -1227,12 +1229,12 @@ phase currently does not accept options from downstream; if future
 linkers need configuration, it will be defined by Kitty core, not
 exposed to users at the `deploy()` call site.
 
-#### Lock sharing between `compileOnce` and `deployOnce`
+#### Lock sharing between `adapt().compile()` and `adapt().deploy()`
 
-`compileOnce` and `deployOnce` share a single execution lock — only
-one of them may be called per `adapt()` invocation. This makes
-behavior predictable: a given `adapt()` call produces exactly one
-outcome (compile or deploy). If the user needs both, they can call
+The returned `compile` and `deploy` operations share a single execution
+lock — only one of them may be called per `adapt()` invocation. This
+makes behavior predictable: a given `adapt()` call produces exactly
+one outcome (compile or deploy). If the user needs both, they can call
 `adapt()` a second time — the cost is negligible.
 
 ### 5. Deployment Injection
@@ -1262,7 +1264,7 @@ has no access to or effect on the Workflow-level kit
 ### 6. Internal `[I_COMPILE]` and `[I_DEPLOY]`
 
 `[I_COMPILE]` is the core internal mechanism shared by `compile()`,
-`compileOnce()`, `deploy()`, and `deployOnce()`:
+`adapt().compile()`, `deploy()`, and `adapt().deploy()`:
 
 ```text
 [I_COMPILE](adapter, server, options?)
@@ -1280,7 +1282,7 @@ has no access to or effect on the Workflow-level kit
   → artifact = await [I_COMPILE](adapter, server, options)
   → artifact.link(server, artifact.listeners)
   → Run modifiers on DeploymentKit
-  → Return true
+  → Return without a completion value
 ```
 
 The `link` function should not rely on DeploymentKit. It receives the
