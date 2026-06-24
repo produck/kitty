@@ -131,24 +131,24 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       consumed = true;
     }
 
-    const compileArtifactOnce = (server, options) => {
-      Abstract.initializeDeploymentKit(DeploymentKit, server, options);
+    const compileArtifactOnce = (server) => {
+      Abstract.initializeDeploymentKit(DeploymentKit, server);
 
       return buildDeploymentArtifact(this, DeploymentKit, finalAdapter);
     };
 
     const deployer = Object.freeze({
-      compile: function compileOnce(server, ...args) {
+      compile: function compileOnce(server) {
         consumeBy(this, server);
 
-        const { listeners } = compileArtifactOnce(server, ...args);
+        const { listeners } = compileArtifactOnce(server);
 
         return listeners;
       },
-      deploy: function deployOnce(server, ...args) {
+      deploy: function deployOnce(server) {
         consumeBy(this, server);
 
-        const { listeners, link } = compileArtifactOnce(server, ...args);
+        const { listeners, link } = compileArtifactOnce(server);
 
         link(server, listeners);
       },

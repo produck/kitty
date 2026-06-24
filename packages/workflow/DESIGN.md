@@ -8,6 +8,9 @@ Stable conclusions should be moved into ARCHITECTURE.md.
 Deployment paths are discussed in more detail in
 [DEPLOYMENT.md](DEPLOYMENT.md).
 
+Attachment ports are discussed in more detail in
+[ATTACHMENT-PORTS.md](ATTACHMENT-PORTS.md).
+
 ## Philosophy
 
 Kitty shares a similar core design with Koa — middleware pipeline
@@ -51,12 +54,16 @@ server handlers under this philosophy.
   each responsible for a distinct kind of capability injection. The
   composition layer also owns `adapt(options)`, because temporary
   adapters only make sense after the Adapter domain has been introduced.
+  `MixinKit` and `AdapterKit` act as attachment ports: scoped,
+  kit-backed control surfaces that let downstream suppliers install and
+  later adjust their own workflow features without receiving direct
+  `WorkflowKit` authority.
 
 ## Lifecycle (Abstract Layer)
 
 ```text
 constructor(kit) → use(handler) → finalize()
-  → deploy(server, options?) / compile(server, options?)
+  → deploy(server) / compile(server)
   → (request) → ExchangeKit
 ```
 
@@ -69,12 +76,12 @@ constructor(kit) → use(handler) → finalize()
   sequence into a single workflow. After this, `use()` and `mixin()`
   are no longer allowed.
 - **Compile**:
-  - `compile(server, options?)` — **standalone listeners**:
+  - `compile(server)` — **standalone listeners**:
     Produces the listener record from the registered adapter's
     deployment artifact without linking it to the server. The caller
     receives raw event handlers for custom wiring.
 - **Deployment**:
-  - `deploy(server, options?)` — **auto-discovery path**: Pass an
+  - `deploy(server)` — **auto-discovery path**: Pass an
     existing HTTP server instance suitable for the registered adapter.
     Looks up the standard adapter, compiles a deployment artifact, and
     calls its `link(server, listeners)` function.
@@ -758,12 +765,12 @@ the Adapter as the sole owner of protocol semantics.
 ### Deployment flow
 
 ```text
-deploy(server, options?) / adapt(options).deploy(server, options?)
+deploy(server) / adapt(options).deploy(server)
   │
-  ├─ 1. [I_COMPILE](adapter, server, options)
+  ├─ 1. [I_COMPILE](adapter, server)
   │       │
   │       ├─ Create DeploymentKit from KitWorkflow
-  │       ├─ Store { server, options } on DeploymentKit (Symbol-keyed)
+  │       ├─ Store server on DeploymentKit (Symbol-keyed)
   │       ├─ Create AdapterKit from DeploymentKit
   │       ├─ adapter.install(AdapterKit)
   │       └─ Returns deployment artifact { listeners, link }
@@ -869,7 +876,7 @@ Rationale:
    it:
 
    ```js
-   async [I_DEPLOY](install, server, options) {
+   async [I_DEPLOY](install, server) {
      const runtime = Kit.compose(
        ExchangeTemplateInstaller,  // workflow core
        install,                       // adapter-specific
@@ -899,15 +906,12 @@ tx.request.body.data; // Readable | null
   pipe or read chunks as needed.
 - **null**: No body.
 
-Core provides a default caching strategy (threshold → temp file) with
-a policy controller installed on `DeploymentKit`:
+Core may provide a default caching strategy (threshold → temp file)
+with a policy controller installed on `DeploymentKit`. The
+configuration entry point for that policy is still open; it is not a
+generic `deploy(server, options)` pass-through.
 
 ```js
-// Deploy-time configuration
-workflow.deploy(server, {
-  body: { threshold: '10MB', dir: '/tmp/kitty' },
-});
-
 // Handler can adjust per-request via inherited policy
 workflow.use(async (kit, next) => {
   const policy = kit['body.policy'];
@@ -1139,10 +1143,10 @@ handler: ([kit[, next]]) => any
 
 Three deployment paths serve different scenarios:
 
-- **Deploy**: `deploy(server, options?)` uses the global registry to
+- **Deploy**: `deploy(server)` uses the global registry to
   find the standard adapter for the server constructor. It compiles a
   deployment artifact and immediately calls `link(server, listeners)`.
-- **Compile**: `compile(server, options?)` uses the same standard
+- **Compile**: `compile(server)` uses the same standard
   adapter source as `deploy()`, but returns the artifact listeners so
   callers can wire them manually.
 - **Adapt**: `adapt(options)` creates an ephemeral deployment adapter
@@ -1188,7 +1192,7 @@ Operational differences:
   - `adapt()`: One returned operation must be called synchronously at
     the call site before the queued microtask expires the scope.
 
-#### `adapt(options).compile(server, options?)`
+#### `adapt(options).compile(server)`
 
 Runs the temporary adapter against an `AdapterKit` derived from the
 given server's `DeploymentKit`. Returns the listeners record from the
@@ -1199,7 +1203,7 @@ by mixins (`appendDeploymentKitModifier`) are **not** executed, and
 listeners are **not** linked to the server. `adapt(options).compile()`
 produces the raw protocol wiring only.
 
-#### `adapt(options).deploy(server, options?)`
+#### `adapt(options).deploy(server)`
 
 Runs `[I_COMPILE]` to produce a deployment artifact, then links it to
 the server via `link(server, listeners)`, and finally executes all
@@ -1215,19 +1219,11 @@ needed, call `adapt()` again.
 
 Both run the same listeners phase logic:
 
-|                  | `compile(constructor, options?)` | `adapt().compile(server, options?)` |
-| ---------------- | -------------------------------- | ----------------------------------- |
-| Adapter source   | Global registry                  | Inline `adapt()` options            |
-| Server discovery | Lookup by constructor            | Server passed directly              |
-| Scope            | Public API                       | Returned from `adapt()`             |
-
-#### Options scoping
-
-`options` belongs to the **compile phase** — it affects how the
-adapter behaves (e.g. body threshold, protocol options). The link
-phase currently does not accept options from downstream; if future
-linkers need configuration, it will be defined by Kitty core, not
-exposed to users at the `deploy()` call site.
+|                  | `compile(constructor)` | `adapt().compile(server)` |
+| ---------------- | ---------------------- | ------------------------- |
+| Adapter source   | Global registry        | Inline `adapt()` options  |
+| Server discovery | Lookup by constructor  | Server passed directly    |
+| Scope            | Public API             | Returned from `adapt()`   |
 
 #### Lock sharing between `adapt().compile()` and `adapt().deploy()`
 
@@ -1267,9 +1263,9 @@ has no access to or effect on the Workflow-level kit
 `adapt().compile()`, `deploy()`, and `adapt().deploy()`:
 
 ```text
-[I_COMPILE](adapter, server, options?)
+[I_COMPILE](adapter, server)
   → Creates DeploymentKit
-  → Stores { server, options } on DeploymentKit
+  → Stores server on DeploymentKit
   → Creates AdapterKit from DeploymentKit
   → Runs adapter.install(AdapterKit)
   → Returns deployment artifact: { listeners, link }
@@ -1278,8 +1274,8 @@ has no access to or effect on the Workflow-level kit
 `[I_DEPLOY]` builds on `[I_COMPILE]`:
 
 ```text
-[I_DEPLOY](adapter, server, options?)
-  → artifact = await [I_COMPILE](adapter, server, options)
+[I_DEPLOY](adapter, server)
+  → artifact = await [I_COMPILE](adapter, server)
   → artifact.link(server, artifact.listeners)
   → Run modifiers on DeploymentKit
   → Return without a completion value
@@ -1352,16 +1348,12 @@ automatically.
 ### Flow
 
 ```text
-compile(server, options?) → [I_COMPILE] → returns listeners record
-deploy(server, options?)  → [I_COMPILE] → link(server, listeners)
+compile(server) → [I_COMPILE] → returns listeners record
+deploy(server)  → [I_COMPILE] → link(server, listeners)
                          → run modifiers
 
 // Basic user: default install strategy (e.g. http2 → stream)
 workflow.deploy(server);
-
-// Advanced user: selective listening via compile()
-const listeners = workflow.compile(http2.Server, { /* options */ });
-http2.createServer(listeners.stream).listen(3000);
 
 // Advanced user: selective listening via compile()
 const listeners = workflow.compile(http2.Server);

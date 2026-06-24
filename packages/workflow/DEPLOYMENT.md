@@ -57,7 +57,7 @@ listeners and leaves linking to the caller.
 
 ## Standard Deploy
 
-`deploy(server, options?)` is the default path for ordinary use.
+`deploy(server)` is the default path for ordinary use.
 
 1. Look up the adapter entry from `Adapter.Registry` by server
    constructor.
@@ -84,7 +84,7 @@ implementation class; the adapter name describes the protocol bridge.
 
 ## Compile
 
-`compile(server, options?)` uses the same registered adapter source as
+`compile(server)` uses the same registered adapter source as
 `deploy()`, but stops before the link phase.
 
 It is useful when the caller wants Kitty to produce validated listener

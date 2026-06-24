@@ -7,15 +7,12 @@ import { $I, I, _I } from './Symbol.mjs';
 
 export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
 const K_DEPLOYMENT_SERVER = Symbol('DeploymentKit.server');
-const K_DEPLOYMENT_OPTIONS = Symbol('DeploymentKit.options');
 
 export const { use: useServer } = Kit.Getter(K_DEPLOYMENT_SERVER);
-export const { use: useOptions } = Kit.Getter(K_DEPLOYMENT_OPTIONS);
 
-export function initializeDeploymentKit(DeploymentKit, server, options) {
+export function initializeDeploymentKit(DeploymentKit, server) {
   DeploymentKit[K_DEPLOYMENT_SELF] = true;
   DeploymentKit[K_DEPLOYMENT_SERVER] = server;
-  DeploymentKit[K_DEPLOYMENT_OPTIONS] = options;
 }
 
 const DEFAULT_PASSTHOUGH = (_ctx, next) => next();
@@ -79,35 +76,31 @@ export default class KittyWorkflow {
     }
   }
 
-  async [I.COMPILE](server, options) {
+  async [I.COMPILE](server) {
     const DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
 
-    initializeDeploymentKit(DeploymentKit, server, options);
+    initializeDeploymentKit(DeploymentKit, server);
 
     return this[_I.ADAPTER.COMPILE](DeploymentKit);
   }
 
-  async [I.DEPLOY](server, options) {
-    const { listeners, link } = await this[I.COMPILE](server, options);
+  async [I.DEPLOY](server) {
+    const { listeners, link } = await this[I.COMPILE](server);
 
     link(server, listeners);
   }
 
-  async compile(server, ...args) {
+  async compile(server) {
     this[$I.ASSERT.FINALIZED]();
 
-    //TODO args.length <= 1 as options of deployment.
-
-    const { listeners } = await this[I.COMPILE](server, ...args);
+    const { listeners } = await this[I.COMPILE](server);
 
     return listeners;
   }
 
-  async deploy(server, ...args) {
+  async deploy(server) {
     this[$I.ASSERT.FINALIZED]();
 
-    //TODO args.length <= 1 as options of deployment.
-
-    return this[I.DEPLOY](server, ...args);
+    return this[I.DEPLOY](server);
   }
 }
