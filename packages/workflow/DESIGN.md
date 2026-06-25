@@ -57,6 +57,12 @@ this capability? Once installed at the right scope, the capability is
 distributed downward by normal kit inheritance and can be accessed with
 ordinary property syntax.
 
+`WorkflowKit` also carries the workflow instance itself as a stable
+identity capability. Downstream code may read that identity via
+`useWorkflow(kit)` and use it as a `WeakMap` key, but it does not receive
+direct write access to `WorkflowKit`. Structural writes remain behind
+guarded attachment-port methods.
+
 Kitty is a concrete use of this mechanism. It does not try to model all
 program effects as typed computations. Instead, it uses kit inheritance
 to assemble workflow, deployment, adapter, exchange, and handler

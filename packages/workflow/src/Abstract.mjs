@@ -6,8 +6,10 @@ import * as Composer from '@produck/compose';
 import { $I, I, _I } from './Symbol.mjs';
 
 export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
+export const K_WORKFLOW_SELF = Symbol('WorkflowKit.self');
 const K_DEPLOYMENT_SERVER = Symbol('DeploymentKit.server');
 
+export const { use: useWorkflow } = Kit.Getter(K_WORKFLOW_SELF);
 export const { use: useServer } = Kit.Getter(K_DEPLOYMENT_SERVER);
 
 export function initializeDeploymentKit(DeploymentKit, server) {
@@ -28,6 +30,7 @@ export default class KittyWorkflow {
     }
 
     this[$I.KIT] = kit('Kitty<Workflow>');
+    this[$I.KIT][K_WORKFLOW_SELF] = this;
     this[I.CONSTRUCTOR] = new.target;
     Object.freeze(this);
   }

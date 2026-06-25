@@ -31,6 +31,12 @@ pass through guarded methods on the port, such as `setWorkflowKit()` or
 `setDeploymentKit()`. If the workflow lifecycle no longer allows that
 write, the method throws.
 
+The workflow instance itself is attached to `WorkflowKit` as a stable
+identity capability and is readable through `useWorkflow(kit)`. This is
+safe because it exposes the frozen workflow object, not the writable
+`WorkflowKit` surface. Suppliers can use that identity as a `WeakMap`
+key for their own control surfaces.
+
 ```text
 Capability supplier
   -> receives MixinKit / AdapterKit
