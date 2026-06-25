@@ -2,7 +2,7 @@ import * as Ow from '@produck/ow';
 import * as Kit from '@produck/kit';
 import { ThrowTypeError } from '@produck/type-error';
 
-import { $I, _I } from './Symbol.mjs';
+import { I, $I, _I } from './Symbol.mjs';
 import * as Exchange from './Exchange/index.mjs';
 import AbstractKittyWorkflow, * as Abstract from './Abstract.mjs';
 import * as Mixin from './Mixin.mjs';
@@ -16,64 +16,6 @@ function ThrowAdapter(message, cause) {
   }
 
   Ow.Error.Common(...throwArgs);
-}
-
-function buildDeploymentArtifact(workflow, DeploymentKit, adapter) {
-  const server = Abstract.useServer(DeploymentKit);
-  const handledExchanges = new WeakSet();
-  const AdapterKit = DeploymentKit('Kitty<Adapter>');
-  const artifact = Adapter.Artifact.installToAdapterKit(AdapterKit);
-
-  Object.assign(AdapterKit, {
-    handleExchange: async (ExchangeKit) => {
-      try {
-        void ExchangeKit[Abstract.K_DEPLOYMENT_SELF];
-      } catch (cause) {
-        ThrowAdapter('ExchangeKit not derived from DeploymentKit.', cause);
-      }
-
-      if (ExchangeKit === DeploymentKit) {
-        ThrowAdapter('ExchangeKit MUST NOT be a DeploymentKit.');
-      }
-
-      const exchange = Exchange.touchExchange(ExchangeKit);
-
-      if (exchange === undefined) {
-        ThrowAdapter('Exchange is not installed.');
-      }
-
-      if (!(exchange instanceof Exchange.Abstract)) {
-        ThrowAdapter('It MUST be an Exchange instance.');
-      }
-
-      if (exchange.server !== server) {
-        ThrowAdapter('Bad linked server.');
-      }
-
-      if (handledExchanges.has(exchange)) {
-        ThrowAdapter('Adapter dispatched one Exchange more than once.');
-      }
-
-      handledExchanges.add(exchange);
-
-      const injector = Kit.Injector(ExchangeKit);
-
-      for (const attacher of workflow[$I.EXCHANGE_ATTACHER_LIST]) {
-        injector.bind(attacher)();
-      }
-
-      await workflow[$I.WORKFLOW](ExchangeKit);
-    },
-    setDeploymentKit: (key, value) => {
-      //TODO check key
-      DeploymentKit[key] = value;
-    },
-  });
-
-  adapter.install(AdapterKit);
-  Adapter.Artifact.assertDeploymentArtifact(artifact);
-
-  return artifact;
 }
 
 export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
@@ -109,18 +51,68 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
     this[$I.COMPOSE.PREFIX](...Object.freeze(this[Mixin.I_HANDLER_LIST]));
   }
 
-  [_I.ADAPTER.COMPILE](DeploymentKit) {
+  [_I.COMPILE_ARTIFACT](DeploymentKit, adapter) {
     const injector = Kit.Injector(DeploymentKit);
-    const server = Abstract.useServer(DeploymentKit);
-    const adapter = Adapter.Registry.getByServer(server);
+
+    if (adapter === undefined) {
+      const server = Abstract.useServer(DeploymentKit);
+
+      adapter = Adapter.Registry.getByServer(server);
+      adapter.install(AdapterKit);
+    }
 
     for (const attacher of this[$I.DEPLOYMENT_ATTACHER_LIST]) {
       injector.bind(attacher)();
     }
 
-    //TODO assert install existed
+    const server = Abstract.useServer(DeploymentKit);
+    const handledExchanges = new WeakSet();
+    const AdapterKit = DeploymentKit('Kitty<Adapter>');
+    const artifact = Adapter.Artifact.installToAdapterKit(AdapterKit);
 
-    return buildDeploymentArtifact(this, DeploymentKit, adapter);
+    AdapterKit.handleExchange = async (ExchangeKit) => {
+      try {
+        void ExchangeKit[Abstract.K_DEPLOYMENT_SELF];
+      } catch (cause) {
+        ThrowAdapter('ExchangeKit not derived from DeploymentKit.', cause);
+      }
+
+      if (ExchangeKit === DeploymentKit) {
+        ThrowAdapter('ExchangeKit MUST NOT be a DeploymentKit.');
+      }
+
+      const exchange = Exchange.touchExchange(ExchangeKit);
+
+      if (exchange === undefined) {
+        ThrowAdapter('Exchange is not installed.');
+      }
+
+      if (!(exchange instanceof Exchange.Abstract)) {
+        ThrowAdapter('It MUST be an Exchange instance.');
+      }
+
+      if (exchange.server !== server) {
+        ThrowAdapter('Bad linked server.');
+      }
+
+      if (handledExchanges.has(exchange)) {
+        ThrowAdapter('Adapter dispatched one Exchange more than once.');
+      }
+
+      handledExchanges.add(exchange);
+
+      const exInjector = Kit.Injector(ExchangeKit);
+
+      for (const attacher of this[$I.EXCHANGE_ATTACHER_LIST]) {
+        exInjector.bind(attacher)();
+      }
+
+      await this[$I.WORKFLOW](ExchangeKit);
+    };
+
+    Adapter.Artifact.assertDeploymentArtifact(artifact);
+
+    return artifact;
   }
 
   adapt(adapter) {
@@ -155,30 +147,19 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       consumed = true;
     }
 
-    const compileArtifactOnce = async (server) => {
-      Abstract.initializeDeploymentKit(DeploymentKit, server);
-
-      const injector = Kit.Injector(DeploymentKit);
-
-      for (const attacher of this[$I.DEPLOYMENT_ATTACHER_LIST]) {
-        injector.bind(attacher)();
-      }
-
-      return buildDeploymentArtifact(this, DeploymentKit, finalAdapter);
-    };
-
     const deployer = Object.freeze({
-      compile: async function compileOnce(server) {
-        consumeBy(this, server);
+      compile: async (server) => {
+        consumeBy(deployer, server);
 
-        const { listeners } = await compileArtifactOnce(server);
+        const { listeners } = await this[I.COMPILE](server, DeploymentKit);
 
         return listeners;
       },
-      deploy: async function deployOnce(server) {
-        consumeBy(this, server);
+      deploy: async (server) => {
+        consumeBy(deployer, server);
 
-        const { listeners, link } = await compileArtifactOnce(server);
+        const artifact = await this[I.COMPILE](server, DeploymentKit);
+        const { link, listeners } = artifact;
 
         link(server, listeners);
       },

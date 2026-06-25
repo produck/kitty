@@ -92,12 +92,14 @@ export default class KittyWorkflow {
     }
   }
 
-  async [I.COMPILE](server) {
-    const DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
+  async [I.COMPILE](server, DeploymentKit) {
+    if (DeploymentKit === undefined) {
+      DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
+    }
 
     initializeDeploymentKit(DeploymentKit, server);
 
-    return this[_I.ADAPTER.COMPILE](DeploymentKit);
+    return this[_I.COMPILE_ARTIFACT](DeploymentKit);
   }
 
   async [I.DEPLOY](server) {

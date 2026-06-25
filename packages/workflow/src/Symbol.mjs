@@ -37,14 +37,12 @@ export const $I = deepFreeze({
 });
 
 export const _I_EXTEND_COMPOSE = Symbol('._extendCompose');
-export const _I_ADAPTER_COMPILE = Symbol('._compileByAdapter');
+export const _I_COMPILE_ARTIFACT = Symbol('._compileArtifact');
 export const _I_ADAPTER_LINK = Symbol('._linkByAdapter');
 
 export const _I = deepFreeze({
   COMPOSE: {
     EXTEND: _I_EXTEND_COMPOSE,
   },
-  ADAPTER: {
-    COMPILE: _I_ADAPTER_COMPILE,
-  },
+  COMPILE_ARTIFACT: _I_COMPILE_ARTIFACT,
 });
