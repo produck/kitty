@@ -68,6 +68,30 @@ program effects as typed computations. Instead, it uses kit inheritance
 to assemble workflow, deployment, adapter, exchange, and handler
 capabilities at the layers where they belong.
 
+## Core As Authority Boundary
+
+> Kitty core is "dividing territory and assigning authority".
+
+This is an intuitive way to describe the core responsibility. Kitty core
+does not own downstream feature grammar, but it does own the authority
+model: which runtime scopes exist, which attachment ports are issued,
+which structural writes are allowed, and when those writes expire.
+
+In engineering terms, core is responsible for:
+
+- dividing the kit hierarchy into workflow, deployment, adapter,
+  exchange, and handler scopes;
+- granting attachment ports such as `MixinKit` and `AdapterKit`;
+- keeping structural writes behind guarded methods;
+- defining lifecycle windows such as finalization, deployment artifact
+  construction, and per-exchange runtime scope;
+- exposing workflow identity without exposing the writable
+  `WorkflowKit` surface.
+
+Downstream suppliers own feature grammar and runtime policy. Handler
+authors consume inherited capabilities. Core's job is to keep those
+roles from accidentally receiving each other's authority.
+
 ## Architecture Overview
 
 `KittyWorkflow` is split into two layers:
@@ -191,6 +215,29 @@ classDiagram
   ExchangeKit .. HandlerKit
 
 ```
+
+This diagram is also an authority boundary. Handler code travels through
+the `ExchangeKit` branch and does not naturally receive `MixinKit` or
+`AdapterKit`. Those kits are attachment ports managed by their suppliers.
+If a supplier wants handler code to adjust a feature, it must explicitly
+export an adjustment function that accepts workflow identity. Handler
+code can read that identity with `useWorkflow(ExchangeKit)` and call the
+supplier API; no additional kit-visible adjuster path is required.
+
+The full hierarchy is a core-level view, not a required mental model for
+every downstream role. Handler authors normally see only their current
+kit and supplier-provided `use*()` functions. Mixin suppliers work with
+`MixinKit` and guarded writes toward `WorkflowKit`. Adapter suppliers
+work with `AdapterKit`, `DeploymentKit`, and `ExchangeKit` because they
+own the protocol bridge. Each role only needs the part of the hierarchy
+that it can actually use.
+
+This is an intentional complexity tradeoff. Mixin and adapter suppliers
+are expected to understand more of the authority model because they
+define abstract capabilities for others. Handler authors are the primary
+runtime consumers, so their surface should remain simple: current kit,
+supplier-provided `use*()` helpers, and occasional supplier APIs that
+accept workflow identity.
 
 - **External kit**: Passed to `constructor(kit)`. Defaults to
   `Kit.global`, but callers can supply a custom kit pre-loaded with

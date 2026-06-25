@@ -48,6 +48,88 @@ Capability supplier
 This makes configuration a responsibility of the capability supplier,
 not of `KittyWorkflow` core.
 
+## Runtime Path Boundary
+
+Attachment ports are installation-phase surfaces. They are not part of
+the handler runtime path.
+
+The normal handler path follows the deployment branch:
+
+```text
+WorkflowKit -> DeploymentKit -> ExchangeKit -> Handler child kits
+```
+
+Mixin and adapter ports live on separate attachment branches:
+
+```text
+WorkflowKit -> MixinKit
+WorkflowKit -> DeploymentKit -> AdapterKit
+```
+
+Therefore a handler can read workflow identity through `ExchangeKit`:
+
+```js
+const workflow = useWorkflow(ExchangeKit);
+```
+
+But it cannot naturally obtain `MixinKit` or `AdapterKit` from the
+`ExchangeKit` branch. If a supplier wants handler code to adjust a
+feature, it can export an adjustment function that accepts workflow
+identity. The handler combines that exported API with `useWorkflow()`;
+no additional kit-visible adjuster path is required.
+
+```js
+export function install(MixinKit) {
+  const workflow = useWorkflow(MixinKit);
+
+  kitByWorkflow.set(workflow, MixinKit);
+}
+
+export function configure(workflow, patch) {
+  const MixinKit = kitByWorkflow.get(workflow);
+
+  if (MixinKit === undefined) {
+    throw new Error('Body mixin is not installed on this workflow.');
+  }
+
+  MixinKit.setWorkflowKit(K_BODY_POLICY, createBodyPolicy(patch));
+}
+```
+
+Handler code then calls the supplier's exported function:
+
+```js
+workflow.use((ExchangeKit, next) => {
+  const workflow = useWorkflow(ExchangeKit);
+
+  Body.configure(workflow, { threshold: '500MB' });
+
+  return next();
+});
+```
+
+This keeps the authority split clear: `MixinKit` and `AdapterKit` remain
+supplier-managed attachment authorities, while `ExchangeKit` only
+provides runtime scope plus workflow identity.
+
+The model should be explained by role. Handler authors do not need the
+full kit hierarchy; they normally use their current runtime kit and
+supplier-provided `use*()` functions. Mixin suppliers need `MixinKit`
+and the controlled ability to write workflow-level features. Adapter
+suppliers need `AdapterKit`, `DeploymentKit`, and `ExchangeKit` because
+they own server protocol attachment. The complete hierarchy is mainly a
+core-level description of how those local views fit together.
+
+This is an intentional complexity tradeoff. It is acceptable for mixin
+and adapter suppliers to face more abstract concepts because they define
+capabilities that other code will consume. Handler authors should stay
+on the simple side of the boundary: current runtime kit, supplier
+`use*()` helpers, and explicit supplier adjustment APIs when needed.
+
+In this sense, Kitty core is "dividing territory and assigning
+authority": scopes define territory, attachment ports grant authority,
+and lifecycle guards decide when that authority is still valid.
+
 ## Why Not Deploy Options
 
 A generic `workflow.deploy(server, options)` parameter makes core a
