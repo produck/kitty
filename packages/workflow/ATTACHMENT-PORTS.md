@@ -52,9 +52,9 @@ surface. The port is a supplier-facing facade, not an independent source
 of structural authority.
 
 The port does not expose `WorkflowKit` directly. Structural writes must
-pass through guarded methods on the port, such as `setWorkflowKit()` or
-`setDeploymentKit()`. If the workflow lifecycle no longer allows that
-write, the method throws.
+pass through guarded methods on the port, such as `attachWorkflow()` or
+`appendDeploymentAttacher()`. If the workflow lifecycle no longer allows
+that write, the method throws.
 
 The workflow instance itself is attached to `WorkflowKit` as a stable
 identity capability and is readable through `useWorkflow(kit)`. This is
@@ -65,7 +65,8 @@ key for their own control surfaces.
 The stable assembly surface has three controlled capability classes:
 
 - workflow-static dependencies installed on `WorkflowKit`;
-- deployment attachers run when a `DeploymentKit` is created;
+- deployment attachers run during compile-time `DeploymentKit`
+  preparation;
 - exchange attachers run when an `ExchangeKit` is prepared.
 
 All structural additions to this surface close after `finalize()`.
@@ -125,7 +126,7 @@ export function configure(workflow, patch) {
     throw new Error('Body mixin is not installed on this workflow.');
   }
 
-  MixinKit.setWorkflowKit(K_BODY_POLICY, createBodyPolicy(patch));
+  MixinKit.attachWorkflow(K_BODY_POLICY, createBodyPolicy(patch));
 }
 ```
 
@@ -207,7 +208,7 @@ anything:
 ```js
 export function body(options) {
   return function install(MixinKit) {
-    MixinKit.setWorkflowKit(K_BODY_POLICY, createBodyPolicy(options));
+    MixinKit.attachWorkflow(K_BODY_POLICY, createBodyPolicy(options));
   };
 }
 ```
@@ -228,7 +229,7 @@ export function install(MixinKit) {
   const workflow = useWorkflow(MixinKit);
 
   kitByWorkflow.set(workflow, MixinKit);
-  MixinKit.setWorkflowKit(K_BODY_POLICY, createBodyPolicy());
+  MixinKit.attachWorkflow(K_BODY_POLICY, createBodyPolicy());
 }
 
 export function configure(workflow, patch) {
@@ -238,7 +239,7 @@ export function configure(workflow, patch) {
     throw new Error('Body mixin is not installed on this workflow.');
   }
 
-  MixinKit.setWorkflowKit(K_BODY_POLICY, createBodyPolicy(patch));
+  MixinKit.attachWorkflow(K_BODY_POLICY, createBodyPolicy(patch));
 }
 ```
 
@@ -259,7 +260,7 @@ export function install(MixinKit) {
   const workflow = useWorkflow(MixinKit);
 
   kitByWorkflow.set(workflow, MixinKit);
-  MixinKit.setWorkflowKit(K_BODY_POLICY, createBodyPolicy());
+  MixinKit.attachWorkflow(K_BODY_POLICY, createBodyPolicy());
 }
 
 export function configure(workflow, patch) {
@@ -269,7 +270,7 @@ export function configure(workflow, patch) {
     throw new Error('Body mixin is not installed on this workflow.');
   }
 
-  MixinKit.setWorkflowKit(K_BODY_POLICY, createBodyPolicy(patch));
+  MixinKit.attachWorkflow(K_BODY_POLICY, createBodyPolicy(patch));
 }
 ```
 
@@ -277,7 +278,7 @@ The supplier does not receive `WorkflowKit`. It receives a controlled
 port that can write to `WorkflowKit` only through methods defined by
 `KittyWorkflow`.
 
-If `setWorkflowKit()` is guarded by `ASSERT.NOT_FINALIZED`, then a
+If `attachWorkflow()` is guarded by `ASSERT.NOT_FINALIZED`, then a
 late `configure(workflow, patch)` call naturally fails after
 finalization. The downstream user does not need to learn another
 controller concept; they just discover that the workflow can no longer
@@ -317,7 +318,7 @@ Attachment ports distinguish writes from reads.
 Structural writes are controlled:
 
 ```js
-MixinKit.setWorkflowKit(key, value);
+MixinKit.attachWorkflow(key, value);
 AdapterKit.setDeploymentKit(key, value);
 ```
 
@@ -348,7 +349,7 @@ export function install(MixinKit) {
   const state = createState();
 
   stateByWorkflow.set(workflow, state);
-  MixinKit.setWorkflowKit(K_FEATURE_STATE, state);
+  MixinKit.attachWorkflow(K_FEATURE_STATE, state);
 }
 
 export function tune(workflow, patch) {

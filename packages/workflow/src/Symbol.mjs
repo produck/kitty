@@ -15,6 +15,8 @@ export const I = deepFreeze({
 const $I_KIT = Symbol('.$kit');
 const $I_WORKFLOW = Symbol('.$workflow');
 const $I_HANDLE_EXCHANGE = Symbol('.$handleExchange()');
+const $I_DEPLOYMENT_ATTACHER_LIST = Symbol('.$deploymentAttacherList');
+const $I_EXCHANGE_ATTACHER_LIST = Symbol('.$exchangeAttacherList');
 const $I_COMPOSE_PREFIX = Symbol('.$composePrefix()');
 const $I_ASSERT_FINALIZED = Symbol('.$assertFinalized()');
 const $I_ASSERT_NOT_FINALIZED = Symbol('.$assertNotFinalized()');
@@ -23,6 +25,8 @@ export const $I = deepFreeze({
   KIT: $I_KIT,
   WORKFLOW: $I_WORKFLOW,
   HANDLE_EXCHANGE: $I_HANDLE_EXCHANGE,
+  DEPLOYMENT_ATTACHER_LIST: $I_DEPLOYMENT_ATTACHER_LIST,
+  EXCHANGE_ATTACHER_LIST: $I_EXCHANGE_ATTACHER_LIST,
   COMPOSE: {
     PREFIX: $I_COMPOSE_PREFIX,
   },
@@ -35,7 +39,6 @@ export const $I = deepFreeze({
 export const _I_EXTEND_COMPOSE = Symbol('._extendCompose');
 export const _I_ADAPTER_COMPILE = Symbol('._compileByAdapter');
 export const _I_ADAPTER_LINK = Symbol('._linkByAdapter');
-export const _I_DEPLOY = Symbol('._deploy');
 
 export const _I = deepFreeze({
   COMPOSE: {
@@ -44,5 +47,4 @@ export const _I = deepFreeze({
   ADAPTER: {
     COMPILE: _I_ADAPTER_COMPILE,
   },
-  DEPLOY: _I_DEPLOY,
 });

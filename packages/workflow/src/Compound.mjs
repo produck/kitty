@@ -56,6 +56,12 @@ function buildDeploymentArtifact(workflow, DeploymentKit, adapter) {
 
       handledExchanges.add(exchange);
 
+      const injector = Kit.Injector(ExchangeKit);
+
+      for (const attacher of workflow[$I.EXCHANGE_ATTACHER_LIST]) {
+        injector.bind(attacher)();
+      }
+
       await workflow[$I.WORKFLOW](ExchangeKit);
     },
     setDeploymentKit: (key, value) => {
@@ -72,27 +78,45 @@ function buildDeploymentArtifact(workflow, DeploymentKit, adapter) {
 
 export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
   [Mixin.I_HANDLER_LIST] = [];
-  [Mixin.I_DEPLOYMENT_MODIFIER_LIST] = [];
+  [$I.DEPLOYMENT_ATTACHER_LIST] = [];
+  [$I.EXCHANGE_ATTACHER_LIST] = [];
 
   constructor(...args) {
     super(...args);
+
+    this[$I.KIT].appendDeploymentAttacher = (attacher) => {
+      this[$I.ASSERT.NOT_FINALIZED]();
+
+      if (typeof attacher !== 'function') {
+        ThrowTypeError('args[0] as attacher', 'function');
+      }
+
+      this[$I.DEPLOYMENT_ATTACHER_LIST].push(attacher);
+    };
+
+    this[$I.KIT].appendExchangeAttacher = (attacher) => {
+      this[$I.ASSERT.NOT_FINALIZED]();
+
+      if (typeof attacher !== 'function') {
+        ThrowTypeError('args[0] as attacher', 'function');
+      }
+
+      this[$I.EXCHANGE_ATTACHER_LIST].push(attacher);
+    };
   }
 
   [_I.COMPOSE.EXTEND]() {
     this[$I.COMPOSE.PREFIX](...Object.freeze(this[Mixin.I_HANDLER_LIST]));
   }
 
-  [_I.DEPLOY](DeploymentKit) {
-    const injector = Kit.Injector(DeploymentKit);
-
-    for (const modifier of this[Mixin.I_DEPLOYMENT_MODIFIER_LIST]) {
-      injector.bind(modifier)();
-    }
-  }
-
   [_I.ADAPTER.COMPILE](DeploymentKit) {
+    const injector = Kit.Injector(DeploymentKit);
     const server = Abstract.useServer(DeploymentKit);
     const adapter = Adapter.Registry.getByServer(server);
+
+    for (const attacher of this[$I.DEPLOYMENT_ATTACHER_LIST]) {
+      injector.bind(attacher)();
+    }
 
     //TODO assert install existed
 
@@ -131,24 +155,30 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       consumed = true;
     }
 
-    const compileArtifactOnce = (server) => {
+    const compileArtifactOnce = async (server) => {
       Abstract.initializeDeploymentKit(DeploymentKit, server);
+
+      const injector = Kit.Injector(DeploymentKit);
+
+      for (const attacher of this[$I.DEPLOYMENT_ATTACHER_LIST]) {
+        injector.bind(attacher)();
+      }
 
       return buildDeploymentArtifact(this, DeploymentKit, finalAdapter);
     };
 
     const deployer = Object.freeze({
-      compile: function compileOnce(server) {
+      compile: async function compileOnce(server) {
         consumeBy(this, server);
 
-        const { listeners } = compileArtifactOnce(server);
+        const { listeners } = await compileArtifactOnce(server);
 
         return listeners;
       },
-      deploy: function deployOnce(server) {
+      deploy: async function deployOnce(server) {
         consumeBy(this, server);
 
-        const { listeners, link } = compileArtifactOnce(server);
+        const { listeners, link } = await compileArtifactOnce(server);
 
         link(server, listeners);
       },

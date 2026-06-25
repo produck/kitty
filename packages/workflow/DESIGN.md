@@ -124,8 +124,9 @@ The assembly surface consists of three controlled capability classes:
   `WorkflowKit` and inherited by later deployment, exchange, and handler
   scopes.
 - **Deployment attachers**: functions recorded on the workflow and run
-  when a `DeploymentKit` is created, allowing suppliers to install
-  deployment-scope capabilities.
+  during compile-time `DeploymentKit` preparation, allowing suppliers to
+  install deployment-scope capabilities before the adapter artifact is
+  built.
 - **Exchange attachers**: functions recorded on the workflow and run
   when an `ExchangeKit` is prepared, allowing suppliers to install
   per-exchange capabilities.
@@ -144,15 +145,20 @@ the assembly surface are closed.
   — `constructor(kit)` → `use(handler)` → `finalize()` →
   `compile()`/`deploy()`. It exposes extension point hooks (`_I`
   namespace) for subclasses to fill in: compose extension, adapter
-  compilation, and deploy-time behavior. The abstract layer knows
-  nothing about mixin, adapter registry, or temporary adapters — it is
-  purely an extensible skeleton.
+  compilation, and compile-time deployment preparation. It also installs
+  the base `attachWorkflow` capability, because attaching to the
+  Workflow scope belongs to the lifecycle skeleton itself. The abstract
+  layer knows nothing about mixin, adapter registry, or temporary
+  adapters — it is purely an extensible skeleton.
 
 - **Composition layer** (`Compound.mjs`): Extends the abstract layer
   and implements two orthogonal domains — **Mixin** and **Adapter** —
   each responsible for a distinct kind of capability injection. The
   composition layer also owns `adapt(options)`, because temporary
   adapters only make sense after the Adapter domain has been introduced.
+  It installs `appendDeploymentAttacher` and `appendExchangeAttacher`,
+  because those attachment hooks are executed at Composition-owned
+  deployment and exchange boundaries.
   `MixinKit` and `AdapterKit` act as attachment ports: scoped,
   kit-backed facades over the workflow assembly surface. They let
   downstream suppliers install and later adjust their own workflow
@@ -228,8 +234,9 @@ classDiagram
   }
   class MixinKit["⚙️MixinKit"] {
     +appendPrefixHandler(handler) void
-    +setWorkflowKit(key, any) void
-    +appendDeploymentKitModifier() void
+    +attachWorkflow(key, any) void
+    +appendDeploymentAttacher() void
+    +appendExchangeAttacher() void
   }
   class DeploymentKit {
     <<mixinable>>
@@ -292,8 +299,9 @@ accept workflow identity.
   Its injector (`this[I_INJECTOR]`) is cached for internal use.
 - **`Kitty<Mixin>`** (MixinKit): Derived from `KitWorkflow` per
   `mixin()` call via `kit('Kitty<Mixin>')`. Passed to the installer
-  function, it carries `appendPrefixHandler`, `setWorkflowKit`, and
-  `appendDeploymentKitModifier` as its mixin authoring API.
+  function, it carries `appendPrefixHandler`, `attachWorkflow`,
+  `appendDeploymentAttacher`, and `appendExchangeAttacher` as its mixin
+  authoring API.
 - **`Kitty<Deployment>`**: Derived from `KitWorkflow` at deploy time
   via `kit('Kitty<Deployment>')`. The adapter's recipe is bound to
   this kit — the adapter never touches the Workflow-level kit.
@@ -339,8 +347,8 @@ workflow.mixin((mixinKit) => {
   mixinKit.appendPrefixHandler((kit, next) => {
     /* runs before main sequence */
   });
-  mixinKit.setWorkflowKit('myDep', someValue); // install on KitWorkflow
-  mixinKit.appendDeploymentKitModifier((kit) => {
+  mixinKit.attachWorkflow('myDep', someValue); // attach to Workflow scope
+  mixinKit.appendDeploymentAttacher((kit) => {
     /* modify DeploymentKit */
   });
 });
@@ -355,11 +363,12 @@ local.
 `MixinKit` is a `KitProxy` derived from `KitWorkflow` via
 `kit('Kitty<Mixin>')`, with three methods set via Proxy `set` trap:
 
-| Method                                     | Behavior                                                      |
-| ------------------------------------------ | ------------------------------------------------------------- |
-| `mixinKit.appendPrefixHandler(...handler)` | Registers handler(s) into the prefix handler sequence         |
-| `mixinKit.setWorkflowKit(key, value)`      | Sets a dependency on `KitWorkflow`                            |
-| `mixinKit.appendDeploymentKitModifier(fn)` | Registers a modifier to run at deploy time on `DeploymentKit` |
+| Method                                     | Behavior                                              |
+| ------------------------------------------ | ----------------------------------------------------- |
+| `mixinKit.appendPrefixHandler(...handler)` | Registers handler(s) into the prefix handler sequence |
+| `mixinKit.attachWorkflow(key, value)`      | Attaches a dependency to the Workflow scope           |
+| `mixinKit.appendDeploymentAttacher(fn)`    | Registers an attacher to run against `DeploymentKit`  |
+| `mixinKit.appendExchangeAttacher(fn)`      | Registers an attacher to run against `ExchangeKit`    |
 
 `appendPrefixHandler(...handler)` validates each handler the same way
 as `workflow.use()` and appends it to `I_HANDLER_PREFIX_SEQUENSE`.
@@ -367,16 +376,20 @@ Prefix handlers are composed **before** the main handler sequence in
 `finalize()`, enabling plugins to inject behavior that wraps or guards
 the entire pipeline.
 
-`setWorkflowKit(key, value)` sets a dependency directly on the
-`KitWorkflow` kit. Since all downstream kits (`DeploymentKit`,
+`attachWorkflow(key, value)` attaches a dependency directly to the
+Workflow scope. Since all downstream kits (`DeploymentKit`,
 `ExchangeKit`) inherit from `KitWorkflow`, the value becomes
 available to all handler layers.
 
-`appendDeploymentKitModifier(modifier)` stores a callback to be
-invoked during `deploy()` / `adapt()` after the adapter has installed
-its low-level protocol API on `DeploymentKit`. Each
-modifier receives the `DeploymentKit` and can extend it with
-higher-level capabilities (e.g. body parsing, cookie handling).
+`appendDeploymentAttacher(attacher)` stores a callback to be invoked
+during `deploy()` / `adapt()` after the `DeploymentKit` has been
+created. Each attacher receives the `DeploymentKit` and can extend it
+with higher-level capabilities (e.g. body parsing, cookie handling).
+
+`appendExchangeAttacher(attacher)` stores a callback to be invoked after
+an `ExchangeKit` has been validated and before the workflow handler
+pipeline runs. Each attacher receives the `ExchangeKit` and can extend
+the per-exchange scope.
 
 ### Execution order at deploy
 
@@ -436,7 +449,7 @@ the user's ordering mechanism, not a method on MixinKit.
 
 `use()` is the primary API for handler registration; `mixin()` with
 `appendPrefixHandler` is the mixin equivalent that also provides
-`setWorkflowKit` and `appendDeploymentKitModifier` for broader
+`attachWorkflow` and `appendDeploymentAttacher` for broader
 capability installation.
 
 ### Design notes on kit layering
@@ -791,7 +804,7 @@ over raw throughput.
 
 ### Recommended dedup pattern
 
-If a mixin should only be installed once, use `setWorkflowKit` with a
+If a mixin should only be installed once, use `attachWorkflow` with a
 Symbol flag:
 
 ```js
@@ -805,7 +818,7 @@ workflow.mixin((mixinKit) => {
     throw new Error('MyMixin has already been installed.');
   }
 
-  mixinKit.setWorkflowKit(K_INSTALLED, true);
+  mixinKit.attachWorkflow(K_INSTALLED, true);
   // ... install logic ...
 });
 ```
@@ -1319,19 +1332,18 @@ Operational differences:
 #### `adapt(options).compile(server)`
 
 Runs the temporary adapter against an `AdapterKit` derived from the
-given server's `DeploymentKit`. Returns the listeners record from the
-deployment artifact, for example `{ request, upgrade, ... }`.
+given server's `DeploymentKit`. Resolves to the listeners record from
+the deployment artifact, for example `{ request, upgrade, ... }`.
 
-Key difference from `adapt(options).deploy()`: modifiers registered
-by mixins (`appendDeploymentKitModifier`) are **not** executed, and
-listeners are **not** linked to the server. `adapt(options).compile()`
-produces the raw protocol wiring only.
+Key difference from `adapt(options).deploy()`: compile-time deployment
+attachers are executed, but listeners are **not** linked to the server.
+`adapt(options).compile()` produces the raw protocol wiring only.
 
 #### `adapt(options).deploy(server)`
 
-Runs `[I_COMPILE]` to produce a deployment artifact, then links it to
-the server via `link(server, listeners)`, and finally executes all
-deployment modifiers.
+Runs the temporary deployment compilation path to produce a deployment
+artifact, then links it to the server via `link(server, listeners)`. It
+resolves with no completion value, matching `workflow.deploy(server)`.
 
 #### Lock sharing
 

@@ -21,22 +21,34 @@ const DEFAULT_PASSTHOUGH = (_ctx, next) => next();
 
 export default class KittyWorkflow {
   [I.CONSTRUCTOR] = KittyWorkflow;
-  [$I.WORKFLOW] = DEFAULT_PASSTHOUGH;
   [I.HANDLER_LIST] = [];
+  [$I.WORKFLOW] = DEFAULT_PASSTHOUGH;
 
   constructor(kit) {
     if (!Kit.isKit(kit)) {
       ThrowTypeError('args[0] as kit', 'Kit');
     }
 
-    this[$I.KIT] = kit('Kitty<Workflow>');
-    this[$I.KIT][K_WORKFLOW_SELF] = this;
     this[I.CONSTRUCTOR] = new.target;
-    Object.freeze(this);
+
+    const WorkflowKit = kit('Kitty<Workflow>');
+
+    this[$I.KIT] = WorkflowKit;
+    WorkflowKit[K_WORKFLOW_SELF] = this;
+
+    WorkflowKit.attachWorkflow = (key, value) => {
+      this[$I.ASSERT.NOT_FINALIZED]();
+
+      if (typeof key !== 'string' && typeof key !== 'symbol') {
+        ThrowTypeError('args[0] as dependency key', 'string | symbol');
+      }
+
+      WorkflowKit[key] = value;
+    };
   }
 
   [$I.COMPOSE.PREFIX](...handler) {
-    this[I.WORKFLOW] = Composer.compose(...handler, this[I.WORKFLOW]);
+    this[$I.WORKFLOW] = Composer.compose(...handler, this[$I.WORKFLOW]);
   }
 
   use(...handlerList) {
@@ -59,12 +71,13 @@ export default class KittyWorkflow {
     this[$I.ASSERT.NOT_FINALIZED]();
     this[$I.COMPOSE.PREFIX](...Object.freeze(this[I.HANDLER_LIST]));
     this[_I.COMPOSE.EXTEND]();
+    Object.freeze(this);
 
     return this;
   }
 
   get isFinalized() {
-    return this[I.WORKFLOW] !== DEFAULT_PASSTHOUGH;
+    return Object.isFrozen(this);
   }
 
   [$I.ASSERT.FINALIZED]() {

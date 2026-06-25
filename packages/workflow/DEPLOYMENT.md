@@ -110,8 +110,9 @@ not occupy the constructor slot in `Adapter.Registry`.
 Instead, it creates a one-off deployment adapter scope. Downstream code
 can provide a temporary adapter with core bridge behavior plus extra
 custom deployment capabilities. The returned operations must be
-consumed synchronously for exactly one outcome: compile once or deploy
-once.
+called synchronously for exactly one outcome: compile once or deploy
+once. The operations themselves follow the normal async deployment API
+shape and return promises.
 
 This is one of Kitty's interesting differences from Koa. Koa primarily
 extends request processing through middleware. Kitty can also offer a
@@ -134,7 +135,8 @@ The ephemeral adapter path is one-shot and same-tick. A single
 `adapt()` call creates one temporary deployment opportunity. Exactly
 one of the returned `compile()` or `deploy()` operations must be
 called synchronously at the call site, before the queued microtask
-expires the scope.
+expires the scope. After the operation is called, its promise may settle
+asynchronously.
 
 If a caller needs both a manual compile and a deploy, it should call
 `adapt()` twice.
