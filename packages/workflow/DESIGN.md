@@ -37,6 +37,31 @@ clear.
 `KittyWorkflow` is the central design object for orchestrating HTTP
 server handlers under this philosophy.
 
+## Kit As Scope Inheritance
+
+`@produck/kit` is best understood here as a scope-inheritance mechanism
+for program assembly. It models capability distribution as inheritance
+between explicit runtime scopes, rather than as parameter passing,
+global registries, or call-frame context.
+
+The tracked unit is a structural scope, not a call frame. A frame may be
+where a child kit is physically created, but the design intent is to
+express where a capability belongs in the assembled program:
+
+```text
+WorkflowKit -> DeploymentKit -> ExchangeKit -> Handler child kits
+```
+
+This keeps the main composition question small: which scope should own
+this capability? Once installed at the right scope, the capability is
+distributed downward by normal kit inheritance and can be accessed with
+ordinary property syntax.
+
+Kitty is a concrete use of this mechanism. It does not try to model all
+program effects as typed computations. Instead, it uses kit inheritance
+to assemble workflow, deployment, adapter, exchange, and handler
+capabilities at the layers where they belong.
+
 ## Architecture Overview
 
 `KittyWorkflow` is split into two layers:
@@ -55,9 +80,11 @@ server handlers under this philosophy.
   composition layer also owns `adapt(options)`, because temporary
   adapters only make sense after the Adapter domain has been introduced.
   `MixinKit` and `AdapterKit` act as attachment ports: scoped,
-  kit-backed control surfaces that let downstream suppliers install and
-  later adjust their own workflow features without receiving direct
-  `WorkflowKit` authority.
+  kit-backed effect capabilities that let downstream suppliers install
+  and later adjust their own workflow features without receiving direct
+  `WorkflowKit` authority. Retaining these ports is optional; suppliers
+  may also treat them as one-shot installation arguments and discard
+  them.
 
 ## Lifecycle (Abstract Layer)
 
