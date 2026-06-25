@@ -8,13 +8,34 @@ that permits a limited set of structural effects.
 
 The underlying mechanism is still kit scope inheritance. Attachment
 ports are not a separate effect library and do not require a type-tagged
-effect runtime. They are ordinary kit-backed installation surfaces used
-to perform controlled structural effects at the workflow boundary.
+effect runtime. They are ordinary kit-backed facades over the workflow
+assembly surface, used to perform controlled structural effects at the
+workflow boundary.
 
 The pattern is a response to one design pressure: downstream mixins and
 adapters need a way to configure the features they attach to a workflow,
 but the workflow core should not accept an opaque `options` bag that it
 cannot understand.
+
+## Attachment As A Term
+
+**Attachment** names the act of appending a dependency or capability to a
+`Kit`, which acts as the domain tracker for that part of the assembled
+program.
+
+Inside KittyWorkflow, attachment becomes a controlled structural write.
+It is not merely configuration and not arbitrary mutation. The write may
+install a dependency on `WorkflowKit`, register work for `DeploymentKit`,
+or register work for `ExchangeKit`.
+
+This naturally produces the concept of an **attacher**: a function
+recorded by one domain and later run to attach dependencies into another
+kit scope.
+
+This makes `attachment` the shared vocabulary for the whole mechanism:
+kits track domains, the workflow owns the controlled assembly surface,
+suppliers receive attachment ports, and those ports expose specific
+attachment abilities.
 
 ## Core Idea
 
@@ -26,6 +47,10 @@ private `WeakMap`, usually keyed by the workflow instance, and later use
 that port to adjust the features it attached. It may also treat the port
 as a one-shot installation argument and discard it immediately.
 
+The authority behind these ports belongs to the workflow assembly
+surface. The port is a supplier-facing facade, not an independent source
+of structural authority.
+
 The port does not expose `WorkflowKit` directly. Structural writes must
 pass through guarded methods on the port, such as `setWorkflowKit()` or
 `setDeploymentKit()`. If the workflow lifecycle no longer allows that
@@ -36,6 +61,14 @@ identity capability and is readable through `useWorkflow(kit)`. This is
 safe because it exposes the frozen workflow object, not the writable
 `WorkflowKit` surface. Suppliers can use that identity as a `WeakMap`
 key for their own control surfaces.
+
+The stable assembly surface has three controlled capability classes:
+
+- workflow-static dependencies installed on `WorkflowKit`;
+- deployment attachers run when a `DeploymentKit` is created;
+- exchange attachers run when an `ExchangeKit` is prepared.
+
+All structural additions to this surface close after `finalize()`.
 
 ```text
 Capability supplier
@@ -127,8 +160,9 @@ on the simple side of the boundary: current runtime kit, supplier
 `use*()` helpers, and explicit supplier adjustment APIs when needed.
 
 In this sense, Kitty core is "dividing territory and assigning
-authority": scopes define territory, attachment ports grant authority,
-and lifecycle guards decide when that authority is still valid.
+authority": scopes define territory, the workflow assembly surface owns
+authority, attachment ports expose controlled facades to suppliers, and
+lifecycle guards decide when that authority is still valid.
 
 ## Why Not Deploy Options
 

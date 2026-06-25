@@ -11,6 +11,25 @@ Deployment paths are discussed in more detail in
 Attachment ports are discussed in more detail in
 [ATTACHMENT-PORTS.md](ATTACHMENT-PORTS.md).
 
+## Terminology: Attachment
+
+**Attachment** is a key term in KittyWorkflow. At the kit level, it
+names the act of appending a dependency or capability to a `Kit`, which
+acts as the domain tracker for that part of the assembled program.
+
+In KittyWorkflow, attachment is narrowed into a controlled structural
+write. An attachment may install a workflow-static dependency, register
+a deployment attacher, or register an exchange attacher. The derived
+term **attacher** means a function recorded by one domain and later run
+to attach dependencies into another kit scope.
+
+The important property in workflow assembly is control. Attachment is
+not arbitrary mutation of `WorkflowKit`; it is a lifecycle-guarded
+structural write performed through an authorized surface. In this
+vocabulary, `MixinKit` and `AdapterKit` are attachment ports:
+supplier-facing facades that expose specific attachment abilities
+without exposing the full workflow authority behind them.
+
 ## Philosophy
 
 Kitty shares a similar core design with Koa — middleware pipeline
@@ -81,7 +100,8 @@ In engineering terms, core is responsible for:
 
 - dividing the kit hierarchy into workflow, deployment, adapter,
   exchange, and handler scopes;
-- granting attachment ports such as `MixinKit` and `AdapterKit`;
+- owning the workflow assembly surface and granting attachment ports
+  such as `MixinKit` and `AdapterKit` as facades to that surface;
 - keeping structural writes behind guarded methods;
 - defining lifecycle windows such as finalization, deployment artifact
   construction, and per-exchange runtime scope;
@@ -91,6 +111,30 @@ In engineering terms, core is responsible for:
 Downstream suppliers own feature grammar and runtime policy. Handler
 authors consume inherited capabilities. Core's job is to keep those
 roles from accidentally receiving each other's authority.
+
+### Workflow Assembly Surface
+
+The stable source of structural attachment authority is the workflow
+assembly surface. It is owned by `WorkflowKit`, not independently by each
+supplier-facing kit.
+
+The assembly surface consists of three controlled capability classes:
+
+- **Workflow-static dependencies**: values installed directly on
+  `WorkflowKit` and inherited by later deployment, exchange, and handler
+  scopes.
+- **Deployment attachers**: functions recorded on the workflow and run
+  when a `DeploymentKit` is created, allowing suppliers to install
+  deployment-scope capabilities.
+- **Exchange attachers**: functions recorded on the workflow and run
+  when an `ExchangeKit` is prepared, allowing suppliers to install
+  per-exchange capabilities.
+
+`MixinKit` and `AdapterKit` should be understood as supplier-facing
+facades over this workflow-owned assembly surface. They may expose the
+same controlled attachment abilities, but the authority and lifecycle
+guard belong to the workflow. After `finalize()`, structural additions to
+the assembly surface are closed.
 
 ## Architecture Overview
 
@@ -110,11 +154,11 @@ roles from accidentally receiving each other's authority.
   composition layer also owns `adapt(options)`, because temporary
   adapters only make sense after the Adapter domain has been introduced.
   `MixinKit` and `AdapterKit` act as attachment ports: scoped,
-  kit-backed effect capabilities that let downstream suppliers install
-  and later adjust their own workflow features without receiving direct
-  `WorkflowKit` authority. Retaining these ports is optional; suppliers
-  may also treat them as one-shot installation arguments and discard
-  them.
+  kit-backed facades over the workflow assembly surface. They let
+  downstream suppliers install and later adjust their own workflow
+  features without receiving direct `WorkflowKit` authority. Retaining
+  these ports is optional; suppliers may also treat them as one-shot
+  installation arguments and discard them.
 
 ## Lifecycle (Abstract Layer)
 
