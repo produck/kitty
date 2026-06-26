@@ -52,9 +52,8 @@ surface. The port is a supplier-facing facade, not an independent source
 of structural authority.
 
 The port does not expose `WorkflowKit` directly. Structural writes must
-pass through guarded methods on the port, such as `attachWorkflow()` or
-`appendDeploymentAttacher()`. If the workflow lifecycle no longer allows
-that write, the method throws.
+pass through guarded methods on the port. If the workflow lifecycle no
+longer allows that write, the method throws.
 
 The workflow instance itself is attached to `WorkflowKit` as a stable
 identity capability and is readable through `useWorkflow(kit)`. This is
@@ -62,14 +61,16 @@ safe because it exposes the frozen workflow object, not the writable
 `WorkflowKit` surface. Suppliers can use that identity as a `WeakMap`
 key for their own control surfaces.
 
-The stable assembly surface has three controlled capability classes:
+The stable assembly surface has three controlled capability classes,
+each associated with a target kit scope:
 
-- workflow-static dependencies installed on `WorkflowKit`;
-- deployment attachers run during compile-time `DeploymentKit`
-  preparation;
-- exchange attachers run when an `ExchangeKit` is prepared.
+- workflow-static dependencies (target: `WorkflowKit`);
+- deployment attachers (target: `DeploymentKit`);
+- exchange attachers (target: `ExchangeKit`).
 
-All structural additions to this surface close after `finalize()`.
+Each attachment port exposes the subset of these abilities relevant to
+its role and lifecycle phase. After `finalize()`, all structural
+additions to the assembly surface are closed.
 
 ```text
 Capability supplier

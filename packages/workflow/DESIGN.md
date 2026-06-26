@@ -118,24 +118,26 @@ The stable source of structural attachment authority is the workflow
 assembly surface. It is owned by `WorkflowKit`, not independently by each
 supplier-facing kit.
 
-The assembly surface consists of three controlled capability classes:
+The assembly surface consists of three controlled capability classes,
+distributed across the supplier-facing kits that own each attachment
+phase:
 
-- **Workflow-static dependencies**: values installed directly on
-  `WorkflowKit` and inherited by later deployment, exchange, and handler
-  scopes.
-- **Deployment attachers**: functions recorded on the workflow and run
-  during compile-time `DeploymentKit` preparation, allowing suppliers to
-  install deployment-scope capabilities before the adapter artifact is
-  built.
-- **Exchange attachers**: functions recorded on the workflow and run
-  when an `ExchangeKit` is prepared, allowing suppliers to install
-  per-exchange capabilities.
+- **Workflow-static dependencies**: attached via `attachWorkflow(key, value)`.
+  Available on `WorkflowKit` and inherited by all downstream kits.
+  Exposed through `MixinKit` as a facade.
+- **Deployment attachers**: functions recorded during the installation
+  phase and run during compile-time `DeploymentKit` preparation. Exposed
+  through `MixinKit` only — AdapterKit provides direct `DeploymentKit`
+  writes via `setDeploymentKit(key, value)`.
+- **Exchange attachers**: functions recorded during the installation or
+  compile phase and run when an `ExchangeKit` is prepared. Exposed
+  through both `MixinKit` and `AdapterKit`, each with its own lifecycle
+  window.
 
-`MixinKit` and `AdapterKit` should be understood as supplier-facing
-facades over this workflow-owned assembly surface. They may expose the
-same controlled attachment abilities, but the authority and lifecycle
-guard belong to the workflow. After `finalize()`, structural additions to
-the assembly surface are closed.
+`MixinKit` and `AdapterKit` are supplier-facing facades over subsets of
+the workflow assembly surface. Each port exposes only the abilities
+relevant to its role and lifecycle phase. After `finalize()`, structural
+additions to the assembly surface are closed.
 
 ## Architecture Overview
 
@@ -156,15 +158,15 @@ the assembly surface are closed.
   each responsible for a distinct kind of capability injection. The
   composition layer also owns `adapt(options)`, because temporary
   adapters only make sense after the Adapter domain has been introduced.
-  It installs `appendDeploymentAttacher` and `appendExchangeAttacher`,
-  because those attachment hooks are executed at Composition-owned
-  deployment and exchange boundaries.
   `MixinKit` and `AdapterKit` act as attachment ports: scoped,
-  kit-backed facades over the workflow assembly surface. They let
-  downstream suppliers install and later adjust their own workflow
-  features without receiving direct `WorkflowKit` authority. Retaining
-  these ports is optional; suppliers may also treat them as one-shot
-  installation arguments and discard them.
+  kit-backed facades over the workflow assembly surface. The attachment
+  abilities are distributed across the two ports by role: `MixinKit`
+  exposes `attachWorkflow`, `appendDeploymentAttacher`, and
+  `appendExchangeAttacher` for installation-phase use; `AdapterKit`
+  exposes `appendExchangeAttacher` for compile-phase use, alongside its
+  deployment artifact methods. Each port has its own lifecycle window —
+  Mixin abilities close at `finalize()`, Adapter abilities close after
+  artifact construction.
 
 ## Lifecycle (Abstract Layer)
 
@@ -385,22 +387,46 @@ available to all handler layers.
 during `deploy()` / `adapt()` after the `DeploymentKit` has been
 created. Each attacher receives the `DeploymentKit` and can extend it
 with higher-level capabilities (e.g. body parsing, cookie handling).
+This method is only available on `MixinKit` — `AdapterKit` does not
+expose it, because Adapter has direct `DeploymentKit` write access
+through `setDeploymentKit(key, value)`.
 
-`appendExchangeAttacher(attacher)` stores a callback to be invoked after
-an `ExchangeKit` has been validated and before the workflow handler
-pipeline runs. Each attacher receives the `ExchangeKit` and can extend
-the per-exchange scope.
+`appendExchangeAttacher(attacher)` stores a callback to be invoked when
+an `ExchangeKit` is validated and before the workflow handler pipeline
+runs. Each attacher receives the `ExchangeKit` and can extend the
+per-exchange scope. This method exists on both `MixinKit` and
+`AdapterKit`, with different lifecycle windows: MixinKit closes at
+`finalize()`, AdapterKit closes after artifact construction.
 
 ### Execution order at deploy
 
 ```text
 1. Create DeploymentKit
-2. Adapter.install → installs low-level protocol API (event wiring,
-   Exchange creation per request)
-3. Mixin deployment modifiers → extend DeploymentKit with
-   higher-level capabilities (body parsing, cookie handling, etc.)
-4. Start server
+2. Adapter.install → installs low-level protocol API, registers
+   exchange attachers into the adapter compile-phase temporary queue
+3. Adapter exchange attachers execute (abstract/base layer:
+   `Request`, `Response`, `Exchange` abstraction)
+4. Mixin deployment attachers execute (concrete higher-level layer:
+   body parsing, cookie handling, etc.)
+5. Artifact is finalized and linked to the server
 ```
+
+### Runtime exchange attacher execution order
+
+At runtime, when an exchange arrives:
+
+```text
+1. ExchangeKit validated (handleExchange guardrails)
+2. Adapter exchange attachers  →  abstract Exchange foundation
+3. Mixin exchange attachers    →  concrete per-exchange extensions
+4. Workflow handler pipeline
+```
+
+Adapter attachers run first because Adapter is the more abstract layer:
+it defines the `Exchange` abstraction and installs protocol-level
+resources. Mixin attachers run second because they depend on those
+resources to provide concrete features. This order mirrors the deploy
+phase: abstract before concrete.
 
 ### Relationship with Adapter
 
@@ -522,15 +548,25 @@ an `AdapterKit` derived from `DeploymentKit` with the following API:
 
 `AdapterKit` is a one-time isolation port. It keeps adapter authors
 from mutating `DeploymentKit` directly while still allowing the adapter
-to install deployment behavior: listeners, a server linker, and
-deployment-scoped dependencies.
+to install deployment behavior: listeners, a server linker, exchange
+attachers, and deployment-scoped dependencies.
 
 | Method                                           | Behavior                                            |
 | ------------------------------------------------ | --------------------------------------------------- |
+| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit`        |
 | `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline    |
 | `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output map |
 | `adapterKit.setDeploymentKit(key, value)`        | Sets a value on `DeploymentKit` for downstream use  |
 | `adapterKit.setServerLinker(link)`               | Sets `(server, listeners) => unknown` link function |
+
+`appendExchangeAttacher(fn)` stores a callback to be invoked when an
+`ExchangeKit` is validated, before the workflow handler pipeline runs.
+Adapter attachers are collected into a compile-phase temporary queue
+and execute **before** any Mixin-registered exchange attachers, because
+Adapter provides the abstract `Exchange` foundation that Mixin features
+depend on. The method is not guarded by `finalize()` — it is guarded by
+the artifact construction boundary: once the deployment artifact is
+built, the compile-phase queue is closed.
 
 `handleExchange(ExchangeKit)` is the primary entry point — it is
 called when a new request/stream arrives. It validates that the
@@ -539,15 +575,19 @@ forwards it to the composed workflow pipeline.
 
 ### Lifecycle role
 
-The Adapter domain operates **before** the Mixin domain at deploy
-time:
+The Adapter domain provides the abstract protocol layer. At deploy
+time, it runs first so that Mixin domain features can build on it:
 
 ```text
 1. Create DeploymentKit
-2. Adapter.install → installs low-level protocol API
-   → Exchange created per request → handleExchange → workflow pipeline
-3. Mixin deployment modifiers → extend DeploymentKit with
-   higher-level capabilities
+2. Adapter.install → installs low-level protocol API, registers
+   exchange attachers in the compile-phase queue, registers listeners
+   and linker
+3. Adapter exchange attachers execute on DeploymentKit (abstract
+   Exchange foundation)
+4. Mixin deployment attachers extend DeploymentKit with higher-level
+   capabilities (body parsing, cookie handling, etc.)
+5. Artifact is finalized and linked to the server
 ```
 
 This ordering ensures that when mixin modifiers run, the low-level
