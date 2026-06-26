@@ -5,6 +5,7 @@ import { ThrowTypeError } from '@produck/type-error';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 
 const registry = new Map();
+const instanceMap = new WeakMap();
 
 function isOptionsRecord(value) {
   if (value === null || typeof value !== 'object') {
@@ -75,10 +76,19 @@ export function isAvaiableServer(value) {
 }
 
 export function getByServer(server) {
-  const { constructor } = Object.getPrototypeOf(server);
-  const adapter = registry.get(constructor);
+  const fromInstance = instanceMap.get(server);
 
-  return adapter;
+  if (fromInstance !== undefined) {
+    return fromInstance;
+  }
+
+  const ServerConstructor = Object.getPrototypeOf(server).constructor;
+
+  return registry.get(ServerConstructor);
+}
+
+export function installInstance(server, entry) {
+  instanceMap.set(server, entry);
 }
 
 export { registerServerAdapter as register, normalizeOptions as define };

@@ -3,6 +3,10 @@ import { isPlainObject } from 'is-plain-object';
 
 import E from './Error.mjs';
 
+export const I_EXCHANGE_ATTACHER_LIST = Symbol(
+  'KittyWorkflow.$exchangeAttacherList',
+);
+
 function isListenerRecord(value) {
   if (!isPlainObject(value)) {
     return false;

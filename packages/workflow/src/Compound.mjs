@@ -20,8 +20,8 @@ function ThrowAdapter(message, cause) {
 
 export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
   [Mixin.I_HANDLER_LIST] = [];
-  [$I.DEPLOYMENT_ATTACHER_LIST] = [];
-  [$I.EXCHANGE_ATTACHER_LIST] = [];
+  [Mixin.I_DEPLOYMENT_ATTACHER_LIST] = [];
+  [Adapter.Artifact.I_EXCHANGE_ATTACHER_LIST] = [];
 
   constructor(...args) {
     super(...args);
@@ -33,7 +33,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
         ThrowTypeError('args[0] as attacher', 'function');
       }
 
-      this[$I.DEPLOYMENT_ATTACHER_LIST].push(attacher);
+      this[Mixin.I_DEPLOYMENT_ATTACHER_LIST].push(attacher);
     };
 
     this[$I.KIT].appendExchangeAttacher = (attacher) => {
@@ -43,7 +43,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
         ThrowTypeError('args[0] as attacher', 'function');
       }
 
-      this[$I.EXCHANGE_ATTACHER_LIST].push(attacher);
+      this[Adapter.Artifact.I_EXCHANGE_ATTACHER_LIST].push(attacher);
     };
   }
 
@@ -51,21 +51,15 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
     this[$I.COMPOSE.PREFIX](...Object.freeze(this[Mixin.I_HANDLER_LIST]));
   }
 
-  [_I.COMPILE_ARTIFACT](DeploymentKit, adapter) {
+  [_I.COMPILE_ARTIFACT](DeploymentKit) {
     const injector = Kit.Injector(DeploymentKit);
 
-    if (adapter === undefined) {
-      const server = Abstract.useServer(DeploymentKit);
-
-      adapter = Adapter.Registry.getByServer(server);
-      adapter.install(AdapterKit);
-    }
-
-    for (const attacher of this[$I.DEPLOYMENT_ATTACHER_LIST]) {
+    for (const attacher of this[Mixin.I_DEPLOYMENT_ATTACHER_LIST]) {
       injector.bind(attacher)();
     }
 
     const server = Abstract.useServer(DeploymentKit);
+    const adapter = Adapter.Registry.getByServer(server);
     const handledExchanges = new WeakSet();
     const AdapterKit = DeploymentKit('Kitty<Adapter>');
     const artifact = Adapter.Artifact.installToAdapterKit(AdapterKit);
@@ -103,13 +97,14 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
 
       const exInjector = Kit.Injector(ExchangeKit);
 
-      for (const attacher of this[$I.EXCHANGE_ATTACHER_LIST]) {
+      for (const attacher of this[Adapter.Artifact.I_EXCHANGE_ATTACHER_LIST]) {
         exInjector.bind(attacher)();
       }
 
       await this[$I.WORKFLOW](ExchangeKit);
     };
 
+    adapter.install(AdapterKit);
     Adapter.Artifact.assertDeploymentArtifact(artifact);
 
     return artifact;
@@ -145,6 +140,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       }
 
       consumed = true;
+      Adapter.Registry.installInstance(server, finalAdapter);
     }
 
     const deployer = Object.freeze({

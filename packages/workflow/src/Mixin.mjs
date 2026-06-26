@@ -2,6 +2,7 @@ import { ThrowTypeError } from '@produck/type-error';
 
 const NS = (name) => `KittyWorkflow.${name}`;
 export const I_HANDLER_LIST = Symbol(NS('$handlerPrefixSequence'));
+export const I_DEPLOYMENT_ATTACHER_LIST = Symbol(NS('$deploymentAttacherList'));
 
 export function createMixinKit(WorkflowKit, workflow) {
   const MixinKit = WorkflowKit('Kitty<Mixin>');
