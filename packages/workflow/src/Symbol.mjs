@@ -15,7 +15,7 @@ export const I = deepFreeze({
 const $I_KIT = Symbol('.$kit');
 const $I_WORKFLOW = Symbol('.$workflow');
 const $I_HANDLE_EXCHANGE = Symbol('.$handleExchange()');
-const $I_COMPOSE_PREFIX = Symbol('.$composePrefix()');
+const $I_PREPEND = Symbol('.$prependCompose()');
 const $I_ASSERT_FINALIZED = Symbol('.$assertFinalized()');
 const $I_ASSERT_NOT_FINALIZED = Symbol('.$assertNotFinalized()');
 
@@ -24,7 +24,7 @@ export const $I = deepFreeze({
   WORKFLOW: $I_WORKFLOW,
   HANDLE_EXCHANGE: $I_HANDLE_EXCHANGE,
   COMPOSE: {
-    PREFIX: $I_COMPOSE_PREFIX,
+    PREPEND: $I_PREPEND,
   },
   ASSERT: {
     FINALIZED: $I_ASSERT_FINALIZED,

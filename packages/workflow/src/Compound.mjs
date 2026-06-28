@@ -48,7 +48,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
   }
 
   [_I.COMPOSE.EXTEND]() {
-    this[$I.COMPOSE.PREFIX](...Object.freeze(this[Mixin.I_HANDLER_LIST]));
+    this[$I.COMPOSE.PREPEND](...Object.freeze(this[Mixin.I_HANDLER_LIST]));
   }
 
   [_I.COMPILE_ARTIFACT](DeploymentKit) {
@@ -104,12 +104,12 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       await this[$I.WORKFLOW](ExchangeKit);
     };
 
-    AdapterKit.attachDeployment = (key, value) => {
-      if (typeof key !== 'string' && typeof key !== 'symbol') {
+    AdapterKit.attachDeployment = (name, value) => {
+      if (!Kit.isDependenceName(name)) {
         ThrowTypeError('args[0] as dependency key', 'string | symbol');
       }
 
-      DeploymentKit[key] = value;
+      DeploymentKit[name] = value;
     };
 
     adapter.install(AdapterKit);
@@ -173,7 +173,18 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
   }
 
   mixin() {
-    const MixinKit = this[$I.KIT]('Kitty<Mixin>');
+    const WorkflowKit = this[$I.KIT];
+    const MixinKit = WorkflowKit('Kitty<Mixin>');
+
+    MixinKit.attachWorkflow = (name, value) => {
+      this[$I.ASSERT.NOT_FINALIZED]();
+
+      if (!Kit.isDependenceName(name)) {
+        ThrowTypeError('args[0] as dependency key', 'string | symbol');
+      }
+
+      WorkflowKit[name] = value;
+    };
 
     void MixinKit;
   }

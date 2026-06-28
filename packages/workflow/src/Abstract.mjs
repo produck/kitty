@@ -35,19 +35,9 @@ export default class KittyWorkflow {
 
     this[$I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW_SELF] = this;
-
-    WorkflowKit.attachWorkflow = (key, value) => {
-      this[$I.ASSERT.NOT_FINALIZED]();
-
-      if (typeof key !== 'string' && typeof key !== 'symbol') {
-        ThrowTypeError('args[0] as dependency key', 'string | symbol');
-      }
-
-      WorkflowKit[key] = value;
-    };
   }
 
-  [$I.COMPOSE.PREFIX](...handler) {
+  [$I.COMPOSE.PREPEND](...handler) {
     this[$I.WORKFLOW] = Composer.compose(...handler, this[$I.WORKFLOW]);
   }
 
@@ -69,7 +59,7 @@ export default class KittyWorkflow {
 
   finalize() {
     this[$I.ASSERT.NOT_FINALIZED]();
-    this[$I.COMPOSE.PREFIX](...Object.freeze(this[I.HANDLER_LIST]));
+    this[$I.COMPOSE.PREPEND](...Object.freeze(this[I.HANDLER_LIST]));
     this[_I.COMPOSE.EXTEND]();
     Object.freeze(this);
 
