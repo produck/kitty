@@ -64,7 +64,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
     const AdapterKit = DeploymentKit('Kitty<Adapter>');
     const artifact = Adapter.Artifact.installToAdapterKit(AdapterKit);
 
-    AdapterKit.handleExchange = async (ExchangeKit) => {
+    AdapterKit.handleExchange = async function handleExchange(ExchangeKit) {
       try {
         void ExchangeKit[Abstract.K_DEPLOYMENT_SELF];
       } catch (cause) {
@@ -102,6 +102,14 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       }
 
       await this[$I.WORKFLOW](ExchangeKit);
+    };
+
+    AdapterKit.attachDeployment = (key, value) => {
+      if (typeof key !== 'string' && typeof key !== 'symbol') {
+        ThrowTypeError('args[0] as dependency key', 'string | symbol');
+      }
+
+      DeploymentKit[key] = value;
     };
 
     adapter.install(AdapterKit);

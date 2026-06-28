@@ -128,7 +128,7 @@ phase:
 - **Deployment attachers**: functions recorded during the installation
   phase and run during compile-time `DeploymentKit` preparation. Exposed
   through `MixinKit` only — AdapterKit provides direct `DeploymentKit`
-  writes via `setDeploymentKit(key, value)`.
+  writes via `attachDeployment(key, value)`.
 - **Exchange attachers**: functions recorded during the installation or
   compile phase and run when an `ExchangeKit` is prepared. Exposed
   through both `MixinKit` and `AdapterKit`, each with its own lifecycle
@@ -248,7 +248,7 @@ classDiagram
   }
   class AdapterKit["⚙️AdapterKit"] {
     +exportListener(name, listener) void
-    +setDeployment(key, any) void
+    +attachDeployment(key, any) void
     +setServerLinker(link) void
   }
   class ExchangeKit["⚡ExchangeKit"] {
@@ -389,7 +389,7 @@ created. Each attacher receives the `DeploymentKit` and can extend it
 with higher-level capabilities (e.g. body parsing, cookie handling).
 This method is only available on `MixinKit` — `AdapterKit` does not
 expose it, because Adapter has direct `DeploymentKit` write access
-through `setDeploymentKit(key, value)`.
+through `attachDeployment(key, value)`.
 
 `appendExchangeAttacher(attacher)` stores a callback to be invoked when
 an `ExchangeKit` is validated and before the workflow handler pipeline
@@ -551,13 +551,13 @@ from mutating `DeploymentKit` directly while still allowing the adapter
 to install deployment behavior: listeners, a server linker, exchange
 attachers, and deployment-scoped dependencies.
 
-| Method                                           | Behavior                                            |
-| ------------------------------------------------ | --------------------------------------------------- |
-| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit`        |
-| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline    |
-| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output map |
-| `adapterKit.setDeploymentKit(key, value)`        | Sets a value on `DeploymentKit` for downstream use  |
-| `adapterKit.setServerLinker(link)`               | Sets `(server, listeners) => unknown` link function |
+| Method                                           | Behavior                                               |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit`           |
+| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline       |
+| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output map    |
+| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use |
+| `adapterKit.setServerLinker(link)`               | Sets `(server, listeners) => unknown` link function    |
 
 `appendExchangeAttacher(fn)` stores a callback to be invoked when an
 `ExchangeKit` is validated, before the workflow handler pipeline runs.

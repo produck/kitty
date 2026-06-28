@@ -297,7 +297,7 @@ export function install(AdapterKit) {
   const workflow = useWorkflow(AdapterKit);
 
   kitByWorkflow.set(workflow, AdapterKit);
-  AdapterKit.setDeploymentKit(K_PROTOCOL_STATE, createProtocolState());
+  AdapterKit.attachDeployment(K_PROTOCOL_STATE, createProtocolState());
   AdapterKit.exportListener('request', createRequestListener());
   AdapterKit.setServerLinker(linkServer);
 }
@@ -320,7 +320,7 @@ Structural writes are controlled:
 
 ```js
 MixinKit.attachWorkflow(key, value);
-AdapterKit.setDeploymentKit(key, value);
+AdapterKit.attachDeployment(key, value);
 ```
 
 Those methods are the authority boundary. They can validate keys, check
