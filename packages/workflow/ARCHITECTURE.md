@@ -26,6 +26,14 @@ here.
   handleExchange.
 - Exchange state access is mediated through the Exchange abstraction.
 - Naming uses Exchange consistently; transaction terminology is retired.
+- **Adapters support decoration**: a decorator chain can have multiple
+  layers registered for the same server constructor. Each layer
+  independently receives an `AdapterKit` and contributes listeners,
+  attachers, and a linker. Kitty provides the composition mechanism
+  for attachers (`appendExchangeAttacher`); the linker mechanism
+  (`setServerLinker`) is currently single-assignment (open design
+  question, see DESIGN.md). Downstream adapters control their own
+  decoration order and policy.
 
 ## handleExchange Guardrails
 
@@ -87,3 +95,37 @@ When moving content from DESIGN.md to this file:
 - Keep only finalized conclusions.
 - Remove draft rationale that is still under discussion.
 - Prefer short, testable statements over broad narrative text.
+
+## Settled Symbol Naming
+
+### `$I.COMPOSE.PREPEND`
+
+`$I.COMPOSE.PREFIX` was renamed to `$I.COMPOSE.PREPEND` because:
+
+- The original `PREFIX` was part of a `PREFIX`/`SUFFIX` pair; suffix
+  was removed as meaningless for the abstract Kitty layer.
+- `PREFIX` reads like a noun/descriptor (functional/pure), but the
+  operation has side effects (mutates `this[$I.WORKFLOW]`).
+- `PREPEND` is an imperative verb that precisely describes "prepend
+  handlers to the workflow chain via composition".
+- The `COMPOSE` namespace is retained — both `$I.COMPOSE.PREPEND` and
+  `_I.COMPOSE.EXTEND` share the `@produck/compose` origin.
+
+### `AdapterKit.appendExchangeAttacher` (not `setExchangeAttacher`)
+
+This decision applies to the **AdapterKit control surface only**.
+On `MixinKit`, `appendExchangeAttacher` is natural — Mixin is
+designed for multiple installers, each registering its own attachers.
+
+The discussion arose because `AdapterKit` is typically used by one
+adapter, raising the question of whether `set` would be more
+appropriate. `append` was confirmed for the following reasons:
+
+- Adapters may be **decorated** — a decorator chain can have multiple
+  layers, each potentially registering exchange attachers.
+- `append` signals "add to a collection" (multiple callers coexist).
+- `set` would imply single-value replacement, which breaks under
+  decoration.
+- The kitty layer does not define or know about specific adapter
+  decoration relationships; it only provides the append-collection
+  mechanism.

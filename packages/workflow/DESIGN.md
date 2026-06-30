@@ -560,13 +560,13 @@ from mutating `DeploymentKit` directly while still allowing the adapter
 to install deployment behavior: listeners, a server linker, exchange
 attachers, and deployment-scoped dependencies.
 
-| Method                                           | Behavior                                               |
-| ------------------------------------------------ | ------------------------------------------------------ |
-| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit`           |
-| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline       |
-| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output map    |
-| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use |
-| `adapterKit.setServerLinker(link)`               | Sets `(server, listeners) => unknown` link function    |
+| Method                                           | Behavior                                                                                    |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit`                                                |
+| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline                                            |
+| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output map                                         |
+| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use                                      |
+| `adapterKit.setServerLinker(link)`               | Pushes a `(server, listeners) => unknown` linker onto a stack (LIFO; adapter need not know) |
 
 `appendExchangeAttacher(fn)` stores a callback to be invoked when an
 `ExchangeKit` is validated, before the workflow handler pipeline runs.
@@ -1685,3 +1685,40 @@ member-level API requirements:
   global Adapter registry by prototype chain.
 - **adapt**: Ephemeral custom deployment — no global registration,
   one-off use with immediate invocation guard.
+
+## Open Design Questions
+
+### `setServerLinker` — principle of least knowledge
+
+**Question**: Should `setServerLinker` support composition for adapter
+decoration (like `appendExchangeAttacher`)?
+
+**Status**: Open design question.
+
+**Constraints**:
+
+- Adapters can be decorated. A decorator chain may have multiple
+  layers, each wanting to contribute server wiring.
+- From a downstream adapter author's perspective, they are simply
+  "setting" their own linker — they should not need to know about
+  other adapter layers or the internal organization mechanism.
+- The kitty layer does not know about specific adapter decoration
+  relationships.
+
+**Considered approaches**:
+
+1. **Single assignment** (current): `artifact.link = link` — last
+   caller wins. Simple but does not compose under decoration.
+2. **Explicit stack**: `pushServerLinker` pushes onto a LIFO stack.
+   Naming leaks the implementation detail to adapter authors.
+3. **`@produck/compose` composition**: `Composer.compose(link,
+artifact.link)` — reuses the existing composition protocol from
+   the workflow handler layer. Consistent but may be too implicit.
+
+**Open questions**:
+
+- Should the adapter API surface stay `setServerLinker` (least
+  knowledge) while internally composing? Or should the composition
+  mechanism be exposed when the adapter needs it?
+- Is the decoration scenario for server wiring real enough to justify
+  a change?
