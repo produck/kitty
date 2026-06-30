@@ -5,6 +5,12 @@
 DESIGN.md is the working draft for AI collaboration and exploration.
 Stable conclusions should be moved into ARCHITECTURE.md.
 
+> **AI session note**: Tests in this repository are design sandboxes,
+> not hardened regression suites. Focus changes on `src/`. Do not
+> expand test coverage or fix test issues unless explicitly requested.
+> When source changes break tests, update only the minimal surface to
+> keep the suite executable.
+
 Deployment paths are discussed in more detail in
 [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -232,27 +238,30 @@ classDiagram
   }
   class WorkflowKit {
     <<mixinable>>
+    ~<$I_WORKFLOW>
     ...
   }
   class MixinKit["⚙️MixinKit"] {
-    +appendPrefixHandler(handler) void
     +attachWorkflow(key, any) void
-    +appendDeploymentAttacher() void
-    +appendExchangeAttacher() void
+    +appendDeploymentAttacher(attacher) void
+    +appendExchangeAttacher(attacher) void
+    +appendPrefixHandler(...handler) void
   }
   class DeploymentKit {
     <<mixinable>>
     +~self~ true
-    +Exchange exchange
     ...
   }
   class AdapterKit["⚙️AdapterKit"] {
-    +exportListener(name, listener) void
     +attachDeployment(key, any) void
+    +appendExchangeAttacher(attacher) void
+    +handleExchange(ExchangeKit) Promise~unknown~
+    +exportListener(name, listener) void
     +setServerLinker(link) void
   }
   class ExchangeKit["⚡ExchangeKit"] {
     <<mixinable>>
+    +Exchange exchange
     ...
   }
   class HandlerKit["⚡HandlerKit"] {
