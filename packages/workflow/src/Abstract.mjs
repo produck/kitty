@@ -7,10 +7,10 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import { I, $I, _I } from './Symbol.mjs';
 
 export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
-export const K_WORKFLOW_SELF = Symbol('WorkflowKit.self');
+export const K_WORKFLOW = Symbol('WorkflowKit.Workflow');
 const K_DEPLOYMENT_SERVER = Symbol('DeploymentKit.server');
 
-export const { use: useWorkflow } = Kit.Getter(K_WORKFLOW_SELF);
+export const { use: useWorkflow } = Kit.Getter(K_WORKFLOW);
 export const { use: useServer } = Kit.Getter(K_DEPLOYMENT_SERVER);
 
 export function assertHandlerByIndex(value, index) {
@@ -36,7 +36,7 @@ const KittyWorkflow = class {
     const WorkflowKit = kit('Kitty<Workflow>');
 
     this[$I.KIT] = WorkflowKit;
-    WorkflowKit[K_WORKFLOW_SELF] = this;
+    WorkflowKit[K_WORKFLOW] = this;
   }
 
   [$I.COMPOSE.PREPEND](...handler) {

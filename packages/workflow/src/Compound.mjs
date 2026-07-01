@@ -2,13 +2,13 @@ import * as Ow from '@produck/ow';
 import * as Kit from '@produck/kit';
 import { ThrowTypeError } from '@produck/type-error';
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
+import { compose } from '@produck/compose';
 
-import { $I, _I } from './Symbol.mjs';
 import * as Exchange from './Exchange/index.mjs';
+import { $I, _I } from './Symbol.mjs';
 import AbstractWorkflow, * as Abstract from './Abstract.mjs';
 import * as Mixin from './Mixin/index.mjs';
 import * as Adapter from './Adapter/index.mjs';
-import { compose } from '@produck/compose';
 
 function assertAttacher(value) {
   if (typeof value !== 'function') {
