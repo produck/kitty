@@ -2,6 +2,7 @@ import * as Ow from '@produck/ow';
 import { ThrowTypeError } from '@produck/type-error';
 import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
+import Abstract, { Member as M } from '@produck/es-abstract';
 
 import { I, $I, _I } from './Symbol.mjs';
 
@@ -25,7 +26,7 @@ export function assertHandlerByIndex(value, index) {
 
 const DEFAULT_PASSTHOUGH = (_ctx, next) => next();
 
-export default class KittyWorkflow {
+const KittyWorkflow = class {
   [I.CONSTRUCTOR] = KittyWorkflow;
   [I.HANDLER_LIST] = [];
   [$I.WORKFLOW] = DEFAULT_PASSTHOUGH;
@@ -113,4 +114,12 @@ export default class KittyWorkflow {
 
     return this[$I.DEPLOY](server);
   }
-}
+};
+
+// prettier-ignore
+export default Abstract(KittyWorkflow, ...[
+  Abstract({
+    [_I.COMPOSE.EXTEND]: M.Method(),
+    [_I.COMPILE_ARTIFACT]: M.Method().returns(M.Object),
+  }),
+]);

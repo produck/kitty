@@ -9,49 +9,51 @@ import KittyExchangeResponse from './Response.mjs';
 
 const CONSUMED_IDENTITY = new WeakSet();
 
-export default Abstract(
-  class KittyExchange {
-    request = new KittyExchangeRequest(this);
-    response = new KittyExchangeResponse(this);
+const KittyExchange = class {
+  request = new KittyExchangeRequest(this);
+  response = new KittyExchangeResponse(this);
 
-    constructor(internal) {
-      this[I.CONSTRUCTOR] = new.target;
-      this[_I.INTERNAL] = internal;
+  constructor(internal) {
+    this[I.CONSTRUCTOR] = new.target;
+    this[_I.INTERNAL] = internal;
 
-      const identity = this[_I.IDENTITY.GET]();
+    const identity = this[_I.IDENTITY.GET]();
 
-      if (CONSUMED_IDENTITY.has(identity)) {
-        Ow.Error.Common('Adapter identity object has already been consumed.');
-      }
-
-      CONSUMED_IDENTITY.add(identity);
-      Object.freeze(this);
+    if (CONSUMED_IDENTITY.has(identity)) {
+      Ow.Error.Common('Adapter identity object has already been consumed.');
     }
 
-    get method() {
-      return this[_I.METHOD.GET]();
-    }
+    CONSUMED_IDENTITY.add(identity);
+    Object.freeze(this);
+  }
 
-    get URL() {
-      return this[_I.URL.GET]();
-    }
+  get method() {
+    return this[_I.METHOD.GET]();
+  }
 
-    get status() {
-      return this[_I.STATUS.GET]();
-    }
+  get URL() {
+    return this[_I.URL.GET]();
+  }
 
-    set status(value) {
-      this[_I.STATUS.SET](value);
-    }
+  get status() {
+    return this[_I.STATUS.GET]();
+  }
 
-    get isFinished() {
-      return this[_I.FINISHED.IS]();
-    }
+  set status(value) {
+    this[_I.STATUS.SET](value);
+  }
 
-    get server() {
-      return this[_I.SERVER.GET]();
-    }
-  },
+  get isFinished() {
+    return this[_I.FINISHED.IS]();
+  }
+
+  get server() {
+    return this[_I.SERVER.GET]();
+  }
+};
+
+// prettier-ignore
+export default Abstract(KittyExchange, ...[
   Abstract({
     [_I.INTERNAL]: M.Any(),
     [_I.IDENTITY.GET]: M.Method().args().rest().returns(M.Object),
@@ -79,4 +81,4 @@ export default Abstract(
     [_I.RESPONSE.BODY.DATA.GET]: M.Method().returns(M.Any),
     [_I.RESPONSE.BODY.DATA.SET]: M.Method().args(M.Any).returns(M.Undefined),
   }),
-);
+]);
