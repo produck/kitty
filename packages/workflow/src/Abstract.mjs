@@ -13,11 +13,6 @@ const K_DEPLOYMENT_SERVER = Symbol('DeploymentKit.server');
 export const { use: useWorkflow } = Kit.Getter(K_WORKFLOW_SELF);
 export const { use: useServer } = Kit.Getter(K_DEPLOYMENT_SERVER);
 
-export function initializeDeploymentKit(DeploymentKit, server) {
-  DeploymentKit[K_DEPLOYMENT_SELF] = true;
-  DeploymentKit[K_DEPLOYMENT_SERVER] = server;
-}
-
 export function assertHandlerByIndex(value, index) {
   if (typeof value !== 'function' || value.length > 2) {
     ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
@@ -90,7 +85,8 @@ const KittyWorkflow = class {
       DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
     }
 
-    initializeDeploymentKit(DeploymentKit, server);
+    DeploymentKit[K_DEPLOYMENT_SELF] = true;
+    DeploymentKit[K_DEPLOYMENT_SERVER] = server;
 
     return this[_I.COMPILE_ARTIFACT](DeploymentKit);
   }
