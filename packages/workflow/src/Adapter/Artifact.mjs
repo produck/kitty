@@ -1,11 +1,4 @@
-import { ThrowTypeError } from '@produck/type-error';
 import { isPlainObject } from 'is-plain-object';
-
-import E from './Error.mjs';
-
-export const I_EXCHANGE_ATTACHER_LIST = Symbol(
-  'KittyWorkflow.$exchangeAttacherList',
-);
 
 function isListenerRecord(value) {
   if (!isPlainObject(value)) {
@@ -36,36 +29,3 @@ export function isDeploymentArtifact(value) {
 
   return true;
 }
-
-export function assertDeploymentArtifact(value) {
-  if (!isPlainObject(value)) {
-    ThrowTypeError(E.M.ARTIFACT.SELF, E.R.ARTIFACT);
-  }
-
-  if (!isListenerRecord(value.listeners)) {
-    ThrowTypeError(E.M.ARTIFACT.LISTENERS, E.R.LISTENERS);
-  }
-
-  if (typeof value.link !== 'function') {
-    ThrowTypeError(E.M.ARTIFACT.LINK, E.R.LINK);
-  }
-}
-
-export function installAdapterKitArtifact(AdapterKit) {
-  const artifact = {
-    listeners: {},
-    link: () => {},
-  };
-
-  AdapterKit.exportListener = function (eventName, listener) {
-    artifact.listeners[eventName] = listener;
-  };
-
-  AdapterKit.setServerLinker = function (link) {
-    artifact.link = link;
-  };
-
-  return artifact;
-}
-
-export { installAdapterKitArtifact as installToAdapterKit };

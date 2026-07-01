@@ -8,6 +8,7 @@ import * as Exchange from './Exchange/index.mjs';
 import AbstractWorkflow, * as Abstract from './Abstract.mjs';
 import * as Mixin from './Mixin/index.mjs';
 import * as Adapter from './Adapter/index.mjs';
+import { compose } from '@produck/compose';
 
 function assertAttacher(value) {
   if (typeof value !== 'function') {
@@ -39,12 +40,45 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
       attacher(DeploymentKit);
     }
 
+    let compiled = false;
+
+    function assertNotCompiled() {
+      if (compiled) {
+        Ow.Error.Common('Artifact has already been compiled.');
+      }
+    }
+
     const server = Abstract.useServer(DeploymentKit);
     const adapter = Adapter.Registry.getByServer(server);
     const handledExchanges = new WeakSet();
     const AdapterKit = DeploymentKit('Kitty<Adapter>');
-    const artifact = Adapter.Artifact.installToAdapterKit(AdapterKit);
+    const listeners = {};
+    const linkList = [];
     const deploymentExchangeAttacherList = [];
+
+    AdapterKit.exportListener = function (eventName, listener) {
+      assertNotCompiled();
+
+      if (typeof eventName !== 'string') {
+        ThrowTypeError('args[0] as eventName', 'string');
+      }
+
+      if (typeof listener !== 'function') {
+        ThrowTypeError('args[1] as listener', 'function');
+      }
+
+      listeners[eventName] = listener;
+    };
+
+    AdapterKit.setServerLinker = function (link) {
+      assertNotCompiled();
+
+      if (typeof link !== 'function') {
+        ThrowTypeError('args[0] as linker', 'function');
+      }
+
+      linkList.unshift(link);
+    };
 
     AdapterKit.handleExchange = async function handleExchange(ExchangeKit) {
       try {
@@ -87,14 +121,6 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
       await this[$I.WORKFLOW](ExchangeKit);
     };
 
-    let compiled = false;
-
-    function assertNotCompiled() {
-      if (compiled) {
-        Ow.Error.Common('Artifact has already been compiled.');
-      }
-    }
-
     AdapterKit.attachDeployment = (name, value) => {
       assertNotCompiled();
       assertDependenceName(name);
@@ -108,10 +134,12 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
     };
 
     adapter.install(AdapterKit);
-    Adapter.Artifact.assertDeploymentArtifact(artifact);
     compiled = true;
 
-    return deepFreeze(artifact);
+    return deepFreeze({
+      listeners,
+      link: compose(...linkList),
+    });
   }
 
   adapt(adapter) {
@@ -207,5 +235,3 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
     installer(MixinKit);
   }
 }
-
-export { CompoundKittyWorkflow as Workflow };
