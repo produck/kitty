@@ -35,10 +35,8 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
   }
 
   [_I.COMPILE_ARTIFACT](DeploymentKit) {
-    const injector = Kit.Injector(DeploymentKit);
-
     for (const attacher of this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST]) {
-      injector.bind(attacher)();
+      attacher(DeploymentKit);
     }
 
     const server = Abstract.useServer(DeploymentKit);
@@ -174,9 +172,7 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
     const WorkflowKit = this[$I.KIT];
     const MixinKit = WorkflowKit('Kitty<Mixin>');
 
-    if (typeof installer !== 'function') {
-      ThrowTypeError('args[0] as installer', 'function');
-    }
+    Mixin.assertInstaller(installer);
 
     MixinKit.attachWorkflow = (name, value) => {
       this[$I.ASSERT.NOT_FINALIZED]();
@@ -202,9 +198,7 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
       for (const index in handlerList) {
         const handler = handlerList[index];
 
-        if (typeof handler !== 'function' || handler.length > 2) {
-          ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
-        }
+        Abstract.assertHandlerByIndex(handler, index);
       }
 
       this[I.MIXIN.HANDLER.PREFIX.LIST].push(...handlerList);

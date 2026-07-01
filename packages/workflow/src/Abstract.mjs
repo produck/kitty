@@ -17,6 +17,12 @@ export function initializeDeploymentKit(DeploymentKit, server) {
   DeploymentKit[K_DEPLOYMENT_SERVER] = server;
 }
 
+export function assertHandlerByIndex(value, index) {
+  if (typeof value !== 'function' || value.length > 2) {
+    ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
+  }
+}
+
 const DEFAULT_PASSTHOUGH = (_ctx, next) => next();
 
 export default class KittyWorkflow {
@@ -45,11 +51,7 @@ export default class KittyWorkflow {
     this[$I.ASSERT.NOT_FINALIZED]();
 
     for (const index in handlerList) {
-      const handler = handlerList[index];
-
-      if (typeof handler !== 'function' || handler.length > 2) {
-        ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
-      }
+      assertHandlerByIndex(handlerList[index], index);
     }
 
     this[I.HANDLER_LIST].push(...handlerList);
