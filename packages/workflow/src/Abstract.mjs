@@ -3,7 +3,7 @@ import { ThrowTypeError } from '@produck/type-error';
 import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
 
-import { $I, I, _I } from './Symbol.mjs';
+import { I, $I, _I } from './Symbol.mjs';
 
 export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
 export const K_WORKFLOW_SELF = Symbol('WorkflowKit.self');
@@ -82,7 +82,7 @@ export default class KittyWorkflow {
     }
   }
 
-  async [I.COMPILE](server, DeploymentKit) {
+  async [$I.COMPILE](server, DeploymentKit) {
     if (DeploymentKit === undefined) {
       DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
     }
@@ -92,8 +92,8 @@ export default class KittyWorkflow {
     return this[_I.COMPILE_ARTIFACT](DeploymentKit);
   }
 
-  async [I.DEPLOY](server) {
-    const { listeners, link } = await this[I.COMPILE](server);
+  async [$I.DEPLOY](server) {
+    const { listeners, link } = await this[$I.COMPILE](server);
 
     link(server, listeners);
   }
@@ -101,7 +101,7 @@ export default class KittyWorkflow {
   async compile(server) {
     this[$I.ASSERT.FINALIZED]();
 
-    const { listeners } = await this[I.COMPILE](server);
+    const { listeners } = await this[$I.COMPILE](server);
 
     return listeners;
   }
@@ -109,6 +109,6 @@ export default class KittyWorkflow {
   async deploy(server) {
     this[$I.ASSERT.FINALIZED]();
 
-    return this[I.DEPLOY](server);
+    return this[$I.DEPLOY](server);
   }
 }

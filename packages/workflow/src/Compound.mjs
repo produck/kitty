@@ -1,23 +1,13 @@
 import * as Ow from '@produck/ow';
 import * as Kit from '@produck/kit';
 import { ThrowTypeError } from '@produck/type-error';
-
-import { I, $I, _I } from './Symbol.mjs';
-import * as Exchange from './Exchange/index.mjs';
-import AbstractKittyWorkflow, * as Abstract from './Abstract.mjs';
-import * as Mixin from './Mixin.mjs';
-import * as Adapter from './Adapter/index.mjs';
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
-function ThrowAdapter(message, cause) {
-  const throwArgs = [`Bad adapter: ${message}`];
-
-  if (cause !== undefined) {
-    throwArgs.push({ cause });
-  }
-
-  Ow.Error.Common(...throwArgs);
-}
+import { $I, _I } from './Symbol.mjs';
+import * as Exchange from './Exchange/index.mjs';
+import AbstractWorkflow, * as Abstract from './Abstract.mjs';
+import * as Mixin from './Mixin/index.mjs';
+import * as Adapter from './Adapter/index.mjs';
 
 function assertAttacher(value) {
   if (typeof value !== 'function') {
@@ -31,19 +21,23 @@ function assertDependenceName(value) {
   }
 }
 
-export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
-  [Mixin.I_HANDLER_LIST] = [];
-  [Mixin.I_DEPLOYMENT_ATTACHER_LIST] = [];
-  [Adapter.Artifact.I_EXCHANGE_ATTACHER_LIST] = [];
+const I = deepFreeze({ MIXIN: Mixin.SYMBOL.WORKFLOW });
+
+export class CompoundKittyWorkflow extends AbstractWorkflow {
+  [I.MIXIN.HANDLER.PREFIX.LIST] = [];
+  [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
+  [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];
 
   [_I.COMPOSE.EXTEND]() {
-    this[$I.COMPOSE.PREPEND](...Object.freeze(this[Mixin.I_HANDLER_LIST]));
+    const prefixHandlerList = this[I.MIXIN.HANDLER.PREFIX.LIST];
+
+    this[$I.COMPOSE.PREPEND](...Object.freeze(prefixHandlerList));
   }
 
   [_I.COMPILE_ARTIFACT](DeploymentKit) {
     const injector = Kit.Injector(DeploymentKit);
 
-    for (const attacher of this[Mixin.I_DEPLOYMENT_ATTACHER_LIST]) {
+    for (const attacher of this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST]) {
       injector.bind(attacher)();
     }
 
@@ -58,36 +52,36 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       try {
         void ExchangeKit[Abstract.K_DEPLOYMENT_SELF];
       } catch (cause) {
-        ThrowAdapter('ExchangeKit not derived from DeploymentKit.', cause);
+        Adapter.Throw('ExchangeKit not derived from DeploymentKit.', cause);
       }
 
       if (ExchangeKit === DeploymentKit) {
-        ThrowAdapter('ExchangeKit MUST NOT be a DeploymentKit.');
+        Adapter.Throw('ExchangeKit MUST NOT be a DeploymentKit.');
       }
 
       const exchange = Exchange.touchExchange(ExchangeKit);
 
       if (exchange === undefined) {
-        ThrowAdapter('Exchange is not installed.');
+        Adapter.Throw('Exchange is not installed.');
       }
 
       if (!(exchange instanceof Exchange.Abstract)) {
-        ThrowAdapter('It MUST be an Exchange instance.');
+        Adapter.Throw('It MUST be an Exchange instance.');
       }
 
       if (exchange.server !== server) {
-        ThrowAdapter('Bad linked server.');
+        Adapter.Throw('Bad linked server.');
       }
 
       if (handledExchanges.has(exchange)) {
-        ThrowAdapter('Adapter dispatched one Exchange more than once.');
+        Adapter.Throw('Adapter dispatched one Exchange more than once.');
       }
 
       handledExchanges.add(exchange);
 
       for (const attacher of [
         ...deploymentExchangeAttacherList,
-        ...this[Adapter.Artifact.I_EXCHANGE_ATTACHER_LIST],
+        ...this[I.MIXIN.EXCHANGE.ATTACHER.LIST],
       ]) {
         attacher(ExchangeKit);
       }
@@ -159,14 +153,14 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
       compile: async (server) => {
         consumeBy(deployer, server);
 
-        const { listeners } = await this[I.COMPILE](server, DeploymentKit);
+        const { listeners } = await this[$I.COMPILE](server, DeploymentKit);
 
         return listeners;
       },
       deploy: async (server) => {
         consumeBy(deployer, server);
 
-        const artifact = await this[I.COMPILE](server, DeploymentKit);
+        const artifact = await this[$I.COMPILE](server, DeploymentKit);
         const { link, listeners } = artifact;
 
         link(server, listeners);
@@ -193,13 +187,13 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
     MixinKit.appendDeploymentAttacher = (attacher) => {
       this[$I.ASSERT.NOT_FINALIZED]();
       assertAttacher(attacher);
-      this[Mixin.I_DEPLOYMENT_ATTACHER_LIST].push(attacher);
+      this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST].push(attacher);
     };
 
     MixinKit.appendExchangeAttacher = (attacher) => {
       this[$I.ASSERT.NOT_FINALIZED]();
       assertAttacher(attacher);
-      this[Adapter.Artifact.I_EXCHANGE_ATTACHER_LIST].push(attacher);
+      this[I.MIXIN.EXCHANGE.ATTACHER.LIST].push(attacher);
     };
 
     MixinKit.appendPrefixHandler = (...handlerList) => {
@@ -213,7 +207,7 @@ export class CompoundKittyWorkflow extends AbstractKittyWorkflow {
         }
       }
 
-      this[Mixin.I_HANDLER_LIST].push(...handlerList);
+      this[I.MIXIN.HANDLER.PREFIX.LIST].push(...handlerList);
     };
 
     installer(MixinKit);
