@@ -20,8 +20,8 @@ function isOptionsRecord(value) {
 export function normalizeOptions(options) {
   const _options = {
     constructor: net.Server,
-    //TODO redesign adapter identity surface; legacy name metadata is too weak for
-    //protocol-level invariants such as logical exchange identity.
+    // Human-readable adapter label. May carry variant/modifier markers
+    // for adapter composition scenarios.
     name: '',
     install: () => {},
   };
@@ -66,8 +66,8 @@ function registerServerAdapter(options) {
 }
 
 export function isAvaiableServer(value) {
-  for (const Server of registry.keys()) {
-    if (value instanceof Server) {
+  for (const constructor of registry.keys()) {
+    if (value instanceof constructor) {
       return true;
     }
   }
@@ -87,8 +87,8 @@ export function getByServer(server) {
   return registry.get(ServerConstructor);
 }
 
-export function installInstance(server, entry) {
-  instanceMap.set(server, entry);
+export function associate(server, adapter) {
+  instanceMap.set(server, adapter);
 }
 
 export { registerServerAdapter as register, normalizeOptions as define };

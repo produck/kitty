@@ -172,7 +172,7 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
       }
 
       consumed = true;
-      Adapter.Registry.installInstance(server, finalAdapter);
+      Adapter.Registry.associate(server, finalAdapter);
     }
 
     const deployer = Object.freeze({

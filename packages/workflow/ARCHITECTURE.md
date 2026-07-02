@@ -282,14 +282,30 @@ Adapters are registered globally via
 
 ### Lookup
 
-At deploy time, `Adapter.Registry.getByServer(server)` finds the
-matching adapter by checking `instanceof` against registered
-constructors. The registry stores `{ name, install }`.
+Adapter resolution follows a two-level lookup:
 
-Per-instance overrides are supported via
-`Adapter.Registry.installInstance(server, entry)`, used by the
-`adapt()` path to bind a temporary adapter to a specific server
-instance.
+1. **Instance-level** (via `associate`): Check if the server instance
+   has an explicitly associated adapter. Set by the `adapt()` path
+   for one-off deployments.
+2. **Constructor-level** (via `register`): Fall back to matching
+   `server.constructor` (via `instanceof`) against globally registered
+   adapters.
+
+`getByServer(server)` checks instance map first, then walks the
+registry. This covers two usage patterns:
+
+- **Framework-level distribution**: Library authors register adapters
+  for standard server constructors (e.g. `http.Server`). Downstream
+  code uses `deploy(server)` and gets the right adapter automatically.
+- **Per-instance override**: Advanced users with custom server
+  subclasses or temporary setups use `adapt()` to bind an adapter
+  directly to a specific instance, bypassing global registration.
+
+The registry entry stores `{ name, install }`:
+
+- `name`: human-readable label; may carry variant/modifier markers for
+  adapter composition scenarios.
+- `install`: the function that populates listeners and linkers.
 
 ### AdapterKit API
 
@@ -297,13 +313,13 @@ When `adapter.install(AdapterKit)` is invoked, it receives an
 `AdapterKit` derived from `DeploymentKit`. It is a one-time isolation
 port — adapter authors cannot mutate `DeploymentKit` directly.
 
-| Method                                           | Behavior                                                           |
-| ------------------------------------------------ | ------------------------------------------------------------------ |
-| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output listeners record   |
-| `adapterKit.setServerLinker(link)`               | Pushes a `(server, listeners) => unknown` linker onto a LIFO stack |
-| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline after validation  |
-| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use             |
-| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit` at runtime            |
+| Method                                           | Behavior                                                                                                   |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output listeners record                                           |
+| `adapterKit.setServerLinker(link)`               | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install |
+| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline after validation                                          |
+| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use                                                     |
+| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit` at runtime                                                    |
 
 All methods guard against post-compilation calls via an internal
 `compiled` flag.
