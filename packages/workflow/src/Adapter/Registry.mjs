@@ -55,14 +55,14 @@ export function normalizeOptions(options) {
   return _options;
 }
 
-function registerServerAdapter(options) {
-  const { constructor, name, install } = normalizeOptions(options);
+function registerAdapter(options) {
+  const adapter = normalizeOptions(options);
 
-  if (registry.has(constructor)) {
-    Ow.Error.Common(`Server constructor(${constructor.name}) exists.`);
+  if (registry.has(adapter.constructor)) {
+    Ow.Error.Common(`Server constructor(${adapter.constructor.name}) exists.`);
   }
 
-  registry.set(constructor, { name, install });
+  registry.set(adapter.constructor, Object.freeze(adapter));
 }
 
 export function isAvaiableServer(value) {
@@ -91,4 +91,4 @@ export function associate(server, adapter) {
   instanceMap.set(server, adapter);
 }
 
-export { registerServerAdapter as register, normalizeOptions as define };
+export { registerAdapter, normalizeOptions };

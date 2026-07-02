@@ -7,3 +7,9 @@ export function assertInstaller(value) {
     ThrowTypeError('args[0] as installer', 'function');
   }
 }
+
+export function defineMixin(installer) {
+  assertInstaller(installer);
+
+  return installer;
+}
