@@ -60,8 +60,8 @@ constructor(kit) → use(handler)* → finalize()
   instance. After this, `use()` and `mixin()` are rejected.
 - **Compile**: `compile(server)` produces the deployment artifact's
   `listeners` record without linking to the server.
-- **Deploy**: `deploy(server)` compiles the artifact and immediately
-  links listeners to the server.
+- **Deploy**: `deploy(server)` compiles the artifact, then calls
+  `link()` to wire the server via the composed linker chain.
 
 ### Composition layer extensions
 
@@ -71,6 +71,8 @@ The full lifecycle in `CompoundKittyWorkflow`:
 constructor(kit) → mixin(installer)* → use(handler)* → finalize()
   → deploy(server) / compile(server) / adapt(options)
   → Adapter.Registry / temporary adapter → DeploymentKit prepared
+  → adapter.install(AdapterKit) → compile phase → link compiled
+  → link() → server wired via linker chain
   → (request) → ExchangeKit → Exchange validated → workflow pipeline
 ```
 
@@ -164,7 +166,8 @@ that it can actually use.
 - **`Kitty<Deployment>`** (deployment scope): Derived from `KitWorkflow`
   at deploy time via `kit('Kitty<Deployment>')`. The adapter's recipe
   is bound to this kit — the adapter never touches the Workflow-level
-  kit.
+  kit. Also serves as the compose context for the linker chain during
+  deploy (`artifact.link()`).
 - **ExchangeKit** (per-exchange scope): Derived from
   `Kitty<Deployment>` per-request when a request arrives. Provides
   exchange-scoped context including request/response APIs (`Method`,
@@ -191,7 +194,8 @@ that it can actually use.
 - Exchange: one HTTP request and its response as one runtime unit.
 - ExchangeKit: the per-exchange kit derived from DeploymentKit.
 - AdapterKit: adapter bridge kit for listener export and server linking.
-- DeploymentKit: per-server deployment scope, parent of ExchangeKit.
+- DeploymentKit: per-server deployment scope, parent of ExchangeKit;
+  also the compose context for the linker chain during deploy.
 
 ## Stable Invariants
 

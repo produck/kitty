@@ -43,17 +43,22 @@ Adapter compilation produces a deployment artifact:
 ```
 
 `listeners` is a record of protocol-specific event handlers. Keys may
-be strings or symbols, and values are functions.
+be strings or symbols, and values are functions. It is accumulated by
+the adapter through `exportListener` calls during the install phase,
+and represents the **public interface** that compile-path callers can
+attach manually.
 
-`link` is a function with this shape:
+`listeners` is **not consumed by `link`**. The adapter's linkers capture
+handler references via closure during install; the listeners record is
+an output for the `compile()` path only.
 
-```ts
-(server: object, listeners: Record<string | symbol, (...args: any[]) => any>) =>
-  unknown;
-```
+`link` is a composed function built from linker entries registered via
+`setServerLinker`. It is called with no arguments — the linkers already
+captured the server and all handler references via closure during
+`adapter.install(AdapterKit)`.
 
-`deploy()` calls `link(server, listeners)`. `compile()` returns the
-listeners and leaves linking to the caller.
+`deploy()` calls `link()` to wire the server. `compile()` returns the
+the listeners and leaves linking to the caller.
 
 ## Standard Deploy
 
@@ -62,11 +67,13 @@ listeners and leaves linking to the caller.
 1. Look up the adapter entry from `Adapter.Registry` by server
    constructor.
 2. Create `DeploymentKit` from the workflow kit.
-3. Create `AdapterKit` from `DeploymentKit`.
-4. Run `adapter.install(AdapterKit)`.
-5. Validate the resulting deployment artifact.
-6. Call `artifact.link(server, artifact.listeners)`.
-7. Run deployment modifiers registered by mixins.
+3. Attach the server reference to `DeploymentKit`.
+4. Create `AdapterKit` from `DeploymentKit`.
+5. Run `adapter.install(AdapterKit)` — the adapter registers listeners
+   (via `exportListener`) and linkers (via `setServerLinker`).
+6. Call `artifact.link()` — the composed linker chain runs. Linkers
+   capture the server and handler references via closure during install,
+   so no arguments are needed.
 
 The registry entry stores both a logical adapter name and the adapter
 function:

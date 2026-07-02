@@ -80,21 +80,20 @@ const KittyWorkflow = class {
     }
   }
 
-  async [$I.COMPILE](server, DeploymentKit) {
-    if (DeploymentKit === undefined) {
-      DeploymentKit = this[$I.KIT]('Kitty<Deployment>');
-    }
-
+  async [$I.COMPILE](
+    server,
+    DeploymentKit = this[$I.KIT]('Kitty<Deployment>'),
+  ) {
     DeploymentKit[K_DEPLOYMENT_SELF] = true;
     DeploymentKit[K_DEPLOYMENT_SERVER] = server;
 
     return this[_I.COMPILE_ARTIFACT](DeploymentKit);
   }
 
-  async [$I.DEPLOY](server) {
-    const { listeners, link } = await this[$I.COMPILE](server);
+  async [$I.DEPLOY](server, DeploymentKit) {
+    const { link } = await this[$I.COMPILE](server, DeploymentKit);
 
-    link(server, listeners);
+    link();
   }
 
   async compile(server) {

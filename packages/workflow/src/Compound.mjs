@@ -186,10 +186,7 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
       deploy: async (server) => {
         consumeBy(deployer, server);
 
-        const artifact = await this[$I.COMPILE](server, DeploymentKit);
-        const { link, listeners } = artifact;
-
-        link(server, listeners);
+        await this[$I.DEPLOY](server, DeploymentKit);
       },
     });
 
