@@ -22,7 +22,7 @@ function assertDependenceName(value) {
   }
 }
 
-const I = deepFreeze({ MIXIN: Mixin.SYMBOL.WORKFLOW });
+const I = deepFreeze({ MIXIN: Mixin.SYMBOL.WORKFLOW.I });
 
 export class CompoundKittyWorkflow extends AbstractWorkflow {
   [I.MIXIN.HANDLER.PREFIX.LIST] = [];

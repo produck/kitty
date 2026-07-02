@@ -50,16 +50,21 @@ const KittyExchange = class {
   get server() {
     return this[_I.SERVER.GET]();
   }
+
+  get httpVersion() {
+    return this[_I.HTTP_VERSION.GET]();
+  }
 };
 
 // prettier-ignore
 export default Abstract(KittyExchange, ...[
   Abstract({
-    [_I.INTERNAL]: M.Any(),
-    [_I.IDENTITY.GET]: M.Method().args().rest().returns(M.Object),
+    [_I.INTERNAL]: M.Any,
+    [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
   }),
   Abstract({
     [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
+    [_I.HTTP_VERSION.GET]: M.Method().returns(M.String),
     [_I.METHOD.GET]: M.Method().returns(M.String),
     [_I.URL.GET]: M.Method().returns(M.String),
     [_I.STATUS.GET]: M.Method().returns(M.Number),

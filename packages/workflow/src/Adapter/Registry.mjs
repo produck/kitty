@@ -17,7 +17,7 @@ function isOptionsRecord(value) {
   return prototype === null || prototype === Object.prototype;
 }
 
-export function normalizeOptions(options) {
+function normalizeOptions(options) {
   const _options = {
     constructor: net.Server,
     // Human-readable adapter label. May carry variant/modifier markers

@@ -12,6 +12,7 @@ const _I_INTERNAL = Symbol('._internal');
 const _I_IDENTITY_GET = Symbol('._getIdentity()');
 const _I_SERVER_GET = Symbol('._getServer()');
 const _I_MODE_GET = Symbol('._getMode()');
+const _I_HTTP_VERSION_GET = Symbol('._getHttpVersion()');
 const _I_METHOD_GET = Symbol('._getMethod()');
 const _I_URL_GET = Symbol('._getURL()');
 const _I_STATUS_GET = Symbol('._getStatus()');
@@ -37,6 +38,9 @@ export const _I = deepFreeze({
   },
   MODE: {
     GET: _I_MODE_GET,
+  },
+  HTTP_VERSION: {
+    GET: _I_HTTP_VERSION_GET,
   },
   METHOD: {
     GET: _I_METHOD_GET,

@@ -12,6 +12,7 @@ function normalizeOptions(options) {
     const {
       meta: _meta,
       mode: _mode,
+      httpVersion: _httpVersion,
       method: _method,
       URL: _URL,
       status: _status,
@@ -60,6 +61,20 @@ function normalizeOptions(options) {
       }
     } else {
       ThrowTypeError('args[0].mode', 'plain object');
+    }
+
+    if (isPlainObject(_httpVersion)) {
+      const httpVersion = (_options.httpVersion = {});
+
+      const { get: _get } = _httpVersion;
+
+      if (typeof _get === 'function') {
+        httpVersion.get = _get;
+      } else {
+        ThrowTypeError('args[0].httpVersion.get', 'function');
+      }
+    } else {
+      ThrowTypeError('args[0].httpVersion', 'plain object');
     }
 
     if (isPlainObject(_URL)) {
