@@ -2,7 +2,7 @@ import * as net from 'node:net';
 import * as Ow from '@produck/ow';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
-import { Iterable } from './Assert.mjs';
+import { Iterable, HttpVersion } from './Assert.mjs';
 import { I, _I } from './Symbol.mjs';
 import KittyExchangeRequest from './Request.mjs';
 import KittyExchangeResponse from './Response.mjs';
@@ -64,7 +64,7 @@ export default Abstract(KittyExchange, ...[
   }),
   Abstract({
     [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
-    [_I.HTTP_VERSION.GET]: M.Method().returns(M.String),
+    [_I.HTTP_VERSION.GET]: M.Method().returns(HttpVersion),
     [_I.METHOD.GET]: M.Method().returns(M.String),
     [_I.URL.GET]: M.Method().returns(M.String),
     [_I.STATUS.GET]: M.Method().returns(M.Number),
