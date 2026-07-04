@@ -1,5 +1,6 @@
-import { STATUS_CODES } from 'node:http';
+import { ThrowTypeError } from '@produck/type-error';
 import { I, _I } from './Symbol.mjs';
+import * as Assert from './Parser.mjs';
 
 class KittyExchangeResponseHeader {
   constructor(exchange) {
@@ -70,7 +71,16 @@ export default class KittyExchangeResponse {
   }
 
   setStatus(code, text) {
+    Assert.HTTPStatusCode(code);
+
     this[I.EXCHANGE][_I.STATUS.SET](code);
-    this[I.EXCHANGE][_I.RESPONSE.STATUS_TEXT.SET](text ?? STATUS_CODES[code] ?? '');
+
+    if (text !== undefined) {
+      if (typeof text !== 'string') {
+        ThrowTypeError('args[1] as text', 'string');
+      }
+
+      this[I.EXCHANGE][_I.RESPONSE.STATUS_TEXT.SET](text);
+    }
   }
 }

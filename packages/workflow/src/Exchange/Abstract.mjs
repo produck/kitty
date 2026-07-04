@@ -65,7 +65,7 @@ class KittyExchange {
   get httpVersion() {
     return this[_I.HTTP_VERSION.GET]();
   }
-};
+}
 
 // prettier-ignore
 export default Abstract(KittyExchange, ...[
