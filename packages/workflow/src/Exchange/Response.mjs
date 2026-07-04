@@ -2,11 +2,11 @@ import { I, _I } from './Symbol.mjs';
 
 class KittyExchangeResponseHeader {
   constructor(exchange) {
-    this[I.EXCHANGE] = exchange;
+    this[I.EXCHANGE_KIT] = exchange;
   }
 
   get(key) {
-    return this[I.EXCHANGE][_I.RESPONSE.HEADER.GET](key);
+    return this[I.EXCHANGE_KIT][_I.RESPONSE.HEADER.GET](key);
   }
 
   has(key) {
@@ -14,7 +14,7 @@ class KittyExchangeResponseHeader {
   }
 
   keys() {
-    return this[I.EXCHANGE][_I.RESPONSE.HEADER.KEYS]();
+    return this[I.EXCHANGE_KIT][_I.RESPONSE.HEADER.KEYS]();
   }
 
   *entries() {
@@ -24,11 +24,11 @@ class KittyExchangeResponseHeader {
   }
 
   set(key, value) {
-    this[I.EXCHANGE][_I.RESPONSE.HEADER.SET](key, value);
+    this[I.EXCHANGE_KIT][_I.RESPONSE.HEADER.SET](key, value);
   }
 
   delete(key) {
-    this[I.EXCHANGE][_I.RESPONSE.HEADER.DELETE](key);
+    this[I.EXCHANGE_KIT][_I.RESPONSE.HEADER.DELETE](key);
   }
 
   clear() {
@@ -40,31 +40,31 @@ class KittyExchangeResponseHeader {
 
 class KittyExchangeResponseBody {
   constructor(exchange) {
-    this[I.EXCHANGE] = exchange;
+    this[I.EXCHANGE_KIT] = exchange;
   }
 
   get data() {
-    return this[I.EXCHANGE][_I.RESPONSE.BODY.DATA.GET]();
+    return this[I.EXCHANGE_KIT][_I.RESPONSE.BODY.DATA.GET]();
   }
 
   set data(value) {
-    this[I.EXCHANGE][_I.RESPONSE.BODY.DATA.SET](value);
+    this[I.EXCHANGE_KIT][_I.RESPONSE.BODY.DATA.SET](value);
   }
 }
 
 export default class KittyExchangeResponse {
   constructor(exchange) {
-    this[I.EXCHANGE] = exchange;
+    this[I.EXCHANGE_KIT] = exchange;
     this.header = new KittyExchangeResponseHeader(exchange);
     this.body = new KittyExchangeResponseBody(exchange);
     Object.freeze(this);
   }
 
   get status() {
-    return this[I.EXCHANGE].status;
+    return this[I.EXCHANGE_KIT].status;
   }
 
   set status(value) {
-    this[I.EXCHANGE].status = value;
+    this[I.EXCHANGE_KIT].status = value;
   }
 }
