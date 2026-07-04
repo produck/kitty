@@ -11,7 +11,7 @@ import KittyExchangeResponse from './Response.mjs';
 
 const CONSUMED_IDENTITY = new WeakSet();
 
-const KittyExchange = class {
+class KittyExchange {
   request = new KittyExchangeRequest(this);
   response = new KittyExchangeResponse(this);
 
@@ -21,7 +21,7 @@ const KittyExchange = class {
     }
 
     this[I.CONSTRUCTOR] = new.target;
-    this[I.EXCHANGE_KIT] = ExchangeKit;
+    this[I.KIT] = ExchangeKit;
     this[_I.INTERNAL] = internal;
 
     const identity = this[_I.IDENTITY.GET]();
@@ -42,12 +42,16 @@ const KittyExchange = class {
     return this[_I.URL.GET]();
   }
 
-  get status() {
-    return this[_I.STATUS.GET]();
+  get statusCode() {
+    return this.response.statusCode;
   }
 
-  set status(value) {
-    this[_I.STATUS.SET](value);
+  get statusText() {
+    return this.response.statusText;
+  }
+
+  setStatus(code, text) {
+    this.response.setStatus(code, text);
   }
 
   get isFinished() {
@@ -92,6 +96,10 @@ export default Abstract(KittyExchange, ...[
       .args(M.String, M.String)
       .returns(M.Undefined),
     [_I.RESPONSE.HEADER.DELETE]: M.Method().args(M.String).returns(M.Undefined),
+    [_I.RESPONSE.STATUS_TEXT.GET]: M.Method().returns(M.String),
+    [_I.RESPONSE.STATUS_TEXT.SET]: M.Method()
+      .args(M.String)
+      .returns(M.Undefined),
     [_I.RESPONSE.BODY.DATA.GET]: M.Method().returns(M.Any),
     [_I.RESPONSE.BODY.DATA.SET]: M.Method().args(M.Any).returns(M.Undefined),
   }),

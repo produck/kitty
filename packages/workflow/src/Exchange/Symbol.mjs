@@ -1,11 +1,13 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_CONSTRUCTOR = Symbol('.#constructor');
-const I_EXCHANGE_KIT = Symbol('.#exchangeKit');
+const I_EXCHANGE = Symbol('.#exchange');
+const I_KIT = Symbol('.#kit');
 
 export const I = deepFreeze({
   CONSTRUCTOR: I_CONSTRUCTOR,
-  EXCHANGE_KIT: I_EXCHANGE_KIT,
+  EXCHANGE: I_EXCHANGE,
+  KIT: I_KIT,
 });
 
 const _I_INTERNAL = Symbol('._internal');
@@ -25,6 +27,8 @@ const _I_RES_HEADER_GET = Symbol('._getResponseHeader(key)');
 const _I_RES_HEADER_KEYS = Symbol('._getResponseHeaderKeys()');
 const _I_RES_HEADER_SET = Symbol('._setResponseHeader(key, value)');
 const _I_RES_HEADER_DELETE = Symbol('._deleteResponseHeader(key)');
+const _I_RES_STATUS_TEXT_GET = Symbol('._getResponseStatusText()');
+const _I_RES_STATUS_TEXT_SET = Symbol('._setResponseStatusText(text)');
 const _I_RES_BODY_DATA_GET = Symbol('._getResponseBodyData()');
 const _I_RES_BODY_DATA_SET = Symbol('._setResponseBodyData(data)');
 
@@ -72,6 +76,10 @@ export const _I = deepFreeze({
       KEYS: _I_RES_HEADER_KEYS,
       SET: _I_RES_HEADER_SET,
       DELETE: _I_RES_HEADER_DELETE,
+    },
+    STATUS_TEXT: {
+      GET: _I_RES_STATUS_TEXT_GET,
+      SET: _I_RES_STATUS_TEXT_SET,
     },
     BODY: {
       DATA: {
