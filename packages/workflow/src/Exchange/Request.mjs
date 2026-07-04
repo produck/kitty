@@ -43,10 +43,14 @@ export default class KittyExchangeRequest {
   }
 
   get method() {
-    return this[I.EXCHANGE].method;
+    return this[I.EXCHANGE][_I.METHOD.GET]();
   }
 
-  get URL() {
-    return this[I.EXCHANGE].URL;
+  get mode() {
+    return this[I.EXCHANGE][_I.MODE.GET]();
+  }
+
+  get url() {
+    return this[I.EXCHANGE][_I.URL.GET]();
   }
 }

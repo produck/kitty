@@ -875,3 +875,79 @@ member-level API requirements:
 ## Open Design Questions
 
 <!-- setServerLinker resolved: explicit stack + compose internally, API stays setServerLinker -->
+
+## Exchange Layer Architecture
+
+### Member ownership principle
+
+Primitive member definitions are always placed on the object with the
+highest conceptual relevance.
+
+```text
+Exchange-owned concepts
+├── constructor(ExchangeKit, internal)
+├── server           → _I.SERVER.GET
+├── isFinished       → _I.FINISHED.IS
+├── httpVersion      → _I.HTTP_VERSION.GET
+
+Request concepts     → KittyExchangeRequest
+├── method            → _I.METHOD.GET
+├── mode              → _I.MODE.GET
+├── url               → _I.URL.GET
+├── header.*          → _I.REQUEST.HEADER.*
+└── body.data         → _I.REQUEST.BODY.DATA.GET
+
+Response concepts    → KittyExchangeResponse
+├── statusCode        → _I.STATUS.GET
+├── statusText        → _I.RESPONSE.STATUS_TEXT.GET
+├── header.*          → _I.RESPONSE.HEADER.*
+├── body.data         → _I.RESPONSE.BODY.DATA.GET/SET
+└── setStatus()       → _I.STATUS.SET + STATUS_TEXT.SET
+```
+
+### Exchange as proxy gateway
+
+Only unambiguous high-frequency members are proxied directly on
+`KittyExchange`:
+
+```text
+exchange.method        → request.method          ✓
+exchange.mode          → request.mode            ✓
+exchange.url           → request.url             ✓
+exchange.statusCode    → response.statusCode     ✓
+exchange.statusText    → response.statusText     ✓
+exchange.setStatus()   → response.setStatus()    ✓
+
+exchange.header        → ✗ ambiguous (req/res both have it)
+exchange.body          → ✗ ambiguous
+```
+
+When a member name is ambiguous, users must go through
+`exchange.request.*` or `exchange.response.*`.
+
+### Sub-namespace aggregation
+
+`Request` and `Response` further group sub-concepts into named objects
+to reduce the cognitive load of the flat `_I` symbol set:
+
+```text
+KittyExchangeRequest
+├── .header  = KittyExchangeRequestHeader
+└── .body    = KittyExchangeRequestBody
+
+KittyExchangeResponse
+├── .header  = KittyExchangeResponseHeader
+├── .body    = KittyExchangeResponseBody
+└── setStatus(code, text?)
+```
+
+Sub-objects (header, body) hold the exchange reference via
+`I.EXCHANGE` and access `_I` symbols directly.
+
+### Defense layers
+
+1. **Member descriptor layer**: Parsers in Abstract groups (e.g.
+   `P.HTTPStatusCode`) act as type guards on the Abstract proxy.
+2. **Public method self-check**: `setStatus` calls
+   `Assert.HTTPStatusCode(code)` and `ThrowTypeError` independently of
+   the Abstract proxy.
