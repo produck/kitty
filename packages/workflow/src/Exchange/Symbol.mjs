@@ -16,7 +16,7 @@ const _I_SERVER_GET = Symbol('._getServer()');
 const _I_HTTP_VERSION_GET = Symbol('._getHttpVersion()');
 const _I_STATUS_GET = Symbol('._getStatus()');
 const _I_STATUS_SET = Symbol('._setStatus()');
-const _I_IS_FINISHED = Symbol('._isFinished()');
+const _I_REQ_IS_CONSUMED = Symbol('._isRequestConsumed()');
 const _I_REQ_MODE_GET = Symbol('._getRequestMode()');
 const _I_REQ_METHOD_GET = Symbol('._getRequestMethod()');
 const _I_REQ_URL_GET = Symbol('._getRequestURL()');
@@ -24,6 +24,7 @@ const _I_REQ_HEADER_GET = Symbol('._getRequestHeader(key)');
 const _I_REQ_HEADER_KEYS = Symbol('._getRequestHeaderKeys()');
 const _I_REQ_BODY_DATA_GET = Symbol('._getRequestBodyData()');
 const _I_RES_HEADER_GET = Symbol('._getResponseHeader(key)');
+const _I_RES_IS_FINISHED = Symbol('._isResponseFinished()');
 const _I_RES_HEADER_KEYS = Symbol('._getResponseHeaderKeys()');
 const _I_RES_HEADER_SET = Symbol('._setResponseHeader(key, value)');
 const _I_RES_HEADER_DELETE = Symbol('._deleteResponseHeader(key)');
@@ -46,9 +47,6 @@ export const _I = deepFreeze({
     GET: _I_STATUS_GET,
     SET: _I_STATUS_SET,
   },
-  FINISHED: {
-    IS: _I_IS_FINISHED,
-  },
   REQUEST: {
     MODE: {
       GET: _I_REQ_MODE_GET,
@@ -68,6 +66,7 @@ export const _I = deepFreeze({
         GET: _I_REQ_BODY_DATA_GET,
       },
     },
+    IS_CONSUMED: _I_REQ_IS_CONSUMED,
   },
   RESPONSE: {
     HEADER: {
@@ -86,6 +85,7 @@ export const _I = deepFreeze({
         SET: _I_RES_BODY_DATA_SET,
       },
     },
+    IS_FINISHED: _I_RES_IS_FINISHED,
   },
 });
 

@@ -83,4 +83,8 @@ export default class KittyExchangeResponse {
       this[I.EXCHANGE][_I.RESPONSE.STATUS_TEXT.SET](text);
     }
   }
+
+  get isFinished() {
+    return this[I.EXCHANGE][_I.RESPONSE.IS_FINISHED]();
+  }
 }

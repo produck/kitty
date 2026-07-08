@@ -53,4 +53,8 @@ export default class KittyExchangeRequest {
   get url() {
     return this[I.EXCHANGE][_I.REQUEST.URL.GET]();
   }
+
+  get isConsumed() {
+    return this[I.EXCHANGE][_I.REQUEST.IS_CONSUMED]();
+  }
 }

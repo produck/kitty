@@ -16,7 +16,6 @@ function normalizeOptions(options) {
       method: _method,
       URL: _URL,
       status: _status,
-      finished: _finished,
       request: _request,
       response: _response,
     } = options;
@@ -111,24 +110,10 @@ function normalizeOptions(options) {
       ThrowTypeError('args[0].status', 'plain object');
     }
 
-    if (isPlainObject(_finished)) {
-      const finished = (_options.finished = {});
-
-      const { is: _is } = _finished;
-
-      if (typeof _is === 'function') {
-        finished.is = _is;
-      } else {
-        ThrowTypeError('args[0].finished.is', 'function');
-      }
-    } else {
-      ThrowTypeError('args[0].finished', 'plain object');
-    }
-
     if (isPlainObject(_request)) {
       const request = (_options.request = {});
 
-      const { header: _header, body: _body } = _request;
+      const { header: _header, body: _body, consumed: _consumed } = _request;
 
       if (isPlainObject(_header)) {
         const header = (request.header = {});
@@ -171,6 +156,18 @@ function normalizeOptions(options) {
       } else {
         ThrowTypeError('args[0].request.body', 'plain object');
       }
+
+      if (isPlainObject(_consumed)) {
+        const consumed = (request.consumed = {});
+
+        const { is: _is } = _consumed;
+
+        if (typeof _is === 'function') {
+          consumed.is = _is;
+        } else {
+          ThrowTypeError('args[0].request.consumed.is', 'function');
+        }
+      }
     } else {
       ThrowTypeError('args[0].request', 'plain object');
     }
@@ -178,7 +175,7 @@ function normalizeOptions(options) {
     if (isPlainObject(_response)) {
       const response = (_options.response = {});
 
-      const { header: _header, body: _body } = _response;
+      const { header: _header, body: _body, finished: _finished } = _response;
 
       if (isPlainObject(_header)) {
         const header = (response.header = {});
@@ -239,6 +236,18 @@ function normalizeOptions(options) {
       } else {
         ThrowTypeError('args[0].response.body', 'plain object');
       }
+
+      if (isPlainObject(_finished)) {
+        const finished = (response.finished = {});
+
+        const { is: _is } = _finished;
+
+        if (typeof _is === 'function') {
+          finished.is = _is;
+        } else {
+          ThrowTypeError('args[0].response.finished.is', 'function');
+        }
+      }
     } else {
       ThrowTypeError('args[0].response', 'plain object');
     }
@@ -255,12 +264,12 @@ export function Implement(options) {
     method: { get: _getMethod },
     URL: { get: _getURL },
     status: { get: _getStatus, set: _setStatus },
-    finished: { is: _isFinished },
     request: {
       header: { get: _getReqHeader, keys: _getReqHeaderKeys },
       body: {
         data: { get: _getReqBodyData },
       },
+      consumed: { is: _isConsumed },
     },
     response: {
       header: {
@@ -272,6 +281,7 @@ export function Implement(options) {
       body: {
         data: { get: _getResBodyData, set: _setResBodyData },
       },
+      finished: { is: _isFinished },
     },
   } = normalizeOptions(options);
 
@@ -297,7 +307,11 @@ export function Implement(options) {
         _setStatus(this, value);
       }
 
-      [_I.FINISHED.IS]() {
+      [_I.REQUEST.IS_CONSUMED]() {
+        return _isConsumed(this);
+      }
+
+      [_I.RESPONSE.IS_FINISHED]() {
         return _isFinished(this);
       }
 

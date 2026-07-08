@@ -63,8 +63,12 @@ class KittyExchange {
     this.response.setStatus(code, text);
   }
 
+  get isConsumed() {
+    return this.request.isConsumed;
+  }
+
   get isFinished() {
-    return this[_I.FINISHED.IS]();
+    return this.response.isFinished;
   }
 
   get server() {
@@ -91,7 +95,8 @@ export default Abstract(KittyExchange, ...[
     [_I.STATUS.SET]: M.Method()
       .args(P.HTTPStatusCode)
       .returns(M.Undefined),
-    [_I.FINISHED.IS]: M.Method().returns(M.Boolean),
+    [_I.REQUEST.IS_CONSUMED]: M.Method().returns(M.Boolean),
+    [_I.RESPONSE.IS_FINISHED]: M.Method().returns(M.Boolean),
   }),
   Abstract({
     [_I.REQUEST.HEADER.GET]: M.Method().args(M.String).returns(M.String),
