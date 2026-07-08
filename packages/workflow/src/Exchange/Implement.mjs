@@ -281,11 +281,11 @@ export function Implement(options) {
         return { ..._meta };
       }
 
-      [_I.METHOD.GET]() {
+      [_I.REQUEST.METHOD.GET]() {
         return _getMethod(this);
       }
 
-      [_I.URL.GET]() {
+      [_I.REQUEST.URL.GET]() {
         return _getURL(this);
       }
 

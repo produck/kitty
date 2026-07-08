@@ -13,13 +13,13 @@ export const I = deepFreeze({
 const $I_INTERNAL = Symbol('.$internal');
 const _I_IDENTITY_GET = Symbol('._getIdentity()');
 const _I_SERVER_GET = Symbol('._getServer()');
-const _I_MODE_GET = Symbol('._getMode()');
 const _I_HTTP_VERSION_GET = Symbol('._getHttpVersion()');
-const _I_METHOD_GET = Symbol('._getMethod()');
-const _I_URL_GET = Symbol('._getURL()');
 const _I_STATUS_GET = Symbol('._getStatus()');
 const _I_STATUS_SET = Symbol('._setStatus()');
 const _I_IS_FINISHED = Symbol('._isFinished()');
+const _I_REQ_MODE_GET = Symbol('._getRequestMode()');
+const _I_REQ_METHOD_GET = Symbol('._getRequestMethod()');
+const _I_REQ_URL_GET = Symbol('._getRequestURL()');
 const _I_REQ_HEADER_GET = Symbol('._getRequestHeader(key)');
 const _I_REQ_HEADER_KEYS = Symbol('._getRequestHeaderKeys()');
 const _I_REQ_BODY_DATA_GET = Symbol('._getRequestBodyData()');
@@ -39,17 +39,8 @@ export const _I = deepFreeze({
   SERVER: {
     GET: _I_SERVER_GET,
   },
-  MODE: {
-    GET: _I_MODE_GET,
-  },
   HTTP_VERSION: {
     GET: _I_HTTP_VERSION_GET,
-  },
-  METHOD: {
-    GET: _I_METHOD_GET,
-  },
-  URL: {
-    GET: _I_URL_GET,
   },
   STATUS: {
     GET: _I_STATUS_GET,
@@ -59,6 +50,15 @@ export const _I = deepFreeze({
     IS: _I_IS_FINISHED,
   },
   REQUEST: {
+    MODE: {
+      GET: _I_REQ_MODE_GET,
+    },
+    METHOD: {
+      GET: _I_REQ_METHOD_GET,
+    },
+    URL: {
+      GET: _I_REQ_URL_GET,
+    },
     HEADER: {
       GET: _I_REQ_HEADER_GET,
       KEYS: _I_REQ_HEADER_KEYS,

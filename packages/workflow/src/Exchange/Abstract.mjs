@@ -84,9 +84,9 @@ export default Abstract(KittyExchange, ...[
   Abstract({
     [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
     [_I.HTTP_VERSION.GET]: M.Method().returns(P.HttpVersion),
-    [_I.MODE.GET]: M.Method().returns(P.ExchangeMode),
-    [_I.METHOD.GET]: M.Method().returns(P.HttpMethod),
-    [_I.URL.GET]: M.Method().returns(M.String),
+    [_I.REQUEST.MODE.GET]: M.Method().returns(P.ExchangeMode),
+    [_I.REQUEST.METHOD.GET]: M.Method().returns(P.HttpMethod),
+    [_I.REQUEST.URL.GET]: M.Method().returns(M.String),
     [_I.STATUS.GET]: M.Method().returns(P.HTTPStatusCode),
     [_I.STATUS.SET]: M.Method()
       .args(P.HTTPStatusCode)
