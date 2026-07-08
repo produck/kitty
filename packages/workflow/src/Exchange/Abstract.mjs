@@ -14,6 +14,7 @@ const CONSUMED_IDENTITY = new WeakSet();
 class KittyExchange {
   request = new KittyExchangeRequest(this);
   response = new KittyExchangeResponse(this);
+  exchange = this;
 
   constructor(ExchangeKit, internal) {
     if (!Kit.isKit(ExchangeKit)) {
@@ -32,6 +33,10 @@ class KittyExchange {
 
     CONSUMED_IDENTITY.add(identity);
     Object.freeze(this);
+  }
+
+  toJSON() {
+    Ow.Error.Common('Exchange object cannot be serialized.');
   }
 
   get method() {
