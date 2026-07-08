@@ -887,22 +887,23 @@ highest conceptual relevance.
 Exchange-owned concepts
 ├── constructor(ExchangeKit, internal)
 ├── server           → _I.SERVER.GET
-├── isFinished       → _I.FINISHED.IS
 ├── httpVersion      → _I.HTTP_VERSION.GET
 
 Request concepts     → KittyExchangeRequest
-├── method            → _I.METHOD.GET
-├── mode              → _I.MODE.GET
-├── url               → _I.URL.GET
+├── method            → _I.REQUEST.METHOD.GET
+├── mode              → _I.REQUEST.MODE.GET
+├── url               → _I.REQUEST.URL.GET
 ├── header.*          → _I.REQUEST.HEADER.*
-└── body.data         → _I.REQUEST.BODY.DATA.GET
+├── body.data         → _I.REQUEST.BODY.DATA.GET
+└── isConsumed        → _I.REQUEST.IS_CONSUMED
 
 Response concepts    → KittyExchangeResponse
 ├── statusCode        → _I.STATUS.GET
 ├── statusText        → _I.RESPONSE.STATUS_TEXT.GET
 ├── header.*          → _I.RESPONSE.HEADER.*
 ├── body.data         → _I.RESPONSE.BODY.DATA.GET/SET
-└── setStatus()       → _I.STATUS.SET + STATUS_TEXT.SET
+├── setStatus()       → _I.STATUS.SET + STATUS_TEXT.SET
+└── isFinished        → _I.RESPONSE.IS_FINISHED
 ```
 
 ### Exchange as proxy gateway
@@ -917,6 +918,8 @@ exchange.url           → request.url             ✓
 exchange.statusCode    → response.statusCode     ✓
 exchange.statusText    → response.statusText     ✓
 exchange.setStatus()   → response.setStatus()    ✓
+exchange.isConsumed    → request.isConsumed      ✓
+exchange.isFinished    → response.isFinished     ✓
 
 exchange.header        → ✗ ambiguous (req/res both have it)
 exchange.body          → ✗ ambiguous
