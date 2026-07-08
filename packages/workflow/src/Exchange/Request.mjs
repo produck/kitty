@@ -1,5 +1,5 @@
 import { I, _I } from './Symbol.mjs';
-import { ThrowAdapter } from './Utils.mjs';
+import { ThrowAdapter, AssertAdapterNotThrow } from './Utils.mjs';
 
 class KittyExchangeRequestHeader {
   constructor(exchange) {
@@ -7,11 +7,9 @@ class KittyExchangeRequestHeader {
   }
 
   get(key) {
-    try {
-      return this[I.EXCHANGE][_I.REQUEST.HEADER.GET](key);
-    } catch (cause) {
-      ThrowAdapter('Header read failed.', { cause });
-    }
+    const fn = () => this[I.EXCHANGE][_I.REQUEST.HEADER.GET](key);
+
+    return AssertAdapterNotThrow('Header read failed.', fn);
   }
 
   has(key) {
@@ -19,7 +17,9 @@ class KittyExchangeRequestHeader {
   }
 
   keys() {
-    return this[I.EXCHANGE][_I.REQUEST.HEADER.KEYS]();
+    const fn = () => this[I.EXCHANGE][_I.REQUEST.HEADER.KEYS]();
+
+    return AssertAdapterNotThrow('Header keys iteration failed.', fn);
   }
 
   *entries() {
@@ -35,7 +35,9 @@ class KittyExchangeRequestBody {
   }
 
   get data() {
-    return this[I.EXCHANGE][_I.REQUEST.BODY.DATA.GET]();
+    const fn = () => this[I.EXCHANGE][_I.REQUEST.BODY.DATA.GET]();
+
+    return AssertAdapterNotThrow('Request body data read failed.', fn);
   }
 }
 
