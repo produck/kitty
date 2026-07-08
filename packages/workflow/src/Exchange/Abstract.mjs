@@ -5,7 +5,7 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Kit from '@produck/kit';
 
 import * as P from './Parser.mjs';
-import { I, _I } from './Symbol.mjs';
+import { I, _I, $I } from './Symbol.mjs';
 import KittyExchangeRequest from './Request.mjs';
 import KittyExchangeResponse from './Response.mjs';
 
@@ -23,7 +23,7 @@ class KittyExchange {
 
     this[I.CONSTRUCTOR] = new.target;
     this[I.KIT] = ExchangeKit;
-    this[_I.INTERNAL] = internal;
+    this[$I.INTERNAL] = internal;
 
     const identity = this[_I.IDENTITY.GET]();
 
@@ -79,7 +79,6 @@ class KittyExchange {
 // prettier-ignore
 export default Abstract(KittyExchange, ...[
   Abstract({
-    [_I.INTERNAL]: M.Any,
     [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
   }),
   Abstract({
