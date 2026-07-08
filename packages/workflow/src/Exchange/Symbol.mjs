@@ -13,6 +13,7 @@ export const I = deepFreeze({
 const $I_INTERNAL = Symbol('.$internal');
 const _I_IDENTITY_GET = Symbol('._getIdentity()');
 const _I_SERVER_GET = Symbol('._getServer()');
+const _I_SERVER_PROTOCOL_GET = Symbol('._getServerProtocol()');
 const _I_HTTP_VERSION_GET = Symbol('._getHttpVersion()');
 const _I_STATUS_GET = Symbol('._getStatus()');
 const _I_STATUS_SET = Symbol('._setStatus()');
@@ -39,6 +40,9 @@ export const _I = deepFreeze({
   },
   SERVER: {
     GET: _I_SERVER_GET,
+    PROTOCOL: {
+      GET: _I_SERVER_PROTOCOL_GET,
+    },
   },
   HTTP_VERSION: {
     GET: _I_HTTP_VERSION_GET,

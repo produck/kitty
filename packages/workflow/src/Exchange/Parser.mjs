@@ -50,3 +50,14 @@ export function Iterable(value) {
 
   return value;
 }
+
+const PROTOCOLS = Object.freeze(['http:', 'https:']);
+const PROTOCOLS_TAG = PROTOCOLS.map((v) => `'${v}'`).join(' | ');
+
+export function ServerProtocol(value) {
+  if (typeof value !== 'string' || !PROTOCOLS.includes(value)) {
+    ThrowTypeError('member', `a server protocol (${PROTOCOLS_TAG})`);
+  }
+
+  return value;
+}

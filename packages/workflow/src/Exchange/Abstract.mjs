@@ -75,6 +75,10 @@ class KittyExchange {
     return this[_I.SERVER.GET]();
   }
 
+  get protocol() {
+    return this[_I.SERVER.PROTOCOL.GET]();
+  }
+
   get httpVersion() {
     return this[_I.HTTP_VERSION.GET]();
   }
@@ -84,23 +88,21 @@ class KittyExchange {
 export default Abstract(KittyExchange, ...[
   Abstract({
     [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
-  }),
-  Abstract({
     [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
+    [_I.SERVER.PROTOCOL.GET]: M.Method().returns(P.ServerProtocol),
     [_I.HTTP_VERSION.GET]: M.Method().returns(P.HttpVersion),
-    [_I.REQUEST.MODE.GET]: M.Method().returns(P.ExchangeMode),
-    [_I.REQUEST.METHOD.GET]: M.Method().returns(P.HttpMethod),
-    [_I.REQUEST.URL.GET]: M.Method().returns(M.String),
     [_I.STATUS.GET]: M.Method().returns(P.HTTPStatusCode),
     [_I.STATUS.SET]: M.Method()
       .args(P.HTTPStatusCode)
       .returns(M.Undefined),
-    [_I.REQUEST.IS_CONSUMED]: M.Method().returns(M.Boolean),
-    [_I.RESPONSE.IS_FINISHED]: M.Method().returns(M.Boolean),
   }),
   Abstract({
+    [_I.REQUEST.MODE.GET]: M.Method().returns(P.ExchangeMode),
+    [_I.REQUEST.METHOD.GET]: M.Method().returns(P.HttpMethod),
+    [_I.REQUEST.URL.GET]: M.Method().returns(M.String),
     [_I.REQUEST.HEADER.GET]: M.Method().args(M.String).returns(M.String),
     [_I.REQUEST.HEADER.KEYS]: M.Method().returns(P.Iterable),
+    [_I.REQUEST.IS_CONSUMED]: M.Method().returns(M.Boolean),
     [_I.REQUEST.BODY.DATA.GET]: M.Method().returns(M.Any),
   }),
   Abstract({
@@ -116,5 +118,6 @@ export default Abstract(KittyExchange, ...[
       .returns(M.Undefined),
     [_I.RESPONSE.BODY.DATA.GET]: M.Method().returns(M.Any),
     [_I.RESPONSE.BODY.DATA.SET]: M.Method().args(M.Any).returns(M.Undefined),
+    [_I.RESPONSE.IS_FINISHED]: M.Method().returns(M.Boolean),
   }),
 ]);

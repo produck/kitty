@@ -11,6 +11,7 @@ function normalizeOptions(options) {
   if (isPlainObject(options)) {
     const {
       meta: _meta,
+      server: _server,
       mode: _mode,
       httpVersion: _httpVersion,
       method: _method,
@@ -74,6 +75,26 @@ function normalizeOptions(options) {
       }
     } else {
       ThrowTypeError('args[0].httpVersion', 'plain object');
+    }
+
+    if (isPlainObject(_server)) {
+      const server = (_options.server = {});
+
+      const { protocol: _protocol } = _server;
+
+      if (isPlainObject(_protocol)) {
+        const protocol = (server.protocol = {});
+
+        const { get: _get } = _protocol;
+
+        if (typeof _get === 'function') {
+          protocol.get = _get;
+        } else {
+          ThrowTypeError('args[0].server.protocol.get', 'function');
+        }
+      }
+    } else {
+      ThrowTypeError('args[0].server', 'plain object');
     }
 
     if (isPlainObject(_URL)) {
@@ -261,6 +282,9 @@ function normalizeOptions(options) {
 export function Implement(options) {
   const {
     meta: _meta,
+    server: {
+      protocol: { get: _getProtocol },
+    },
     method: { get: _getMethod },
     URL: { get: _getURL },
     status: { get: _getStatus, set: _setStatus },
@@ -305,6 +329,10 @@ export function Implement(options) {
 
       [_I.STATUS.SET](value) {
         _setStatus(this, value);
+      }
+
+      [_I.SERVER.PROTOCOL.GET]() {
+        return _getProtocol(this);
       }
 
       [_I.REQUEST.IS_CONSUMED]() {
