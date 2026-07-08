@@ -1,5 +1,5 @@
-import * as Ow from '@produck/ow';
 import { I, _I } from './Symbol.mjs';
+import { ThrowAdapter } from './Utils.mjs';
 
 class KittyExchangeRequestHeader {
   constructor(exchange) {
@@ -7,13 +7,11 @@ class KittyExchangeRequestHeader {
   }
 
   get(key) {
-    const value = this[I.EXCHANGE][_I.REQUEST.HEADER.GET](key);
-
-    if (key === 'host' && value === undefined) {
-      Ow.Error.Common('Missing required Host header.');
+    try {
+      return this[I.EXCHANGE][_I.REQUEST.HEADER.GET](key);
+    } catch (cause) {
+      ThrowAdapter('Header read failed.', { cause });
     }
-
-    return value;
   }
 
   has(key) {
@@ -64,7 +62,13 @@ export default class KittyExchangeRequest {
     try {
       return new URL(raw);
     } catch {
-      return new URL(raw, `${exchange.protocol}//${this.header.get('host')}`);
+      const host = this.header.get('host');
+
+      if (host === undefined) {
+        ThrowAdapter('Host header is required to construct request URL.');
+      }
+
+      return new URL(raw, `${exchange.protocol}//${host}`);
     }
   }
 
