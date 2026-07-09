@@ -38,7 +38,7 @@ const KittyWorkflow = class {
 
     this[$I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = this;
-    Exchange.Configuration.attachToWorkflowKit(WorkflowKit);
+    Exchange.Configuration.install(WorkflowKit, this);
   }
 
   [$I.COMPOSE.PREPEND](...handler) {

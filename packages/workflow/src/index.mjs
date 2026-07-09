@@ -7,6 +7,7 @@ import {
   useExchange,
   Abstract as AbstractExchange,
   Implement as defineExchange,
+  Configuration,
 } from './Exchange/index.mjs';
 
 const {
@@ -14,6 +15,8 @@ const {
   registerAdapter,
   normalizeOptions: defineAdapter,
 } = Adapter.Registry;
+
+const { setTimeout: setExchangeTimeout } = Configuration;
 
 export {
   useWorkflow,
@@ -26,4 +29,5 @@ export {
   AbstractExchange,
   getAdapterByServer,
   registerAdapter,
+  setExchangeTimeout,
 };

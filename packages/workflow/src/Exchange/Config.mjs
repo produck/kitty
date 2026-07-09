@@ -56,6 +56,23 @@ export const Configuration = defineConfiguration({
   // },
 });
 
-export function attachToWorkflowKit(WorkflowKit) {
-  WorkflowKit[CAP_EXCHANGE_CONFIGURATION] = new Configuration();
+const mapWorkflowToConfiguration = new WeakMap();
+
+export function install(WorkflowKit, workflow) {
+  const config = new Configuration();
+
+  WorkflowKit[CAP_EXCHANGE_CONFIGURATION] = config;
+  mapWorkflowToConfiguration.set(workflow, config);
+}
+
+export function setTimeout(workflow, value) {
+  const config = mapWorkflowToConfiguration.get(workflow);
+
+  if (config === undefined) {
+    throw new Error(
+      'Exchange Configuration has not been installed on this workflow.',
+    );
+  }
+
+  config.timeout = value;
 }
