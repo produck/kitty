@@ -111,14 +111,18 @@ export class CompoundKittyWorkflow extends AbstractWorkflow {
 
       handledExchanges.add(exchange);
 
-      for (const attacher of [
-        ...deploymentExchangeAttacherList,
-        ...this[I.MIXIN.EXCHANGE.ATTACHER.LIST],
-      ]) {
-        attacher(ExchangeKit);
-      }
+      try {
+        for (const attacher of [
+          ...deploymentExchangeAttacherList,
+          ...this[I.MIXIN.EXCHANGE.ATTACHER.LIST],
+        ]) {
+          attacher(ExchangeKit);
+        }
 
-      await this[$I.WORKFLOW](ExchangeKit);
+        await this[$I.WORKFLOW](ExchangeKit);
+      } finally {
+        exchange.dispatchEvent(new Event('close'));
+      }
     };
 
     AdapterKit.attachDeployment = (name, value) => {

@@ -8,10 +8,11 @@ import * as P from './Parser.mjs';
 import { I, _I, $I } from './Symbol.mjs';
 import KittyExchangeRequest from './Request.mjs';
 import KittyExchangeResponse from './Response.mjs';
+import { useConfig } from './Config.mjs';
 
 const CONSUMED_IDENTITY = new WeakSet();
 
-class KittyExchange {
+class KittyExchange extends EventTarget {
   exchange = this;
 
   constructor(ExchangeKit, internal) {
@@ -19,6 +20,7 @@ class KittyExchange {
       ThrowTypeError('args[0] as ExchangeKit', 'Kit');
     }
 
+    super();
     this[I.CONSTRUCTOR] = new.target;
     this[I.KIT] = ExchangeKit;
     this[$I.INTERNAL] = internal;
@@ -32,6 +34,17 @@ class KittyExchange {
     CONSUMED_IDENTITY.add(identity);
     this.request = new KittyExchangeRequest(this);
     this.response = new KittyExchangeResponse(this);
+
+    const config = useConfig(ExchangeKit);
+
+    const timer = setTimeout(() => {
+      if (!this.isFinished) {
+        this.setStatus(503);
+      }
+    }, config.timeout * 1000);
+
+    this.addEventListener('close', () => clearTimeout(timer), { once: true });
+
     Object.freeze(this);
   }
 
