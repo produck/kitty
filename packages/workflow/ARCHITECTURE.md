@@ -379,6 +379,69 @@ generate a functional Exchange subclass.
 
 ## Adapter/Workflow Bridge Protocol
 
+## Supplier Configuration (`tune` Pattern)
+
+Suppliers (Mixin, Adapter, Exchange) own their configuration grammar.
+No central options bag, no `configure(workflow, patch)` protocol.
+Each supplier exposes named `tune*` functions keyed by workflow
+identity through a private `WeakMap`.
+
+### Vocabulary
+
+| Verb     | Domain     | Meaning                                |
+| -------- | ---------- | -------------------------------------- |
+| `attach` | Capability | Install a dependency or extension hook |
+| `tune`   | Parameter  | Adjust a supplier-owned runtime knob   |
+
+### Mechanism
+
+```text
+Supplier (e.g. Exchange.Configuration, cookie Mixin, cors Adapter)
+  → private WeakMap<workflow, config>
+  → install(WorkflowKit, workflow) — called by core at construction
+  → tuneTimeout(workflow, value) — called by user post-construction
+```
+
+### Consumer API
+
+```js
+import { Configuration } from '@produck/kitty-workflow';
+
+const workflow = new KittyWorkflow(kit);
+Configuration.tuneTimeout(workflow, 300);
+workflow.use(handler).finalize();
+```
+
+### Supplier Implementation Template
+
+```js
+const map = new WeakMap();
+
+export function install(WorkflowKit, workflow) {
+  const config = new Config();
+  WorkflowKit[CAP] = config; // kit-chain access for handler use
+  map.set(workflow, config); // weak-map access for user tune
+}
+
+export function tuneFoo(workflow, value) {
+  const config = map.get(workflow);
+  if (config === undefined) {
+    throw new Error('Feature has not been installed on this workflow.');
+  }
+  config.foo = value;
+}
+```
+
+### Design Rationale
+
+- **Supplier-owned grammar**: Each supplier defines its own `tune*`
+  signatures. No shared option shape to standardise across unrelated
+  domains.
+- **WeakMap identity guard**: A proxied workflow wrapper will not map
+  to any installed config — no additional brand check is required.
+- **Core ignorance**: `KittyWorkflow` core never inspects or validates
+  supplier options.
+
 The `handleExchange` function is the sole bridge between the Adapter
 layer (protocol-specific) and the Workflow layer (application logic,
 server-agnostic).

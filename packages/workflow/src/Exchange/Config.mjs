@@ -65,7 +65,7 @@ export function install(WorkflowKit, workflow) {
   mapWorkflowToConfiguration.set(workflow, config);
 }
 
-export function setTimeout(workflow, value) {
+export function tuneTimeout(workflow, value) {
   const config = mapWorkflowToConfiguration.get(workflow);
 
   if (config === undefined) {

@@ -16,7 +16,7 @@ const {
   normalizeOptions: defineAdapter,
 } = Adapter.Registry;
 
-const { setTimeout: setExchangeTimeout } = Configuration;
+const { tuneTimeout: tuneExchangeTimeout } = Configuration;
 
 export {
   useWorkflow,
@@ -29,5 +29,5 @@ export {
   AbstractExchange,
   getAdapterByServer,
   registerAdapter,
-  setExchangeTimeout,
+  tuneExchangeTimeout,
 };
