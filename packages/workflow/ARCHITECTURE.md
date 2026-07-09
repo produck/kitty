@@ -349,14 +349,54 @@ must install an `Exchange` instance on `ExchangeKit` before calling
 ### Exchange public API
 
 ```text
-exchange.method        → string            (readonly)
-exchange.URL           → string            (readonly)
-exchange.status        → number            (read/write)
-exchange.isFinished    → boolean           (readonly)
-exchange.server        → net.Server        (readonly)
-exchange.request       → KittyExchangeRequest  (readonly)
-exchange.response      → KittyExchangeResponse (read/write)
+exchange.method          → string              (readonly)
+exchange.mode            → string              (readonly)
+exchange.url             → URL                 (readonly)
+exchange.statusCode      → number              (readonly)
+exchange.statusText      → string              (readonly)
+exchange.setStatus(code)  → void               (write)
+exchange.isConsumed       → boolean            (readonly)
+exchange.isFinished       → boolean            (readonly)
+exchange.server           → net.Server         (readonly)
+exchange.protocol         → 'http:' | 'https:' (readonly)
+exchange.httpVersion      → string             (readonly)
+exchange.request          → KittyExchangeRequest  (readonly)
+exchange.response         → KittyExchangeResponse (read/write)
 ```
+
+KittyExchange extends `EventTarget`. Lifecycle events:
+
+| Event   | Dispatcher                     | Meaning                 |
+| ------- | ------------------------------ | ----------------------- |
+| `close` | `handleExchange` finally block | workflow pipeline ended |
+
+### Member ownership
+
+Primitive member definitions are placed on the object with the highest
+conceptual relevance. Exchange proxies unambiguous high-frequency
+members; ambiguous names require explicit `request.*` / `response.*`.
+
+```text
+Exchange-owned concepts
+├── server, protocol, httpVersion
+
+Request concepts     → KittyExchangeRequest
+├── method, mode, url, header, body.data, isConsumed
+
+Response concepts    → KittyExchangeResponse
+├── statusCode, statusText, header, body.data, setStatus, isFinished
+```
+
+### Defense layers
+
+1. **Abstract proxy**: Parser guards (e.g. `P.HTTPStatusCode`) validate
+   types at construction time via `es-abstract`.
+2. **Adapter error guard**: `Guard` delegates wrap every `_I` delegation
+   through `AdapterGuard({ message, member })`. Adapter-origin exceptions
+   are rethrown with `[AdapterImplementationError]` prefix.
+3. **Public method self-check**: Runtime type assertions
+   (`Assert.HeaderName`, `Assert.HeaderValue`, `Assert.HTTPStatusCode`)
+   on method arguments independent of the Abstract proxy.
 
 ### Exchange identity
 

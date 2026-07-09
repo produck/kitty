@@ -508,51 +508,6 @@ responsibility boundary.
 
 > Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#exchange-template).
 
-**Design decision**: The Exchange Template lives in the `workflow`
-core package, not as an independent sub-package.
-
-Rationale:
-
-1. **Core contract, not optional plugin**: The Exchange Template is
-   part of the communication protocol between Workflow and Adapter —
-   every Adapter must provide an `ExchangeKit` that satisfies it.
-   Making it independent would require every Adapter author to
-   manually import and compose it, adding friction with no benefit.
-
-2. **Implicit registration via import side effect**: Adapters register
-   themselves into the global Adapter registry as a side effect of
-   being imported. Since the Exchange Template is in the same core
-   package, downstream users get both in one import — no separate
-   registration step:
-
-   ```js
-   import '@produck/kitty-adapt-http';
-   // Adapter registered, Exchange Template available — done.
-   ```
-
-3. **Workflow guarantees template installation**: `[I_DEPLOY]`
-   composes the Exchange Template installer with the Adapter's
-   own installer, ensuring the template is always present on every
-   `ExchangeKit` without the Adapter author needing to know about
-   it:
-
-   ```js
-   async [I_DEPLOY](install, server) {
-     const runtime = Kit.compose(
-       ExchangeTemplateInstaller,  // workflow core
-       install,                       // adapter-specific
-     );
-     // ...
-   }
-   ```
-
-   The Adapter only needs to provide protocol-specific capabilities
-   (raw `req`/`res` objects, socket handles, etc.). The standard
-   request/response abstractions are automatically in place.
-
-This keeps the Adapter author's surface area minimal while ensuring
-consistency across all Adapters.
-
 ### Body scope
 
 Kitty core is responsible for memory safety. The first-class body
@@ -609,9 +564,19 @@ Goal:
 - Avoid forcing downstream code to manually coordinate finished-state
   edge cases for common payload reads.
 
-After `exchange.isFinished` is true, `response.body.data` setter
-must reject further writes. This guard belongs in the Exchange
-Template layer.
+After `exchange.isFinished` is true, any further writes through
+`response.body.data` setter or `setStatus()` must be rejected.
+This guard is enforced at the Exchange layer via `Guard` delegates
+— Adapter-origin errors are unified under `[AdapterImplementationError]`
+with `AdapterGuard`.
+
+Handler execution timeout is configurable via `Configuration.tuneTimeout(workflow, seconds)`.
+The timeout is armed at Exchange construction against the `close` event
+dispatched by `handleExchange` finally block.
+
+## Supplier Configuration (`tune` Pattern)
+
+> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#supplier-configuration-tune-pattern).
 
 ## Server Lifecycle Ownership
 
@@ -836,10 +801,10 @@ planned requirements that are still under design.
 The following are directionally agreed but not finalized as complete
 member-level API requirements:
 
-- Keep `_I.INTERNAL` as the internal object group surface (for example,
+- Keep `$I.INTERNAL` as the internal object group surface (for example,
   req/res, stream/session, socket, parser state, etc.).
 - Add an additional identity-specific symbol/getter (separate from
-  `_I.INTERNAL`) for logical exchange deduplication.
+  `$I.INTERNAL`) for logical exchange deduplication.
 - Identity getter should return a stable marker for one logical
   exchange in the underlying protocol runtime.
 - Exchange construction should validate identity semantics to ensure
@@ -871,6 +836,14 @@ member-level API requirements:
   global Adapter registry by prototype chain.
 - **adapt**: Ephemeral custom deployment — no global registration,
   one-off use with immediate invocation guard.
+- **tune**: Adjust a supplier-owned runtime parameter on a workflow.
+  Complements `attach` (install capability) with parameter-level
+  configuration. Suppliers expose named `tune*` functions keyed by
+  workflow identity through a private `WeakMap`.
+- **EventTarget**: Platform primitive. `KittyExchange` extends it to
+  dispatch lifecycle events (`close`, `timeout`, etc.).
+- **Guard**: Module-level delegate Record that wraps `_I` abstraction
+  access through `AdapterGuard` for error-domain unification.
 
 ## Open Design Questions
 
@@ -878,79 +851,8 @@ member-level API requirements:
 
 ## Exchange Layer Architecture
 
-### Member ownership principle
-
-Primitive member definitions are always placed on the object with the
-highest conceptual relevance.
-
-```text
-Exchange-owned concepts
-├── constructor(ExchangeKit, internal)
-├── server           → _I.SERVER.GET
-├── httpVersion      → _I.HTTP_VERSION.GET
-
-Request concepts     → KittyExchangeRequest
-├── method            → _I.REQUEST.METHOD.GET
-├── mode              → _I.REQUEST.MODE.GET
-├── url               → _I.REQUEST.URL.GET
-├── header.*          → _I.REQUEST.HEADER.*
-├── body.data         → _I.REQUEST.BODY.DATA.GET
-└── isConsumed        → _I.REQUEST.IS_CONSUMED
-
-Response concepts    → KittyExchangeResponse
-├── statusCode        → _I.STATUS.GET
-├── statusText        → _I.RESPONSE.STATUS_TEXT.GET
-├── header.*          → _I.RESPONSE.HEADER.*
-├── body.data         → _I.RESPONSE.BODY.DATA.GET/SET
-├── setStatus()       → _I.STATUS.SET + STATUS_TEXT.SET
-└── isFinished        → _I.RESPONSE.IS_FINISHED
-```
-
-### Exchange as proxy gateway
-
-Only unambiguous high-frequency members are proxied directly on
-`KittyExchange`:
-
-```text
-exchange.method        → request.method          ✓
-exchange.mode          → request.mode            ✓
-exchange.url           → request.url             ✓
-exchange.statusCode    → response.statusCode     ✓
-exchange.statusText    → response.statusText     ✓
-exchange.setStatus()   → response.setStatus()    ✓
-exchange.isConsumed    → request.isConsumed      ✓
-exchange.isFinished    → response.isFinished     ✓
-
-exchange.header        → ✗ ambiguous (req/res both have it)
-exchange.body          → ✗ ambiguous
-```
-
-When a member name is ambiguous, users must go through
-`exchange.request.*` or `exchange.response.*`.
-
-### Sub-namespace aggregation
-
-`Request` and `Response` further group sub-concepts into named objects
-to reduce the cognitive load of the flat `_I` symbol set:
-
-```text
-KittyExchangeRequest
-├── .header  = KittyExchangeRequestHeader
-└── .body    = KittyExchangeRequestBody
-
-KittyExchangeResponse
-├── .header  = KittyExchangeResponseHeader
-├── .body    = KittyExchangeResponseBody
-└── setStatus(code, text?)
-```
-
-Sub-objects (header, body) hold the exchange reference via
-`I.EXCHANGE` and access `_I` symbols directly.
-
-### Defense layers
-
-1. **Member descriptor layer**: Parsers in Abstract groups (e.g.
-   `P.HTTPStatusCode`) act as type guards on the Abstract proxy.
-2. **Public method self-check**: `setStatus` calls
-   `Assert.HTTPStatusCode(code)` and `ThrowTypeError` independently of
-   the Abstract proxy.
+> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#exchange-template).
+> Defense layer details moved to [ARCHITECTURE.md](ARCHITECTURE.md#exchange-template).
+>
+> Member ownership, proxy gateway, sub-namespace aggregation, and
+> defense layer descriptions are now stable contracts.
