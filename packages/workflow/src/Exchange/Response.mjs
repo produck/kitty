@@ -1,4 +1,3 @@
-import { ThrowTypeError } from '@produck/type-error';
 import { I, _I } from './Symbol.mjs';
 import { AdapterGuard } from './Utils.mjs';
 import * as Assert from './Parser.mjs';
@@ -56,6 +55,8 @@ class KittyExchangeResponseHeader {
   }
 
   get(key) {
+    Assert.HeaderName(key);
+
     return GuardNotThrow.headerGet(this[I.EXCHANGE], key);
   }
 
@@ -74,10 +75,13 @@ class KittyExchangeResponseHeader {
   }
 
   set(key, value) {
+    Assert.HeaderName(key);
+    Assert.HeaderValue(value);
     GuardNotThrow.headerSet(this[I.EXCHANGE], key, value);
   }
 
   delete(key) {
+    Assert.HeaderName(key);
     GuardNotThrow.headerDelete(this[I.EXCHANGE], key);
   }
 
@@ -124,10 +128,7 @@ export default class KittyExchangeResponse {
     GuardNotThrow.statusSet(this[I.EXCHANGE], code);
 
     if (text !== undefined) {
-      if (typeof text !== 'string') {
-        ThrowTypeError('args[1] as text', 'string');
-      }
-
+      Assert.HeaderValue(text);
       GuardNotThrow.statusTextSet(this[I.EXCHANGE], text);
     }
   }

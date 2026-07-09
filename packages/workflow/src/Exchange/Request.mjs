@@ -1,5 +1,6 @@
 import { I, _I } from './Symbol.mjs';
 import { ThrowAdapter, AdapterGuard } from './Utils.mjs';
+import * as Assert from './Parser.mjs';
 
 const GuardNotThrow = {
   header: AdapterGuard({
@@ -38,6 +39,8 @@ class KittyExchangeRequestHeader {
   }
 
   get(key) {
+    Assert.HeaderName(key);
+
     return GuardNotThrow.header(this[I.EXCHANGE], key);
   }
 

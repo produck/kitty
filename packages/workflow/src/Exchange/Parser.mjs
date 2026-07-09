@@ -61,3 +61,19 @@ export function ServerProtocol(value) {
 
   return value;
 }
+
+export function HeaderName(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    ThrowTypeError('member', 'a non-empty header name string');
+  }
+
+  return value;
+}
+
+export function HeaderValue(value) {
+  if (typeof value !== 'string') {
+    ThrowTypeError('member', 'a header value string');
+  }
+
+  return value;
+}
