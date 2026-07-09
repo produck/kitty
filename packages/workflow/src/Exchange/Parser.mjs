@@ -77,3 +77,11 @@ export function HeaderValue(value) {
 
   return value;
 }
+
+export function PositiveInteger(value) {
+  if (!Number.isInteger(value) || value < 1) {
+    ThrowTypeError('member', 'a positive integer');
+  }
+
+  return value;
+}

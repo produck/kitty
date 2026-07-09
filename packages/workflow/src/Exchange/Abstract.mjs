@@ -12,8 +12,6 @@ import KittyExchangeResponse from './Response.mjs';
 const CONSUMED_IDENTITY = new WeakSet();
 
 class KittyExchange {
-  request = new KittyExchangeRequest(this);
-  response = new KittyExchangeResponse(this);
   exchange = this;
 
   constructor(ExchangeKit, internal) {
@@ -32,6 +30,8 @@ class KittyExchange {
     }
 
     CONSUMED_IDENTITY.add(identity);
+    this.request = new KittyExchangeRequest(this);
+    this.response = new KittyExchangeResponse(this);
     Object.freeze(this);
   }
 

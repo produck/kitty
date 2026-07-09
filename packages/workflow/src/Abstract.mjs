@@ -4,6 +4,7 @@ import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
+import * as Exchange from './Exchange/index.mjs';
 import { I, $I, _I } from './Symbol.mjs';
 
 export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
@@ -37,6 +38,7 @@ const KittyWorkflow = class {
 
     this[$I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = this;
+    Exchange.Configuration.attachToWorkflowKit(WorkflowKit);
   }
 
   [$I.COMPOSE.PREPEND](...handler) {

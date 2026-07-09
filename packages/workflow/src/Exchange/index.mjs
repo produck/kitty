@@ -7,3 +7,4 @@ export const { use: useExchange, touch: touchExchange } =
 
 export { default as Abstract } from './Abstract.mjs';
 export { Implement } from './Implement.mjs';
+export * as Configuration from './Config.mjs';
