@@ -1,5 +1,36 @@
 import { I, _I } from './Symbol.mjs';
-import { ThrowAdapter, AssertAdapterNotThrow } from './Utils.mjs';
+import { ThrowAdapter, AdapterGuard } from './Utils.mjs';
+
+const GuardNotThrow = {
+  header: AdapterGuard({
+    message: 'Header read failed.',
+    member: _I.REQUEST.HEADER.GET,
+  }),
+  headerKeys: AdapterGuard({
+    message: 'Header keys iteration failed.',
+    member: _I.REQUEST.HEADER.KEYS,
+  }),
+  bodyData: AdapterGuard({
+    message: 'Request body data read failed.',
+    member: _I.REQUEST.BODY.DATA.GET,
+  }),
+  method: AdapterGuard({
+    message: 'Request method read failed.',
+    member: _I.REQUEST.METHOD.GET,
+  }),
+  mode: AdapterGuard({
+    message: 'Request mode read failed.',
+    member: _I.REQUEST.MODE.GET,
+  }),
+  url: AdapterGuard({
+    message: 'Request URL read failed.',
+    member: _I.REQUEST.URL.GET,
+  }),
+  isConsumed: AdapterGuard({
+    message: 'Request consumed check failed.',
+    member: _I.REQUEST.IS_CONSUMED,
+  }),
+};
 
 class KittyExchangeRequestHeader {
   constructor(exchange) {
@@ -7,9 +38,7 @@ class KittyExchangeRequestHeader {
   }
 
   get(key) {
-    const fn = () => this[I.EXCHANGE][_I.REQUEST.HEADER.GET](key);
-
-    return AssertAdapterNotThrow('Header read failed.', fn);
+    return GuardNotThrow.header(this[I.EXCHANGE], key);
   }
 
   has(key) {
@@ -17,9 +46,7 @@ class KittyExchangeRequestHeader {
   }
 
   keys() {
-    const fn = () => this[I.EXCHANGE][_I.REQUEST.HEADER.KEYS]();
-
-    return AssertAdapterNotThrow('Header keys iteration failed.', fn);
+    return GuardNotThrow.headerKeys(this[I.EXCHANGE]);
   }
 
   *entries() {
@@ -35,9 +62,7 @@ class KittyExchangeRequestBody {
   }
 
   get data() {
-    const fn = () => this[I.EXCHANGE][_I.REQUEST.BODY.DATA.GET]();
-
-    return AssertAdapterNotThrow('Request body data read failed.', fn);
+    return GuardNotThrow.bodyData(this[I.EXCHANGE]);
   }
 }
 
@@ -50,16 +75,15 @@ export default class KittyExchangeRequest {
   }
 
   get method() {
-    return this[I.EXCHANGE][_I.REQUEST.METHOD.GET]();
+    return GuardNotThrow.method(this[I.EXCHANGE]);
   }
 
   get mode() {
-    return this[I.EXCHANGE][_I.REQUEST.MODE.GET]();
+    return GuardNotThrow.mode(this[I.EXCHANGE]);
   }
 
   get url() {
-    const { [I.EXCHANGE]: exchange } = this;
-    const raw = exchange[_I.REQUEST.URL.GET]();
+    const raw = GuardNotThrow.url(this[I.EXCHANGE]);
 
     try {
       return new URL(raw);
@@ -70,11 +94,11 @@ export default class KittyExchangeRequest {
         ThrowAdapter('Host header is required to construct request URL.');
       }
 
-      return new URL(raw, `${exchange.protocol}//${host}`);
+      return new URL(raw, `${this[I.EXCHANGE].protocol}//${host}`);
     }
   }
 
   get isConsumed() {
-    return this[I.EXCHANGE][_I.REQUEST.IS_CONSUMED]();
+    return GuardNotThrow.isConsumed(this[I.EXCHANGE]);
   }
 }

@@ -1,6 +1,54 @@
 import { ThrowTypeError } from '@produck/type-error';
 import { I, _I } from './Symbol.mjs';
+import { AdapterGuard } from './Utils.mjs';
 import * as Assert from './Parser.mjs';
+
+const GuardNotThrow = {
+  headerGet: AdapterGuard({
+    message: 'Response header read failed.',
+    member: _I.RESPONSE.HEADER.GET,
+  }),
+  headerKeys: AdapterGuard({
+    message: 'Response header keys iteration failed.',
+    member: _I.RESPONSE.HEADER.KEYS,
+  }),
+  headerSet: AdapterGuard({
+    message: 'Response header write failed.',
+    member: _I.RESPONSE.HEADER.SET,
+  }),
+  headerDelete: AdapterGuard({
+    message: 'Response header delete failed.',
+    member: _I.RESPONSE.HEADER.DELETE,
+  }),
+  bodyDataGet: AdapterGuard({
+    message: 'Response body data read failed.',
+    member: _I.RESPONSE.BODY.DATA.GET,
+  }),
+  bodyDataSet: AdapterGuard({
+    message: 'Response body data write failed.',
+    member: _I.RESPONSE.BODY.DATA.SET,
+  }),
+  statusGet: AdapterGuard({
+    message: 'Response status code read failed.',
+    member: _I.STATUS.GET,
+  }),
+  statusSet: AdapterGuard({
+    message: 'Response status code write failed.',
+    member: _I.STATUS.SET,
+  }),
+  statusTextGet: AdapterGuard({
+    message: 'Response status text read failed.',
+    member: _I.RESPONSE.STATUS_TEXT.GET,
+  }),
+  statusTextSet: AdapterGuard({
+    message: 'Response status text write failed.',
+    member: _I.RESPONSE.STATUS_TEXT.SET,
+  }),
+  isFinished: AdapterGuard({
+    message: 'Response finished check failed.',
+    member: _I.RESPONSE.IS_FINISHED,
+  }),
+};
 
 class KittyExchangeResponseHeader {
   constructor(exchange) {
@@ -8,7 +56,7 @@ class KittyExchangeResponseHeader {
   }
 
   get(key) {
-    return this[I.EXCHANGE][_I.RESPONSE.HEADER.GET](key);
+    return GuardNotThrow.headerGet(this[I.EXCHANGE], key);
   }
 
   has(key) {
@@ -16,7 +64,7 @@ class KittyExchangeResponseHeader {
   }
 
   keys() {
-    return this[I.EXCHANGE][_I.RESPONSE.HEADER.KEYS]();
+    return GuardNotThrow.headerKeys(this[I.EXCHANGE]);
   }
 
   *entries() {
@@ -26,11 +74,11 @@ class KittyExchangeResponseHeader {
   }
 
   set(key, value) {
-    this[I.EXCHANGE][_I.RESPONSE.HEADER.SET](key, value);
+    GuardNotThrow.headerSet(this[I.EXCHANGE], key, value);
   }
 
   delete(key) {
-    this[I.EXCHANGE][_I.RESPONSE.HEADER.DELETE](key);
+    GuardNotThrow.headerDelete(this[I.EXCHANGE], key);
   }
 
   clear() {
@@ -46,11 +94,11 @@ class KittyExchangeResponseBody {
   }
 
   get data() {
-    return this[I.EXCHANGE][_I.RESPONSE.BODY.DATA.GET]();
+    return GuardNotThrow.bodyDataGet(this[I.EXCHANGE]);
   }
 
   set data(value) {
-    this[I.EXCHANGE][_I.RESPONSE.BODY.DATA.SET](value);
+    GuardNotThrow.bodyDataSet(this[I.EXCHANGE], value);
   }
 }
 
@@ -63,28 +111,28 @@ export default class KittyExchangeResponse {
   }
 
   get statusCode() {
-    return this[I.EXCHANGE][_I.STATUS.GET]();
+    return GuardNotThrow.statusGet(this[I.EXCHANGE]);
   }
 
   get statusText() {
-    return this[I.EXCHANGE][_I.RESPONSE.STATUS_TEXT.GET]();
+    return GuardNotThrow.statusTextGet(this[I.EXCHANGE]);
   }
 
   setStatus(code, text) {
     Assert.HTTPStatusCode(code);
 
-    this[I.EXCHANGE][_I.STATUS.SET](code);
+    GuardNotThrow.statusSet(this[I.EXCHANGE], code);
 
     if (text !== undefined) {
       if (typeof text !== 'string') {
         ThrowTypeError('args[1] as text', 'string');
       }
 
-      this[I.EXCHANGE][_I.RESPONSE.STATUS_TEXT.SET](text);
+      GuardNotThrow.statusTextSet(this[I.EXCHANGE], text);
     }
   }
 
   get isFinished() {
-    return this[I.EXCHANGE][_I.RESPONSE.IS_FINISHED]();
+    return GuardNotThrow.isFinished(this[I.EXCHANGE]);
   }
 }

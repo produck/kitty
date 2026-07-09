@@ -6,10 +6,16 @@ export function ThrowAdapter(message, options) {
   Ow.Error.Common(`${ADAPTER_ERROR_PREFIX} ${message}`, options);
 }
 
-export function AssertAdapterNotThrow(message, fn) {
-  try {
-    return fn();
-  } catch (cause) {
-    ThrowAdapter(message, { cause });
-  }
+export function AdapterGuard({ message, member }) {
+  const finalName = `adapter$${member.description}`;
+
+  return {
+    [finalName](target, ...args) {
+      try {
+        return target[member](...args);
+      } catch (cause) {
+        ThrowAdapter(message, { cause });
+      }
+    },
+  }[finalName];
 }
