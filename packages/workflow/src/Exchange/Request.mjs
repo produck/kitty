@@ -1,6 +1,10 @@
 import { I, _I } from './Symbol.mjs';
 import { ThrowAdapter, AdapterGuard } from './Utils.mjs';
+import { useConfig } from './Config.mjs';
+import { createBodyStream } from './Body.mjs';
 import * as Assert from './Parser.mjs';
+
+const $BODY_CACHE = Symbol('body.cache');
 
 const GuardNotThrow = {
   header: AdapterGuard({
@@ -65,7 +69,25 @@ class KittyExchangeRequestBody {
   }
 
   get data() {
-    return GuardNotThrow.bodyData(this[I.EXCHANGE]);
+    if (this[$BODY_CACHE] !== undefined) {
+      return this[$BODY_CACHE];
+    }
+
+    const exchange = this[I.EXCHANGE];
+    const raw = GuardNotThrow.bodyData(exchange);
+    const kit = exchange[I.KIT];
+    const config = useConfig(kit);
+    const method = exchange[_I.REQUEST.METHOD.GET]();
+
+    const stream = createBodyStream(raw, {
+      maxBodySize: config.maxBodySize,
+      memoryLimit: config.maxRequestBodyBuffer,
+      allowedMethods: config.allowedBodyMethods,
+      method,
+    });
+
+    this[$BODY_CACHE] = stream;
+    return stream;
   }
 }
 

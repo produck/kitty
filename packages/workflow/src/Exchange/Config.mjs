@@ -50,10 +50,20 @@ export const Configuration = defineConfiguration({
 
   // ——— Body ————————————————————————————
 
-  // maxBodySize: {
-  //   default: 1 << 20,
-  //   assert: Assert.PositiveInteger,
-  // },
+  maxBodySize: {
+    default: 1 << 20,
+    assert: Assert.PositiveInteger,
+  },
+
+  maxRequestBodyBuffer: {
+    default: 4 << 10,
+    assert: Assert.NonNegativeInteger,
+  },
+
+  allowedBodyMethods: {
+    default: ['POST', 'PUT', 'PATCH'],
+    assert: Assert.HttpMethodList,
+  },
 });
 
 const mapWorkflowToConfiguration = new WeakMap();

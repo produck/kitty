@@ -85,3 +85,23 @@ export function PositiveInteger(value) {
 
   return value;
 }
+
+export function NonNegativeInteger(value) {
+  if (!Number.isInteger(value) || value < 0) {
+    ThrowTypeError('member', 'a non-negative integer');
+  }
+
+  return value;
+}
+
+export function HttpMethodList(value) {
+  if (!Array.isArray(value)) {
+    ThrowTypeError('member', 'an array of HTTP methods');
+  }
+
+  for (const method of value) {
+    HttpMethod(method);
+  }
+
+  return Object.freeze([...value]);
+}
