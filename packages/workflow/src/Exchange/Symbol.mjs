@@ -3,9 +3,8 @@ import { deepFreeze } from '@produck/deep-freeze-enumerable';
 const I_CONSTRUCTOR = Symbol('.#constructor');
 const I_EXCHANGE = Symbol('.#exchange');
 const I_KIT = Symbol('.#kit');
-const I_REQ_BODY_BUFFER = Symbol('.#requestBodyBuffer');
-const I_REQ_BODY_PATHNAME = Symbol('.#requestBodyPathname');
-const I_REQ_BODY_CONSUMED = Symbol('.#requestBodyConsumed');
+const I_REQ_BODY_PROGRESS = Symbol('.#requestBodyProgress');
+const I_REQ_BODY_CONFIGURATION = Symbol('.#requestBodyConfiguration');
 
 export const I = deepFreeze({
   CONSTRUCTOR: I_CONSTRUCTOR,
@@ -13,9 +12,8 @@ export const I = deepFreeze({
   KIT: I_KIT,
   REQUEST: {
     BODY: {
-      BUFFER: I_REQ_BODY_BUFFER,
-      PATHNAME: I_REQ_BODY_PATHNAME,
-      CONSUMED: I_REQ_BODY_CONSUMED,
+      PROGRESS: I_REQ_BODY_PROGRESS,
+      CONFIGURATION: I_REQ_BODY_CONFIGURATION,
     },
   },
 });

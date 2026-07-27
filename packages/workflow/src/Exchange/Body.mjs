@@ -1,5 +1,4 @@
 import { open, unlink } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -18,34 +17,6 @@ function _tooLarge() {
   return e;
 }
 
-/** Create a fresh independent WHATWG ReadableStream from a cached source. */
-export function createBodyStream(source) {
-  if (source.kind === 'empty') {
-    return new ReadableStream({
-      start(c) {
-        c.close();
-      },
-    });
-  }
-
-  if (source.kind === 'buffer') {
-    const data = source.data;
-    return new ReadableStream({
-      start(c) {
-        c.enqueue(new Uint8Array(data));
-        c.close();
-      },
-    });
-  }
-
-  if (source.kind === 'file') {
-    const nodeStream = createReadStream(source.path);
-    return Readable.toWeb(nodeStream);
-  }
-
-  throw new TypeError('Unknown body source kind.');
-}
-
 /**
  * Drain and cache a raw stream, synchronously returning a ReadableStream.
  * `onCached` is called once the source is fully drained with the cache object.
@@ -56,6 +27,7 @@ export function drainAndCache(raw, { maxBodySize, memoryLimit }, onCached) {
   let total = 0;
   let file = null;
   let done = false;
+  let cancelled = false;
 
   async function _finalize() {
     if (done) return;
@@ -75,6 +47,7 @@ export function drainAndCache(raw, { maxBodySize, memoryLimit }, onCached) {
     async start(controller) {
       try {
         for await (const value of source) {
+          if (cancelled) break;
           const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
           total += chunk.length;
 
@@ -100,8 +73,10 @@ export function drainAndCache(raw, { maxBodySize, memoryLimit }, onCached) {
           controller.enqueue(new Uint8Array(chunk));
         }
 
-        await _finalize();
-        controller.close();
+        if (!cancelled) {
+          await _finalize();
+          controller.close();
+        }
       } catch (err) {
         if (file) {
           await file.close().catch(() => {});
@@ -112,15 +87,8 @@ export function drainAndCache(raw, { maxBodySize, memoryLimit }, onCached) {
     },
 
     cancel() {
-      source.destroy?.();
-      if (file) {
-        file.close().catch(() => {});
-        try {
-          unlink(file.path);
-        } catch {
-          /* best effort */
-        }
-      }
+      cancelled = true;
+      _finalize().catch(() => {});
     },
   });
 }

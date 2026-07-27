@@ -1,4 +1,5 @@
 import * as net from 'node:net';
+import { Readable } from 'node:stream';
 import * as Ow from '@produck/ow';
 import { ThrowTypeError } from '@produck/type-error';
 import Abstract, { Member as M } from '@produck/es-abstract';
@@ -116,7 +117,7 @@ export default Abstract(KittyExchange, ...[
     [_I.REQUEST.HEADER.GET]: M.Method().args(M.String).returns(M.String),
     [_I.REQUEST.HEADER.KEYS]: M.Method().returns(P.Iterable),
     [_I.REQUEST.IS_CONSUMED]: M.Method().returns(M.Boolean),
-    [_I.REQUEST.BODY.DATA.GET]: M.Method().returns(M.Any),
+    [_I.REQUEST.BODY.DATA.GET]: M.Method().returns(M.Instance(Readable)),
   }),
   Abstract({
     [_I.RESPONSE.HEADER.GET]: M.Method().args(M.String).returns(M.String),

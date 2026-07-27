@@ -1,7 +1,9 @@
 import { I, _I } from './Symbol.mjs';
+import { createReadStream } from 'node:fs';
+import { Readable } from 'node:stream';
 import { ThrowAdapter, AdapterGuard } from './Utils.mjs';
 import { useConfig } from './Config.mjs';
-import { createBodyStream, drainAndCache } from './Body.mjs';
+import { drainAndCache } from './Body.mjs';
 import * as Assert from './Parser.mjs';
 
 const GuardNotThrow = {
@@ -58,77 +60,70 @@ class KittyExchangeRequestHeader {
 }
 
 class KittyExchangeRequestBody {
-  [I.REQUEST.BODY.CONSUMED] = false;
+  [I.REQUEST.BODY.PROGRESS] = {
+    consumed: false,
+    buffer: Buffer.alloc(0),
+    pathname: null,
+  };
+
+  [I.REQUEST.BODY.CONFIGURATION] = {
+    maxBodySize: 0,
+    maxRequestBodyBuffer: 0,
+    allowedBodyMethods: [],
+  };
 
   constructor(exchange) {
     this[I.EXCHANGE] = exchange;
+
+    const config = useConfig(exchange[I.KIT]);
+    const thisConfiguration = this[I.REQUEST.BODY.CONFIGURATION];
+
+    thisConfiguration.maxBodySize = config.maxBodySize;
+    thisConfiguration.maxRequestBodyBuffer = config.maxRequestBodyBuffer;
+    thisConfiguration.allowedBodyMethods = config.allowedBodyMethods;
   }
 
   get isConsumed() {
-    return this[I.REQUEST.BODY.CONSUMED];
+    return this[I.REQUEST.BODY.PROGRESS].consumed;
   }
 
   get data() {
-    if (this.isConsumed) {
-      return this[I.REQUEST.BODY.PATHNAME] !== undefined
-        ? createBodyStream({
-          kind: 'file',
-          path: this[I.REQUEST.BODY.PATHNAME],
-        })
-        : createBodyStream({
-          kind: 'buffer',
-          data: this[I.REQUEST.BODY.BUFFER],
-        });
+    const progress = this[I.REQUEST.BODY.PROGRESS];
+
+    if (progress.consumed) {
+      if (progress.pathname !== null) {
+        return Readable.toWeb(createReadStream(progress.pathname));
+      }
+
+      return new ReadableStream({
+        start: (c) => {
+          c.enqueue(new Uint8Array(progress.buffer));
+          c.close();
+        },
+      });
     }
 
-    this[I.REQUEST.BODY.CONSUMED] = true;
+    progress.consumed = true;
+
+    const thisConfiguration = this[I.REQUEST.BODY.CONFIGURATION];
+    const method = this[I.EXCHANGE].request.method;
+
+    if (!thisConfiguration.allowedBodyMethods.includes(method)) {
+      return new ReadableStream({ start: (c) => c.close() });
+    }
 
     const exchange = this[I.EXCHANGE];
-    const kit = exchange[I.KIT];
-    const config = useConfig(kit);
-    const method = exchange[_I.REQUEST.METHOD.GET]();
-
-    if (!config.allowedBodyMethods.includes(method)) {
-      this[I.REQUEST.BODY.BUFFER] = Buffer.alloc(0);
-      return createBodyStream({
-        kind: 'buffer',
-        data: this[I.REQUEST.BODY.BUFFER],
-      });
-    }
-
     const raw = GuardNotThrow.bodyData(exchange);
-
-    if (Buffer.isBuffer(raw)) {
-      this[I.REQUEST.BODY.BUFFER] = raw;
-      return createBodyStream({ kind: 'buffer', data: raw });
-    }
-
-    if (typeof raw === 'string') {
-      this[I.REQUEST.BODY.BUFFER] = Buffer.from(raw);
-      return createBodyStream({
-        kind: 'buffer',
-        data: this[I.REQUEST.BODY.BUFFER],
-      });
-    }
-
-    if (raw === null || raw === undefined) {
-      this[I.REQUEST.BODY.BUFFER] = Buffer.alloc(0);
-      return createBodyStream({
-        kind: 'buffer',
-        data: this[I.REQUEST.BODY.BUFFER],
-      });
-    }
 
     return drainAndCache(
       raw,
       {
-        maxBodySize: config.maxBodySize,
-        memoryLimit: config.maxRequestBodyBuffer,
+        maxBodySize: thisConfiguration.maxBodySize,
+        memoryLimit: thisConfiguration.maxRequestBodyBuffer,
       },
       (source) => {
-        if (source.kind === 'buffer') this[I.REQUEST.BODY.BUFFER] = source.data;
-        else if (source.kind === 'file')
-          this[I.REQUEST.BODY.PATHNAME] = source.path;
+        if (source.kind === 'buffer') progress.buffer = source.data;
+        else if (source.kind === 'file') progress.pathname = source.path;
       },
     );
   }
