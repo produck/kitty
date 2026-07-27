@@ -3,11 +3,21 @@ import { deepFreeze } from '@produck/deep-freeze-enumerable';
 const I_CONSTRUCTOR = Symbol('.#constructor');
 const I_EXCHANGE = Symbol('.#exchange');
 const I_KIT = Symbol('.#kit');
+const I_REQ_BODY_BUFFER = Symbol('.#requestBodyBuffer');
+const I_REQ_BODY_PATHNAME = Symbol('.#requestBodyPathname');
+const I_REQ_BODY_CONSUMED = Symbol('.#requestBodyConsumed');
 
 export const I = deepFreeze({
   CONSTRUCTOR: I_CONSTRUCTOR,
   EXCHANGE: I_EXCHANGE,
   KIT: I_KIT,
+  REQUEST: {
+    BODY: {
+      BUFFER: I_REQ_BODY_BUFFER,
+      PATHNAME: I_REQ_BODY_PATHNAME,
+      CONSUMED: I_REQ_BODY_CONSUMED,
+    },
+  },
 });
 
 const $I_INTERNAL = Symbol('.$internal');

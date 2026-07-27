@@ -1,10 +1,8 @@
 import { I, _I } from './Symbol.mjs';
 import { ThrowAdapter, AdapterGuard } from './Utils.mjs';
 import { useConfig } from './Config.mjs';
-import { createBodyStream } from './Body.mjs';
+import { createBodyStream, drainAndCache } from './Body.mjs';
 import * as Assert from './Parser.mjs';
-
-const $BODY_CACHE = Symbol('body.cache');
 
 const GuardNotThrow = {
   header: AdapterGuard({
@@ -30,10 +28,6 @@ const GuardNotThrow = {
   url: AdapterGuard({
     message: 'Request URL read failed.',
     member: _I.REQUEST.URL.GET,
-  }),
-  isConsumed: AdapterGuard({
-    message: 'Request consumed check failed.',
-    member: _I.REQUEST.IS_CONSUMED,
   }),
 };
 
@@ -64,30 +58,79 @@ class KittyExchangeRequestHeader {
 }
 
 class KittyExchangeRequestBody {
+  [I.REQUEST.BODY.CONSUMED] = false;
+
   constructor(exchange) {
     this[I.EXCHANGE] = exchange;
   }
 
+  get isConsumed() {
+    return this[I.REQUEST.BODY.CONSUMED];
+  }
+
   get data() {
-    if (this[$BODY_CACHE] !== undefined) {
-      return this[$BODY_CACHE];
+    if (this.isConsumed) {
+      return this[I.REQUEST.BODY.PATHNAME] !== undefined
+        ? createBodyStream({
+          kind: 'file',
+          path: this[I.REQUEST.BODY.PATHNAME],
+        })
+        : createBodyStream({
+          kind: 'buffer',
+          data: this[I.REQUEST.BODY.BUFFER],
+        });
     }
 
+    this[I.REQUEST.BODY.CONSUMED] = true;
+
     const exchange = this[I.EXCHANGE];
-    const raw = GuardNotThrow.bodyData(exchange);
     const kit = exchange[I.KIT];
     const config = useConfig(kit);
     const method = exchange[_I.REQUEST.METHOD.GET]();
 
-    const stream = createBodyStream(raw, {
-      maxBodySize: config.maxBodySize,
-      memoryLimit: config.maxRequestBodyBuffer,
-      allowedMethods: config.allowedBodyMethods,
-      method,
-    });
+    if (!config.allowedBodyMethods.includes(method)) {
+      this[I.REQUEST.BODY.BUFFER] = Buffer.alloc(0);
+      return createBodyStream({
+        kind: 'buffer',
+        data: this[I.REQUEST.BODY.BUFFER],
+      });
+    }
 
-    this[$BODY_CACHE] = stream;
-    return stream;
+    const raw = GuardNotThrow.bodyData(exchange);
+
+    if (Buffer.isBuffer(raw)) {
+      this[I.REQUEST.BODY.BUFFER] = raw;
+      return createBodyStream({ kind: 'buffer', data: raw });
+    }
+
+    if (typeof raw === 'string') {
+      this[I.REQUEST.BODY.BUFFER] = Buffer.from(raw);
+      return createBodyStream({
+        kind: 'buffer',
+        data: this[I.REQUEST.BODY.BUFFER],
+      });
+    }
+
+    if (raw === null || raw === undefined) {
+      this[I.REQUEST.BODY.BUFFER] = Buffer.alloc(0);
+      return createBodyStream({
+        kind: 'buffer',
+        data: this[I.REQUEST.BODY.BUFFER],
+      });
+    }
+
+    return drainAndCache(
+      raw,
+      {
+        maxBodySize: config.maxBodySize,
+        memoryLimit: config.maxRequestBodyBuffer,
+      },
+      (source) => {
+        if (source.kind === 'buffer') this[I.REQUEST.BODY.BUFFER] = source.data;
+        else if (source.kind === 'file')
+          this[I.REQUEST.BODY.PATHNAME] = source.path;
+      },
+    );
   }
 }
 
@@ -124,6 +167,6 @@ export default class KittyExchangeRequest {
   }
 
   get isConsumed() {
-    return GuardNotThrow.isConsumed(this[I.EXCHANGE]);
+    return this.body.isConsumed;
   }
 }
