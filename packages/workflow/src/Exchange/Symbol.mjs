@@ -5,6 +5,8 @@ const I_EXCHANGE = Symbol('.#exchange');
 const I_KIT = Symbol('.#kit');
 const I_REQ_BODY_PROGRESS = Symbol('.#requestBodyProgress');
 const I_REQ_BODY_CONFIGURATION = Symbol('.#requestBodyConfiguration');
+const I_REQ_BODY_ENTRY = Symbol('.#requestBodyEntry');
+const I_REQ_BODY_OPEN_ENTRY = Symbol('.#openRequestBodyEntry()');
 
 export const I = deepFreeze({
   CONSTRUCTOR: I_CONSTRUCTOR,
@@ -14,11 +16,12 @@ export const I = deepFreeze({
     BODY: {
       PROGRESS: I_REQ_BODY_PROGRESS,
       CONFIGURATION: I_REQ_BODY_CONFIGURATION,
+      ENTRY: I_REQ_BODY_ENTRY,
+      OPEN_ENTRY: I_REQ_BODY_OPEN_ENTRY,
     },
   },
 });
 
-const $I_INTERNAL = Symbol('.$internal');
 const _I_IDENTITY_GET = Symbol('._getIdentity()');
 const _I_SERVER_GET = Symbol('._getServer()');
 const _I_SERVER_PROTOCOL_GET = Symbol('._getServerProtocol()');
@@ -100,6 +103,8 @@ export const _I = deepFreeze({
     IS_FINISHED: _I_RES_IS_FINISHED,
   },
 });
+
+const $I_INTERNAL = Symbol('.$internal');
 
 export const $I = deepFreeze({
   INTERNAL: $I_INTERNAL,
