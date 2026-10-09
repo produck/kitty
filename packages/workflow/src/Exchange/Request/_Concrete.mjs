@@ -162,7 +162,9 @@ class KittyExchangeRequestBody {
         while (true) {
           const { value, done } = await reader.read();
 
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
           drained += chunk.length;
@@ -171,7 +173,9 @@ class KittyExchangeRequestBody {
             const name = `kitty-body-${Date.now()}-${randomBytes(4).toString('hex')}`;
             file = await open(join(tmpdir(), name), 'w');
 
-            for (const b of buf) await file.write(b);
+            for (const b of buf) {
+              await file.write(b);
+            }
             buf.length = 0;
           }
 

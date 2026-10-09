@@ -53,16 +53,8 @@ Notes:
   - Use central remediation command to deploy root lint script/config and
     eslint integration baseline:
     `npm exec -- agent-toolkit sync-lint --cwd .`.
-  - `c8` execution baseline for deployed coverage scripts is fixed to the
-    version specified in `tooling-version-baseline.json`.
   - Downstream repositories must not use unversioned `npx c8` or `c8@latest`
     in shared scripts/CI.
-  - Root local governance must pin `devDependencies.c8`,
-    `devDependencies.husky`, `devDependencies.lerna`, and
-    `devDependencies.@produck/agent-toolkit` via
-    `agent-toolkit sync-git`.
-  - Root local governance must pin `devDependencies.@produck/eslint-rules`
-    via `agent-toolkit sync-lint`.
 
 - Testing strategy and framework are repository-defined.
 - `verify` scripts are optional repository-local health checks and are not
@@ -78,43 +70,14 @@ Notes:
 - Commit prechecks still require passing repository style gates (for example
   `produck:format` and `produck:lint`).
 
-Central toolkit command role model:
+Enforcement:
 
-- `agent-toolkit sync-instructions` is guidance-first distribution for
-  organization baseline instructions.
-- `sync-instructions` is not a hard gate; use it to reduce instruction drift,
-  but do not assume it can fully prevent AI hallucination or iterative drift.
-- `agent-toolkit preflight` is the hard guard for organization engineering
-  baseline and is mandatory for required baseline checks.
-- `agent-toolkit sync-install` is the hard guard for root install script
-  governance and is mandatory in monorepo mode.
-- `agent-toolkit sync-coverage` is the hard guard for monorepo coverage
-  governance and is mandatory in monorepo mode.
-- `agent-toolkit sync-git` is the hard guard for local anti-drift hook
-  governance and is mandatory in monorepo mode.
-- `agent-toolkit sync-format` is the hard guard for root format
-  script/config governance and is mandatory in monorepo mode.
-- `agent-toolkit sync-lint` is the hard guard for root lint
-  script/config and eslint integration governance and is mandatory in monorepo
-  mode.
-- `agent-toolkit sync-publish` is the hard guard for root publish script
-  governance when `lerna.json` is present.
-- For simplified downstream execution of mandatory flow (1 -> 2 -> ... -> 9),
-  use:
-  `npm exec -- agent-toolkit`.
-- Equivalent explicit form:
+- For one-step execution of all mandatory checks, use:
   `npm exec -- agent-toolkit enforce-node-baseline --cwd .`.
-- `agent-toolkit validate-commit-msg` is a hard guard for AI-agent-authored
-  `git commit` and `git commit --amend` operations.
-- For human engineers, commit-message validation is recommended rather than
-  mandatory unless repository-specific hooks/CI enforce it.
-- Do not require retroactive rewrite/amend of historical commits solely to
-  satisfy commit-message validator rules.
-- `agent-toolkit run-capture` and `agent-toolkit summarize-log` are AI-agent
-  execution guardrails.
-- These guardrails pair with node-first execution policy: prefer Node.js
-  interpreter workflows for parsing/filtering over brittle OS-shell pipelines.
-- For human engineers, `run-capture` and `summarize-log` are optional helpers.
+- `agent-toolkit validate-commit-msg` is required for AI-agent-authored
+  `git commit` and `git commit --amend`.
+- For human engineers, commit-message validation is recommended.
+- Do not require retroactive rewrite/amend of historical commits.
 
 Test authoring baseline:
 
@@ -143,67 +106,164 @@ Team conventions for `.gitignore`:
 
 ## Monorepo mode
 
-Repository layout:
+### Repository layout
 
 - Root-level `docs/` is required.
 - Each package/app should contain its own `src/` and `test/`.
 
-Script placement:
+### Root `package.json` governance
 
-- Root `package.json` must provide `produck:install`, `test`, `produck:coverage`,
-  and `produck:lint` orchestration scripts.
-- Root `package.json` must reserve `produck:commit:check` for organization
-  anti-drift gate with required value:
-  `npm run produck:format && npm run produck:lint`.
-- Root `package.json` must reserve `prepare` for husky setup with required
-  value: `husky`.
-- Root `package.json` must reserve `produck:format` and `produck:lint` for
-  organization-controlled format/lint gates.
-- Root `package.json` must reserve `produck:publish` for organization-controlled
-  publish gate when `lerna.json` is present (governed by
-  `agent-toolkit sync-publish`).
+The root `package.json` exists only for development orchestration. It is
+never consumed as a downstream dependency, so runtime-oriented fields are
+prohibited.
+
+#### Required fields
+
+- `name` — A fixed name stabilizes the `name` field in `package-lock.json`.
+- `private`: `true` — Prevents accidental npm publish.
+- `workspaces` — Explicit path list only; see constraints below.
+- `scripts` — See [Required scripts](#required-scripts) section below.
+- `devDependencies` — The development materials manifest. Root
+  `devDependencies` is the single source of truth for organization-level and
+  repository-level tooling.
+
+#### Optional fields
+
+- `version` — Root is not published; version is meaningless.
+- `description` — Root is not published; description has no practical use.
+- `engines` — Not required. Leave this to Node.js version managers if
+  needed.
+
+#### Prohibited fields
+
+The following fields must never appear in root `package.json`:
+
+- `type`
+- `main`
+- `exports`
+- `types`
+- `files`
+- `publishConfig`
+- `dependencies`
+
+#### `workspaces` field constraints
+
+- Do not use wildcard/glob patterns (for example `packages/*`, `**`, `?`,
+  `{}` or `[]`).
+- List each workspace package path explicitly.
+
+### Required scripts
+
+Root `package.json` must define:
+
+| Script key              | Required value                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `produck:install`       | `npm -v && npm install`                                                                           |
+| `prepare`               | `husky`                                                                                           |
+| `test`                  | Repository-defined (may use `--workspaces --if-present`)                                          |
+| `produck:coverage`      | Organization-defined via `agent-toolkit sync-coverage`                                            |
+| `produck:lint`          | Organization-defined via `agent-toolkit sync-lint`                                                |
+| `produck:format`        | Organization-defined via `agent-toolkit sync-format`                                              |
+| `produck:commit:check`  | `npm run produck:format && npm run produck:lint`                                                  |
+| `produck:baseline`      | `npm exec --package=@produck/agent-toolkit@latest -- agent-toolkit enforce-node-baseline --cwd .` |
+| `produck:publish`       | Required when `lerna.json` is present; governed by `agent-toolkit sync-publish`                   |
+| `produck:publish:check` | Required when `lerna.json` is present; governed by `agent-toolkit sync-publish`                   |
+
+Notes:
+
 - `publish` may be defined at root or package level based on release workflow.
-- Workspace subpackage `produck:coverage` scripts must be synchronized by
-  `agent-toolkit sync-coverage`.
-- Root local hook governance must be synchronized by
-  `agent-toolkit sync-git`.
-- Root local shared script governance must initialize
-  `scripts.produck:install` with required value `npm -v && npm install`
-  via `agent-toolkit sync-install`.
-- Root local format governance must be synchronized by
-  `agent-toolkit sync-format`.
-- Root local lint governance must be synchronized by
-  `agent-toolkit sync-lint`.
-- Root local shared script/dependency governance must pin root
-  `devDependencies.c8`,
-  `devDependencies.husky`, `devDependencies.lerna`,
-  `devDependencies.@produck/agent-toolkit` via
-  `agent-toolkit sync-git`.
-- Root local shared script/dependency governance must initialize
-  `scripts.produck:coverage` with workspace-level execution behavior:
-  attempt `test` on all workspace packages using `--workspaces --if-present`.
-- Root local shared script/dependency governance must initialize `.c8rc.json`
-  via `agent-toolkit sync-coverage`.
-- Root local format governance must initialize `.prettierrc` and
-  `scripts.produck:format` via `agent-toolkit sync-format`.
-- Root local lint governance must initialize `eslint.config.mjs`,
-  `scripts.produck:lint`, and `devDependencies.@produck/eslint-rules`
-  (including append-mode integration for existing eslint config) via
-  `agent-toolkit sync-lint`.
-- Root `package.json` must define a `produck:baseline` script for organization
-  baseline enforcement:
+- Remediation commands (run from root):
+  - `npm exec -- agent-toolkit sync-install --cwd .` — deploy root install script
+  - `npm exec -- agent-toolkit sync-coverage --cwd .` — deploy coverage scripts
+  - `npm exec -- agent-toolkit sync-git --cwd .` — deploy git hooks and deps
+  - `npm exec -- agent-toolkit sync-format --cwd .` — deploy format config
+  - `npm exec -- agent-toolkit sync-lint --cwd .` — deploy lint config
+
+### Workspace `package.json` governance
+
+#### Property restrictions
+
+Workspace-level `package.json` must NOT contain:
+
+- `private` — Package publication state is managed by the root workspace;
+  individual workspace packages should not declare it.
+- `workspaces` — Only the root `package.json` defines workspace paths.
+  Nested declarations violate the centralization principle.
+- Root orchestration scripts — These are the root `package.json`'s
+  responsibility and must not be duplicated in workspace packages:
+  `produck:install`, `produck:baseline`, `produck:commit:check`, `prepare`,
+  `produck:format`, `produck:publish`, `produck:publish:check`
+
+#### Recommended structure
+
+Workspace packages should keep their `package.json` lean, containing only:
+
+- Package metadata: `name`, `version`, `type`, `main`, `exports`, etc.
+- Dependencies: `dependencies`, `devDependencies`
+- Package-level scripts: `test`, `produck:coverage`
+
+#### Publish metadata governance
+
+Workspace packages that are published to npm must correctly declare the
+following fields. These control the package's npm registry page appearance and
+link back to the git hosting platform.
+
+**Required fields:**
+
+- `description` — Short summary shown on npm search results and package page.
+  Must be meaningful and accurate.
+- `license` — SPDX license identifier (for example `"MIT"`). Displayed on npm
+  package page.
+
+**Repository linkage fields** (affect npm "repository", "bugs", "homepage"
+links):
+
+- `repository` — Must use the expanded object form with `directory` to
+  identify the subpackage location within the monorepo:
   ```json
-  "produck:baseline": "npm exec --package=@produck/agent-toolkit@latest -- agent-toolkit enforce-node-baseline --cwd ."
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/produck/<repo>.git",
+    "directory": "packages/<name>"
+  }
+  ```
+  The `url` value must match the repository's canonical git remote. The
+  `directory` value must be the package's workspace-relative path from the
+  monorepo root.
+- `bugs` — Must link to the GitHub issues page:
+  ```json
+  "bugs": {
+    "url": "https://github.com/produck/<repo>/issues"
+  }
+  ```
+- `homepage` — Must point to the package's README on the default branch, using
+  the `directory` form to navigate to the subpackage:
+  ```json
+  "homepage": "https://github.com/produck/<repo>/tree/main/packages/<name>#readme"
   ```
 
-Release tooling policy (required):
+**Recommended fields:**
+
+- `keywords` — Array of strings that describe the package. Improves npm search
+  discoverability. Omit if the package has no meaningful keywords.
+
+**Rationale:**
+
+- Without `repository.directory`, npm links the repository field to the
+  monorepo root, which is not helpful for subpackage visitors.
+- Without `bugs`, npm omits the "Report issues" link on the package page.
+- Without `description`, npm shows "(not yet filled)" on the package page.
+- Invalid or missing `license` causes npm warnings during publish.
+
+### Release tooling policy
 
 - Monorepo release workflow must use `lerna`.
 - `lerna` execution version is governed at organization level, not per
   repository.
 - Source of truth for `lerna` version baseline:
   `.github/distribution/produck/tooling-version-baseline.json`.
-- Required execution baseline: version specified in `tooling-version-baseline.json`.
+- Required execution baseline: version specified in the
+  `tooling-version-baseline.json`.
 - Required invocation:
   `npm exec -- lerna <subcommand>`.
 - Downstream repositories must not use unversioned `npx lerna` or
@@ -212,34 +272,7 @@ Release tooling policy (required):
 - Keep an emergency organization-level rollback path when baseline version is
   updated.
 
-Root workspace `package.json` minimal baseline (required):
-
-- `private`: `true`
-- `workspaces` (explicit package path list only)
-- `scripts` with at least: `produck:install`, `test`, `produck:coverage`,
-  `produck:lint`
-- `publish` script is optional at root when release is managed per package or
-  by external workflow.
-
-`workspaces` field constraints (required):
-
-- Do not use wildcard/glob patterns (for example `packages/*`, `**`, `?`,
-  `{}` or `[]`).
-- List each workspace package path explicitly.
-
-Avoid unused root runtime/publish fields by default:
-
-- `type`
-- `main`
-- `exports`
-- `types`
-- `files`
-- `publishConfig`
-
-Add the fields above only when the monorepo root itself is an executable
-runtime package or is intentionally published.
-
-Ignore strategy:
+### Ignore strategy
 
 - Keep ignore rules centralized at repository root whenever possible.
 - Add package-level `.gitignore` only when a package has unique generated

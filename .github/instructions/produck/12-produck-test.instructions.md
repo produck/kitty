@@ -52,12 +52,104 @@ import './feature-b.test.mjs';
 - Avoid global side effects that persist across test cases.
 - Clean up resources (temp files, open handles) at the end of each test case.
 
+## API usage conventions
+
+- Callback functions for `describe` and `it` MUST use arrow functions. Do not
+  use `function` keyword or method shorthand syntax.
+
+  Correct:
+
+  ```js
+  describe('my feature', () => {
+    it('should work', () => {
+      // assertions
+    });
+  });
+  ```
+
+  Wrong:
+
+  ```js
+  describe('my feature', function () {
+    it('should work', function () {
+      // assertions
+    });
+  });
+  ```
+
+- Deep nesting of `describe` blocks can make test output harder to read. When
+  nesting becomes excessive, split the test file and use `await import()` to
+  reorganize — this keeps the actual test code at shallow nesting levels.
+
 ## Naming conventions
 
 - Test files use the `.test.mjs` suffix.
 - Top-level `describe` label should match the subject being tested (for example
   the module name or command name).
 - `it` labels should describe the expected behavior in plain language.
+
+### Suite name conventions
+
+The `describe` suite name encodes the member type under test using a prefix
+convention:
+
+| Prefix | Meaning                                              | Example                   |
+| ------ | ---------------------------------------------------- | ------------------------- |
+| `::`   | Class static public member or namespace static       | `describe('::parse()')`   |
+| `.`    | Class instance member                                | `describe('.validate()')` |
+| `()`   | Marks the target as a function (composable)          | `describe('::create()')`  |
+| `>`    | Return-value testing, nested inside a function suite | `describe('>result')`     |
+| `#`    | Event emitter — test event dispatch behavior         | `describe('#error')`      |
+
+Prefixes and `()` compose freely. For example:
+
+| Suite name    | Meaning                       |
+| ------------- | ----------------------------- |
+| `::parse()`   | Static function `parse`       |
+| `::VERSION`   | Static property `VERSION`     |
+| `.validate()` | Instance method `validate`    |
+| `.name`       | Instance property `name`      |
+| `validate()`  | Standalone function (unbound) |
+
+Examples:
+
+```js
+describe('::parse()', () => {
+  it('should parse valid input', () => {
+    /* ... */
+  });
+});
+
+describe('::VERSION', () => {
+  it('should be a semver string', () => {
+    /* ... */
+  });
+});
+
+describe('.validate()', () => {
+  it('should reject invalid data', () => {
+    /* ... */
+  });
+
+  describe('>result', () => {
+    it('should be a boolean', () => {
+      /* ... */
+    });
+  });
+});
+
+describe('.name', () => {
+  it('should be non-empty', () => {
+    /* ... */
+  });
+});
+
+describe('#error', () => {
+  it('should emit on failure', () => {
+    /* ... */
+  });
+});
+```
 
 ## Local debug workflow (recommended)
 

@@ -138,3 +138,6 @@ dist
 
 # @produck/agent-toolkit
 publish-assets/
+
+# produck:org-baseline
+!.github/

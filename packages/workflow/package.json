@@ -1,20 +1,5 @@
 {
-  "name": "@produck/kitty-workflow",
-  "version": "0.0.0",
-  "description": "Web application using kit.",
-  "license": "MIT",
   "author": "ChaosLee",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.mjs"
-  },
-  "scripts": {
-    "test": "node --test test/index.mjs",
-    "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test"
-  },
-  "devDependencies": {
-    "c8": "11.0.0"
-  },
   "dependencies": {
     "@produck/compose": "^0.3.0",
     "@produck/deep-freeze-enumerable": "^1.1.1",
@@ -24,5 +9,20 @@
     "@produck/ow": "^0.2.5",
     "@produck/type-error": "^0.1.7",
     "is-plain-object": "^5.0.0"
-  }
+  },
+  "description": "Web application using kit.",
+  "devDependencies": {
+    "c8": "11.0.0"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "license": "MIT",
+  "name": "@produck/kitty-workflow",
+  "scripts": {
+    "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
+    "test": "node --test test/index.mjs"
+  },
+  "type": "module",
+  "version": "0.0.0"
 }
