@@ -1,9 +1,4 @@
 {
-  "author": "ChaosLee",
-  "bugs": {
-    "url": "https://github.com/produck/kitty/issues"
-  },
-  "description": "Web application using kit.",
   "devDependencies": {
     "@eslint/config-helpers": "0.7.0",
     "@eslint/js": "10.0.1",
@@ -20,14 +15,8 @@
     "prettier": "3.9.9",
     "typescript-eslint": "8.71.1"
   },
-  "homepage": "https://github.com/produck/kitty#readme",
-  "license": "MIT",
   "name": "@produck/kitty-workspace",
   "private": true,
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/produck/kitty.git"
-  },
   "scripts": {
     "prepare": "husky",
     "produck:baseline": "npm exec --package=@produck/agent-toolkit@latest -- agent-toolkit enforce-node-baseline --cwd . && npm run produck:install",
@@ -38,9 +27,9 @@
     "produck:lint": "eslint --fix . --max-warnings=0",
     "produck:publish": "npm run produck:publish:check && npm run publish --",
     "produck:publish:check": "npm run produck:install && npm run produck:coverage && npm run produck:commit:check",
+    "publish": "lerna publish",
     "test": "npm run test --workspaces --if-present"
   },
-  "version": "0.0.0",
   "workspaces": [
     "packages/workflow",
     "packages/adaptor/http2",

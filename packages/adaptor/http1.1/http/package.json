@@ -1,0 +1,9 @@
+{
+  "name": "@produck/kitty-adaptor-http1.1-http",
+  "scripts": {
+    "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
+    "test": "node -e \"console.log('No tests configured')\""
+  },
+  "type": "module",
+  "version": "0.0.0"
+}

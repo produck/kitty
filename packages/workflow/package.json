@@ -11,9 +11,6 @@
     "is-plain-object": "^5.0.0"
   },
   "description": "Web application using kit.",
-  "devDependencies": {
-    "c8": "11.0.0"
-  },
   "exports": {
     ".": "./src/index.mjs"
   },
