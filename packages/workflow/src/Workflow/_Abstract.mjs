@@ -4,35 +4,25 @@ import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
-import * as Exchange from './Exchange/index.mjs';
-import { I, $I, _I } from './Symbol.mjs';
+import * as Exchange from '../Exchange/index.mjs';
+import { I, $I, _I } from './_Symbol.mjs';
+import {
+  K_WORKFLOW,
+  K_DEPLOYMENT_SELF,
+  K_DEPLOYMENT_SERVER,
+} from './Capability.mjs';
+import { assertHandlerByIndex } from './Assert.mjs';
 
-export const K_DEPLOYMENT_SELF = Symbol('DeploymentKit.self');
-export const K_WORKFLOW = Symbol('WorkflowKit.Workflow');
-const K_DEPLOYMENT_SERVER = Symbol('DeploymentKit.server');
+const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
 
-export const { use: useWorkflow } = Kit.Getter(K_WORKFLOW);
-export const { use: useServer } = Kit.Getter(K_DEPLOYMENT_SERVER);
-
-export function assertHandlerByIndex(value, index) {
-  if (typeof value !== 'function' || value.length > 2) {
-    ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
-  }
-}
-
-const DEFAULT_PASSTHOUGH = (_ctx, next) => next();
-
-const KittyWorkflow = class {
-  [I.CONSTRUCTOR] = KittyWorkflow;
+class KittyWorkflow {
   [I.HANDLER_LIST] = [];
-  [$I.WORKFLOW] = DEFAULT_PASSTHOUGH;
+  [$I.WORKFLOW] = DEFAULT_PASSTHROUGH;
 
   constructor(kit) {
     if (!Kit.isKit(kit)) {
       ThrowTypeError('args[0] as kit', 'Kit');
     }
-
-    this[I.CONSTRUCTOR] = new.target;
 
     const WorkflowKit = kit('Kitty<Workflow>');
 
@@ -111,12 +101,12 @@ const KittyWorkflow = class {
 
     return this[$I.DEPLOY](server);
   }
-};
+}
 
-// prettier-ignore
-export default Abstract(KittyWorkflow, ...[
+export default Abstract(
+  KittyWorkflow,
   Abstract({
     [_I.COMPOSE.EXTEND]: M.Method(),
     [_I.COMPILE_ARTIFACT]: M.Method().returns(M.Object),
   }),
-]);
+);

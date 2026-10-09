@@ -2,8 +2,8 @@ import { isPlainObject } from 'is-plain-object';
 import { ThrowTypeError } from '@produck/type-error';
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
-import AbstractExchange from './Abstract.mjs';
-import { _I } from './Symbol.mjs';
+import AbstractExchange from './_Abstract.mjs';
+import { _I } from './_Symbol.mjs';
 
 function normalizeOptions(options) {
   const _options = {};

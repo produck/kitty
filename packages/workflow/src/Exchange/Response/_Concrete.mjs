@@ -1,51 +1,52 @@
-import { I, _I } from './Symbol.mjs';
-import { AdapterGuard } from './Utils.mjs';
-import * as Assert from './Parser.mjs';
+import { I } from './_Symbol.mjs';
+import { EXCHANGE } from './_Borrow.mjs';
+import { AdapterGuard } from '../Utils.mjs';
+import * as Assert from '../Parser.mjs';
 
 const GuardNotThrow = {
   headerGet: AdapterGuard({
     message: 'Response header read failed.',
-    member: _I.RESPONSE.HEADER.GET,
+    member: EXCHANGE._I.RESPONSE.HEADER.GET,
   }),
   headerKeys: AdapterGuard({
     message: 'Response header keys iteration failed.',
-    member: _I.RESPONSE.HEADER.KEYS,
+    member: EXCHANGE._I.RESPONSE.HEADER.KEYS,
   }),
   headerSet: AdapterGuard({
     message: 'Response header write failed.',
-    member: _I.RESPONSE.HEADER.SET,
+    member: EXCHANGE._I.RESPONSE.HEADER.SET,
   }),
   headerDelete: AdapterGuard({
     message: 'Response header delete failed.',
-    member: _I.RESPONSE.HEADER.DELETE,
+    member: EXCHANGE._I.RESPONSE.HEADER.DELETE,
   }),
   bodyDataGet: AdapterGuard({
     message: 'Response body data read failed.',
-    member: _I.RESPONSE.BODY.DATA.GET,
+    member: EXCHANGE._I.RESPONSE.BODY.DATA.GET,
   }),
   bodyDataSet: AdapterGuard({
     message: 'Response body data write failed.',
-    member: _I.RESPONSE.BODY.DATA.SET,
+    member: EXCHANGE._I.RESPONSE.BODY.DATA.SET,
   }),
   statusGet: AdapterGuard({
     message: 'Response status code read failed.',
-    member: _I.STATUS.GET,
+    member: EXCHANGE._I.STATUS.GET,
   }),
   statusSet: AdapterGuard({
     message: 'Response status code write failed.',
-    member: _I.STATUS.SET,
+    member: EXCHANGE._I.STATUS.SET,
   }),
   statusTextGet: AdapterGuard({
     message: 'Response status text read failed.',
-    member: _I.RESPONSE.STATUS_TEXT.GET,
+    member: EXCHANGE._I.RESPONSE.STATUS_TEXT.GET,
   }),
   statusTextSet: AdapterGuard({
     message: 'Response status text write failed.',
-    member: _I.RESPONSE.STATUS_TEXT.SET,
+    member: EXCHANGE._I.RESPONSE.STATUS_TEXT.SET,
   }),
   isFinished: AdapterGuard({
     message: 'Response finished check failed.',
-    member: _I.RESPONSE.IS_FINISHED,
+    member: EXCHANGE._I.RESPONSE.IS_FINISHED,
   }),
 };
 

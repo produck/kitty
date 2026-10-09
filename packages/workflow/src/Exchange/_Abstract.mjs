@@ -6,9 +6,9 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Kit from '@produck/kit';
 
 import * as P from './Parser.mjs';
-import { I, _I, $I } from './Symbol.mjs';
-import KittyExchangeRequest from './Request.mjs';
-import KittyExchangeResponse from './Response.mjs';
+import { _I, $I } from './_Symbol.mjs';
+import { Concrete as KittyExchangeRequest } from './Request/index.mjs';
+import { Concrete as KittyExchangeResponse } from './Response/index.mjs';
 import { useConfig } from './Config.mjs';
 
 const CONSUMED_IDENTITY = new WeakSet();
@@ -16,15 +16,13 @@ const CONSUMED_IDENTITY = new WeakSet();
 class KittyExchange extends EventTarget {
   exchange = this;
 
-  constructor(ExchangeKit, internal) {
+  constructor(ExchangeKit) {
     if (!Kit.isKit(ExchangeKit)) {
       ThrowTypeError('args[0] as ExchangeKit', 'Kit');
     }
 
     super();
-    this[I.CONSTRUCTOR] = new.target;
-    this[I.KIT] = ExchangeKit;
-    this[$I.INTERNAL] = internal;
+    this[$I.KIT] = ExchangeKit;
 
     const identity = this[_I.IDENTITY.GET]();
 

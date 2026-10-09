@@ -1,13 +1,15 @@
-import { I, _I } from './Symbol.mjs';
 import { createReadStream } from 'node:fs';
 import { open, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
-import { ThrowAdapter, AdapterGuard } from './Utils.mjs';
-import { useConfig } from './Config.mjs';
-import * as Assert from './Parser.mjs';
+
+import { I } from './_Symbol.mjs';
+import { EXCHANGE } from './_Borrow.mjs';
+import { ThrowAdapter, AdapterGuard } from '../Utils.mjs';
+import { useConfig } from '../Config.mjs';
+import * as Assert from '../Parser.mjs';
 
 const _tooLarge = () => {
   const e = new Error('Request body exceeds configured limit.');
@@ -18,27 +20,27 @@ const _tooLarge = () => {
 const GuardNotThrow = {
   header: AdapterGuard({
     message: 'Header read failed.',
-    member: _I.REQUEST.HEADER.GET,
+    member: EXCHANGE._I.REQUEST.HEADER.GET,
   }),
   headerKeys: AdapterGuard({
     message: 'Header keys iteration failed.',
-    member: _I.REQUEST.HEADER.KEYS,
+    member: EXCHANGE._I.REQUEST.HEADER.KEYS,
   }),
   bodyData: AdapterGuard({
     message: 'Request body data read failed.',
-    member: _I.REQUEST.BODY.DATA.GET,
+    member: EXCHANGE._I.REQUEST.BODY.DATA.GET,
   }),
   method: AdapterGuard({
     message: 'Request method read failed.',
-    member: _I.REQUEST.METHOD.GET,
+    member: EXCHANGE._I.REQUEST.METHOD.GET,
   }),
   mode: AdapterGuard({
     message: 'Request mode read failed.',
-    member: _I.REQUEST.MODE.GET,
+    member: EXCHANGE._I.REQUEST.MODE.GET,
   }),
   url: AdapterGuard({
     message: 'Request URL read failed.',
-    member: _I.REQUEST.URL.GET,
+    member: EXCHANGE._I.REQUEST.URL.GET,
   }),
 };
 
@@ -69,14 +71,14 @@ class KittyExchangeRequestHeader {
 }
 
 class KittyExchangeRequestBody {
-  [I.REQUEST.BODY.PROGRESS] = {
+  [I.BODY.PROGRESS] = {
     consumed: false,
     cached: false,
     buffer: Buffer.alloc(0),
     pathname: null,
   };
 
-  [I.REQUEST.BODY.CONFIGURATION] = {
+  [I.BODY.CONFIGURATION] = {
     maxBodySize: 0,
     maxRequestBodyBuffer: 0,
     allowedBodyMethods: [],
@@ -85,8 +87,8 @@ class KittyExchangeRequestBody {
   constructor(exchange) {
     this[I.EXCHANGE] = exchange;
 
-    const config = useConfig(exchange[I.KIT]);
-    const thisConfiguration = this[I.REQUEST.BODY.CONFIGURATION];
+    const config = useConfig(exchange[EXCHANGE.$I.KIT]);
+    const thisConfiguration = this[I.BODY.CONFIGURATION];
 
     thisConfiguration.maxBodySize = config.maxBodySize;
     thisConfiguration.maxRequestBodyBuffer = config.maxRequestBodyBuffer;
@@ -94,12 +96,12 @@ class KittyExchangeRequestBody {
   }
 
   get isConsumed() {
-    return this[I.REQUEST.BODY.PROGRESS].consumed;
+    return this[I.BODY.PROGRESS].consumed;
   }
 
-  [I.REQUEST.BODY.OPEN_ENTRY]() {
-    const progress = this[I.REQUEST.BODY.PROGRESS];
-    const thisConfiguration = this[I.REQUEST.BODY.CONFIGURATION];
+  [I.BODY.OPEN_ENTRY]() {
+    const progress = this[I.BODY.PROGRESS];
+    const thisConfiguration = this[I.BODY.CONFIGURATION];
     const raw = GuardNotThrow.bodyData(this[I.EXCHANGE]);
 
     const source = Readable.toWeb(
@@ -146,7 +148,7 @@ class KittyExchangeRequestBody {
 
     const [consumer, cacheBranch] = entry.tee();
 
-    this[I.REQUEST.BODY.ENTRY] = consumer;
+    this[I.BODY.ENTRY] = consumer;
 
     const memoryLimit = thisConfiguration.maxRequestBodyBuffer;
 
@@ -194,7 +196,7 @@ class KittyExchangeRequestBody {
         }
       } finally {
         progress.cached = true;
-        this[I.REQUEST.BODY.ENTRY] = null;
+        this[I.BODY.ENTRY] = null;
       }
     })().catch(() => {});
 
@@ -202,7 +204,7 @@ class KittyExchangeRequestBody {
   }
 
   get data() {
-    const progress = this[I.REQUEST.BODY.PROGRESS];
+    const progress = this[I.BODY.PROGRESS];
 
     if (progress.consumed) {
       if (progress.cached) {
@@ -218,16 +220,16 @@ class KittyExchangeRequestBody {
         });
       }
 
-      const [consumer, remaining] = this[I.REQUEST.BODY.ENTRY].tee();
+      const [consumer, remaining] = this[I.BODY.ENTRY].tee();
 
-      this[I.REQUEST.BODY.ENTRY] = remaining;
+      this[I.BODY.ENTRY] = remaining;
 
       return consumer;
     }
 
     progress.consumed = true;
 
-    const thisConfiguration = this[I.REQUEST.BODY.CONFIGURATION];
+    const thisConfiguration = this[I.BODY.CONFIGURATION];
     const method = this[I.EXCHANGE].request.method;
 
     if (!thisConfiguration.allowedBodyMethods.includes(method)) {
@@ -236,7 +238,7 @@ class KittyExchangeRequestBody {
       return new ReadableStream({ start: (c) => c.close() });
     }
 
-    return this[I.REQUEST.BODY.OPEN_ENTRY]();
+    return this[I.BODY.OPEN_ENTRY]();
   }
 }
 
