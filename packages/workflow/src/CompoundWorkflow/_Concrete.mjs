@@ -8,7 +8,7 @@ import * as Exchange from '../Exchange/index.mjs';
 import { touchExchange } from '../Exchange/Capability.mjs';
 import * as Adapter from '../Adapter/index.mjs';
 import * as Mixin from '../Mixin/index.mjs';
-import { Abstract as AbstractWorkflow } from '../Workflow/index.mjs';
+import * as Workflow from '../Workflow/index.mjs';
 import { assertHandlerByIndex } from '../Workflow/Assert.mjs';
 import { K_DEPLOYMENT_SELF, useServer } from '../Workflow/Capability.mjs';
 import { I } from './_Symbol.mjs';
@@ -26,7 +26,7 @@ function assertDependenceName(value) {
   }
 }
 
-export default class CompoundKittyWorkflow extends AbstractWorkflow {
+export default class CompoundKittyWorkflow extends Workflow.Abstract {
   [I.MIXIN.HANDLER.PREFIX.LIST] = [];
   [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
   [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];

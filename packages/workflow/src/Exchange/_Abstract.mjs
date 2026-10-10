@@ -7,8 +7,8 @@ import * as Kit from '@produck/kit';
 
 import * as P from './Parser.mjs';
 import { _I, $I } from './_Symbol.mjs';
-import { Concrete as KittyExchangeRequest } from './Request/index.mjs';
-import { Concrete as KittyExchangeResponse } from './Response/index.mjs';
+import * as Request from './Request/index.mjs';
+import * as Response from './Response/index.mjs';
 import { useConfig } from './Config.mjs';
 
 const CONSUMED_IDENTITY = new WeakSet();
@@ -31,8 +31,8 @@ class KittyExchange extends EventTarget {
     }
 
     CONSUMED_IDENTITY.add(identity);
-    this.request = new KittyExchangeRequest(this);
-    this.response = new KittyExchangeResponse(this);
+    this.request = new Request.Concrete(this);
+    this.response = new Response.Concrete(this);
 
     const config = useConfig(ExchangeKit);
 

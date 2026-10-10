@@ -1,33 +1,11 @@
-import { I } from './_Symbol.mjs';
+import * as Part from '../Part/index.mjs';
+import * as Header from './Header/index.mjs';
+import * as Body from './Body/index.mjs';
 import { EXCHANGE } from './_Borrow.mjs';
 import { AdapterGuard } from '../Utils.mjs';
 import * as Assert from '../Parser.mjs';
 
 const GuardNotThrow = {
-  headerGet: AdapterGuard({
-    message: 'Response header read failed.',
-    member: EXCHANGE._I.RESPONSE.HEADER.GET,
-  }),
-  headerKeys: AdapterGuard({
-    message: 'Response header keys iteration failed.',
-    member: EXCHANGE._I.RESPONSE.HEADER.KEYS,
-  }),
-  headerSet: AdapterGuard({
-    message: 'Response header write failed.',
-    member: EXCHANGE._I.RESPONSE.HEADER.SET,
-  }),
-  headerDelete: AdapterGuard({
-    message: 'Response header delete failed.',
-    member: EXCHANGE._I.RESPONSE.HEADER.DELETE,
-  }),
-  bodyDataGet: AdapterGuard({
-    message: 'Response body data read failed.',
-    member: EXCHANGE._I.RESPONSE.BODY.DATA.GET,
-  }),
-  bodyDataSet: AdapterGuard({
-    message: 'Response body data write failed.',
-    member: EXCHANGE._I.RESPONSE.BODY.DATA.SET,
-  }),
   statusGet: AdapterGuard({
     message: 'Response status code read failed.',
     member: EXCHANGE._I.STATUS.GET,
@@ -50,91 +28,34 @@ const GuardNotThrow = {
   }),
 };
 
-class KittyExchangeResponseHeader {
+export default class KittyExchangeResponse extends Part.Concrete {
   constructor(exchange) {
-    this[I.EXCHANGE] = exchange;
-  }
-
-  get(key) {
-    Assert.HeaderName(key);
-
-    return GuardNotThrow.headerGet(this[I.EXCHANGE], key);
-  }
-
-  has(key) {
-    return this.get(key) !== undefined;
-  }
-
-  keys() {
-    return GuardNotThrow.headerKeys(this[I.EXCHANGE]);
-  }
-
-  *entries() {
-    for (const key of this.keys()) {
-      yield [key, this.get(key)];
-    }
-  }
-
-  set(key, value) {
-    Assert.HeaderName(key);
-    Assert.HeaderValue(value);
-    GuardNotThrow.headerSet(this[I.EXCHANGE], key, value);
-  }
-
-  delete(key) {
-    Assert.HeaderName(key);
-    GuardNotThrow.headerDelete(this[I.EXCHANGE], key);
-  }
-
-  clear() {
-    for (const key of this.keys()) {
-      this.delete(key);
-    }
-  }
-}
-
-class KittyExchangeResponseBody {
-  constructor(exchange) {
-    this[I.EXCHANGE] = exchange;
-  }
-
-  get data() {
-    return GuardNotThrow.bodyDataGet(this[I.EXCHANGE]);
-  }
-
-  set data(value) {
-    GuardNotThrow.bodyDataSet(this[I.EXCHANGE], value);
-  }
-}
-
-export default class KittyExchangeResponse {
-  constructor(exchange) {
-    this[I.EXCHANGE] = exchange;
-    this.header = new KittyExchangeResponseHeader(exchange);
-    this.body = new KittyExchangeResponseBody(exchange);
+    super(exchange);
+    this.header = new Header.Concrete(exchange);
+    this.body = new Body.Concrete(exchange);
     Object.freeze(this);
   }
 
   get statusCode() {
-    return GuardNotThrow.statusGet(this[I.EXCHANGE]);
+    return GuardNotThrow.statusGet(this.exchange);
   }
 
   get statusText() {
-    return GuardNotThrow.statusTextGet(this[I.EXCHANGE]);
+    return GuardNotThrow.statusTextGet(this.exchange);
   }
 
   setStatus(code, text) {
     Assert.HTTPStatusCode(code);
 
-    GuardNotThrow.statusSet(this[I.EXCHANGE], code);
+    GuardNotThrow.statusSet(this.exchange, code);
 
     if (text !== undefined) {
       Assert.HeaderValue(text);
-      GuardNotThrow.statusTextSet(this[I.EXCHANGE], text);
+      GuardNotThrow.statusTextSet(this.exchange, text);
     }
   }
 
   get isFinished() {
-    return GuardNotThrow.isFinished(this[I.EXCHANGE]);
+    return GuardNotThrow.isFinished(this.exchange);
   }
 }
