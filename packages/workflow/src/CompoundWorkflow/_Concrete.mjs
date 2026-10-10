@@ -1,6 +1,5 @@
-import * as Ow from '@produck/ow';
+import { Ow, ThrowTypeError } from '@produck/argot';
 import * as Kit from '@produck/kit';
-import { ThrowTypeError } from '@produck/type-error';
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 import { compose } from '@produck/compose';
 

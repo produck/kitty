@@ -1,5 +1,5 @@
 import { isPlainObject } from 'is-plain-object';
-import { ThrowTypeError } from '@produck/type-error';
+import { ThrowTypeError } from '@produck/argot';
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
 import AbstractExchange from './_Abstract.mjs';

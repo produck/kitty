@@ -1,4 +1,4 @@
-import { ThrowTypeError } from '@produck/type-error';
+import { ThrowTypeError } from '@produck/argot';
 
 export function assertInstaller(value) {
   if (typeof value !== 'function') {

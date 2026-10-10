@@ -1,5 +1,4 @@
-import * as Ow from '@produck/ow';
-import { ThrowTypeError } from '@produck/type-error';
+import { Ow, ThrowTypeError } from '@produck/argot';
 import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
 import Abstract, { Member as M } from '@produck/es-abstract';

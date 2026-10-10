@@ -1,12 +1,12 @@
 import * as net from 'node:net';
-import { Readable } from 'node:stream';
-import * as Ow from '@produck/ow';
-import { ThrowTypeError } from '@produck/type-error';
+
+import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
+import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 import * as Kit from '@produck/kit';
 
 import * as P from './Parser.mjs';
-import { _I, $I } from './_Symbol.mjs';
+import { I, $I, _I, _S } from './_Symbol.mjs';
 import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
 import { useConfig } from './Config.mjs';
@@ -14,14 +14,18 @@ import { useConfig } from './Config.mjs';
 const CONSUMED_IDENTITY = new WeakSet();
 
 class KittyExchange extends EventTarget {
-  exchange = this;
+  [I.REQUEST] = null;
+  [I.RESPONSE] = null;
 
   constructor(ExchangeKit) {
     if (!Kit.isKit(ExchangeKit)) {
       ThrowTypeError('args[0] as ExchangeKit', 'Kit');
     }
 
+    const TargetConstructor = new.target;
+
     super();
+    this[SYMBOL.CONSTRUCTOR] = TargetConstructor;
     this[$I.KIT] = ExchangeKit;
 
     const identity = this[_I.IDENTITY.GET]();
@@ -31,13 +35,14 @@ class KittyExchange extends EventTarget {
     }
 
     CONSUMED_IDENTITY.add(identity);
-    this.request = new Request.Concrete(this);
-    this.response = new Response.Concrete(this);
+
+    this[I.REQUEST] = new TargetConstructor[_S.REQUEST_CTOR](this);
+    this[I.RESPONSE] = new TargetConstructor[_S.RESPONSE_CTOR](this);
 
     const config = useConfig(ExchangeKit);
 
     const timer = setTimeout(() => {
-      if (!this.isFinished) {
+      if (!this.response.isFinished) {
         this.setStatus(503);
       }
     }, config.timeout * 1000);
@@ -45,6 +50,14 @@ class KittyExchange extends EventTarget {
     this.addEventListener('close', () => clearTimeout(timer), { once: true });
 
     Object.freeze(this);
+  }
+
+  get request() {
+    return this[I.REQUEST];
+  }
+
+  get response() {
+    return this[I.RESPONSE];
   }
 
   toJSON() {
@@ -75,14 +88,6 @@ class KittyExchange extends EventTarget {
     this.response.setStatus(code, text);
   }
 
-  get isConsumed() {
-    return this.request.isConsumed;
-  }
-
-  get isFinished() {
-    return this.response.isFinished;
-  }
-
   get server() {
     return this[_I.SERVER.GET]();
   }
@@ -96,40 +101,16 @@ class KittyExchange extends EventTarget {
   }
 }
 
-// prettier-ignore
-export default Abstract(KittyExchange, ...[
+export default Abstract(
+  KittyExchange,
   Abstract({
     [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
     [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
     [_I.SERVER.PROTOCOL.GET]: M.Method().returns(P.ServerProtocol),
     [_I.HTTP_VERSION.GET]: M.Method().returns(P.HttpVersion),
-    [_I.STATUS.GET]: M.Method().returns(P.HTTPStatusCode),
-    [_I.STATUS.SET]: M.Method()
-      .args(P.HTTPStatusCode)
-      .returns(M.Undefined),
   }),
-  Abstract({
-    [_I.REQUEST.MODE.GET]: M.Method().returns(P.ExchangeMode),
-    [_I.REQUEST.METHOD.GET]: M.Method().returns(P.HttpMethod),
-    [_I.REQUEST.URL.GET]: M.Method().returns(M.String),
-    [_I.REQUEST.HEADER.GET]: M.Method().args(M.String).returns(M.String),
-    [_I.REQUEST.HEADER.KEYS]: M.Method().returns(P.Iterable),
-    [_I.REQUEST.IS_CONSUMED]: M.Method().returns(M.Boolean),
-    [_I.REQUEST.BODY.DATA.GET]: M.Method().returns(M.Instance(Readable)),
+  Abstract.Static({
+    [_S.REQUEST_CTOR]: SubConstructorOf(Request.Abstract),
+    [_S.RESPONSE_CTOR]: SubConstructorOf(Response.Abstract),
   }),
-  Abstract({
-    [_I.RESPONSE.HEADER.GET]: M.Method().args(M.String).returns(M.String),
-    [_I.RESPONSE.HEADER.KEYS]: M.Method().returns(P.Iterable),
-    [_I.RESPONSE.HEADER.SET]: M.Method()
-      .args(M.String, M.String)
-      .returns(M.Undefined),
-    [_I.RESPONSE.HEADER.DELETE]: M.Method().args(M.String).returns(M.Undefined),
-    [_I.RESPONSE.STATUS_TEXT.GET]: M.Method().returns(M.String),
-    [_I.RESPONSE.STATUS_TEXT.SET]: M.Method()
-      .args(M.String)
-      .returns(M.Undefined),
-    [_I.RESPONSE.BODY.DATA.GET]: M.Method().returns(M.Any),
-    [_I.RESPONSE.BODY.DATA.SET]: M.Method().args(M.Any).returns(M.Undefined),
-    [_I.RESPONSE.IS_FINISHED]: M.Method().returns(M.Boolean),
-  }),
-]);
+);

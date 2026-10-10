@@ -1,5 +1,5 @@
 import { METHODS } from 'node:http';
-import { ThrowTypeError } from '@produck/type-error';
+import { ThrowTypeError } from '@produck/argot';
 
 const HTTP_VERSIONS = Object.freeze(['1.0', '1.1', '2.0', '3.0']);
 const VERSIONS_TAG = HTTP_VERSIONS.map((v) => `'${v}'`).join(' | ');

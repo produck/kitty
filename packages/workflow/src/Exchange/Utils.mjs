@@ -1,4 +1,4 @@
-import * as Ow from '@produck/ow';
+import { Ow } from '@produck/argot';
 
 const ADAPTER_ERROR_PREFIX = '[AdapterImplementationError]';
 

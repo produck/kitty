@@ -1,4 +1,4 @@
-import { ThrowTypeError } from '@produck/type-error';
+import { ThrowTypeError } from '@produck/argot';
 
 export function assertHandlerByIndex(value, index) {
   if (typeof value !== 'function' || value.length > 2) {

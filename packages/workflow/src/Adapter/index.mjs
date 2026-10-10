@@ -1,4 +1,4 @@
-import * as Ow from '@produck/ow';
+import { Ow } from '@produck/argot';
 
 export * as Artifact from './Artifact.mjs';
 export * as Registry from './Registry.mjs';

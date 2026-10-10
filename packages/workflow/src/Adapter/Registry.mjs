@@ -1,7 +1,6 @@
 import * as net from 'node:net';
 
-import * as Ow from '@produck/ow';
-import { ThrowTypeError } from '@produck/type-error';
+import { Ow, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 
 const registry = new Map();
