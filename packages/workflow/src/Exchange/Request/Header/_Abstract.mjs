@@ -12,6 +12,8 @@ class AbstractRequestHeader extends Part.Concrete {
   }
 
   has(key) {
+    Assert.HeaderName(key);
+
     return this.get(key) !== undefined;
   }
 

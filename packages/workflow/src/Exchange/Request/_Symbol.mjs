@@ -11,7 +11,6 @@ export const I = deepFreeze({
 const _I_MODE_GET = Symbol('._getMode()');
 const _I_METHOD_GET = Symbol('._getMethod()');
 const _I_URL_GET = Symbol('._getURL()');
-const _I_IS_CONSUMED = Symbol('._isConsumed()');
 
 export const _I = deepFreeze({
   MODE: {
@@ -23,7 +22,6 @@ export const _I = deepFreeze({
   URL: {
     GET: _I_URL_GET,
   },
-  IS_CONSUMED: _I_IS_CONSUMED,
 });
 
 const _S_HEADER_CTOR = Symbol('._headerCtor');

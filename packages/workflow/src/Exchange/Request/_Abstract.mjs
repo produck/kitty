@@ -54,10 +54,6 @@ class AbstractRequest extends Part.Concrete {
       return new URL(raw, `${this.exchange.protocol}//${host}`);
     }
   }
-
-  get isConsumed() {
-    return this[_I.IS_CONSUMED]();
-  }
 }
 
 export default Abstract(
@@ -66,7 +62,6 @@ export default Abstract(
     [_I.MODE.GET]: M.Method().returns(P.ExchangeMode),
     [_I.METHOD.GET]: M.Method().returns(P.HttpMethod),
     [_I.URL.GET]: M.Method().returns(M.String),
-    [_I.IS_CONSUMED]: M.Method().returns(M.Boolean),
   }),
   Abstract.Static({
     [_S.HEADER_CTOR]: SubConstructorOf(Header.Abstract),
