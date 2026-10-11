@@ -21,7 +21,6 @@ class AbstractRequest extends Part.Concrete {
 
     this[I.HEADER] = new TargetConstructor[_S.HEADER_CTOR](exchange);
     this[I.BODY] = new TargetConstructor[_S.BODY_CTOR](exchange);
-    Object.freeze(this);
   }
 
   get header() {

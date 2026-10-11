@@ -61,11 +61,13 @@
   `export * as NAME from '…'` 的命名空间形式。
 - **借用一律走本模块自己的 `_Borrow.mjs`**（规范 BTB-2 / BTB-3 / BTB-6）：本仓
   现在有这些——`CompoundWorkflow` 借 `Workflow` 与 `Exchange`；`Exchange/Part`
-  **向上**借 `Exchange` 的 `I` 表（只为了读 `I.INTERNAL` 槽）；六个 subject
+  **向上**借 `Exchange` 的 `I` 表（只为了读 `I.INTERNAL` 槽）；`Exchange` 借六个
+  subject 的表（`Implement/` 要用它们的 `_I` / `_S`）；六个 subject
   （`Request` / `Response` 及各自的 Header / Body）借 `Part` 的 `$I` 表（为了取
   `$I.INTERNAL` 传给抽象成员）。命名空间用来源**模块名的大写**形式
-  （`EXCHANGE` / `WORKFLOW` / `PART`），与 `import * as Part from '…/index.mjs'`
-  那种**出口**导入区分开；`_A` 仍为空（待定第 1 条）。
+  （`EXCHANGE` / `WORKFLOW` / `PART` / `REQUEST` / `REQUEST_HEADER` / …），与
+  `import * as Part from '…/index.mjs'` 那种**出口**导入区分开；`_A` 仍为空
+  （待定第 1 条）。
 - 跨包借表：**直接用对方的键**，不另立符号、不做翻译。`Body` 就是这样——它的
   `_S.DISTRIBUTOR_CTOR` 指向 `Fugue.Distributor`，介质槽
   `Fugue.SYMBOL.DISTRIBUTOR._S.DEGRADED_CHUNK_READER_CTOR` 由下游在具体
@@ -144,11 +146,19 @@ h2 用 `stream` / `req` / `res`，https 再加 TLS 相关对象。
   ——不必自备存放处，也不需要用到 `$I`；确实用不到记录的实现少声明参数即可
   （声明之外的位置走 `rest`，不校验）。
 - **它是结构上必需的，不只是"有用"**（实测）：子类字段初始化在 `super()` 返回
-  **之后**才跑，基类构造器末尾 `Object.freeze(this)` 会让具体类**存不下自己的
-  任何字段**（`Cannot define property field, object is not extensible`）。
-  现在冻结面是**有意不对称**的：`Exchange` 基类不冻结（具体 Exchange 能持有自己
-  的字段），`Request` / `Response` / `Workflow` 仍冻结（它们的具体类存不下字段，
-  所以只能从被传入的 `internal` 读）。
+  **之后**才跑，所以基类构造器末尾若 `Object.freeze(this)`，具体类就**存不下自己
+  的任何字段**（实测报 `Cannot define property Symbol(.#optionsContext), object is
+not extensible`）。
+- **冻结面现在落在具体实现点自己身上**（2026-10-11 定）：七个具体类都重载
+  `constructor`，参数以 `(...args)` 原样转发给 `super(...args)`（用户口径：这样写
+  是为了**暗示行为上是"纯粹代理"**——自己不动参数），随后 `Object.freeze(this)`
+  ——顺序正好是"上下文字段先装上、再冻"（字段初始化在 `super()` 返回后、构造体
+  之前跑）。基类（`Request` / `Response` / `Exchange`）都不再自冻；`Workflow` 仍
+  自冻。实测：
+  冻结后的实例照旧能 `addEventListener` / `dispatchEvent`（监听不走实例属性），
+  而任何"构造后往实例加字段"都会抛 `TypeError`；装配路径（`handleExchange`）
+  只读 `exchange[$I.IDENTITY]`、把 exchange 写进 **kit**、再 `dispatchEvent`，
+  没有对实例的后续写入。
 - 与 identity 的关系：identity 必须是**每个 exchange 一个的原生对象**（见"术
   语"）；`internal` 正好是"连接期对象"的收纳处，同一片上下文里的两个用途。
 
@@ -172,9 +182,66 @@ adapter 相关抽象成员靠 `internal` 里的对象实现，而那份记录的
   是 net.Server 子类。代价是一条依赖边 `Adapter → Exchange`（实测无环：
   `Adapter` 的唯一引用者是 `CompoundWorkflow`，`Exchange/Utils.mjs` 只依赖
   argot）。详见待定第 15 条与第 19 条。
-- **`Implement.mjs` 与现架构错位的不只是键名**：它的选项树把 header / body 当
-  **函数组**，而现在是独立 subject、经 `_S.HEADER_CTOR` / `_S.BODY_CTOR` 装配，
-  那套树里没有对应位置。要重写的是树的形状，它是否还属于本包见待定第 3 条。
+- **`Implement/` 已按当前 subject 设计重写（2026-10-11 落地；同日拆成目录）**：入参仍是
+  "扁平普通对象 + 函数"，并**保留原来那套具名结构**（用户口径）——小写语义名 +
+  按成员种类收尾的叶子：`identity` / `server.get` / `server.protocol.get` /
+  `httpVersion.get` / `request.{mode,method,URL}.get` /
+  `request.header.{get,keys}` / `request.body.{source.get,distributorCtor}` /
+  `response.status.{get,set}` / `response.statusText.{get,set}` /
+  `response.finished.is` / `response.header.{get,keys,set,delete}` /
+  `response.body.data.{get,set}`。
+- **树在 `Implement` 里一次性全解构，拆到纯函数**（用户口径"t 都解构"→"拆至纯
+  函数水平"）：`normalizeOptions` 的返回值不留任何载体，叶子函数直接绑成局部名
+  （`request.mode.get` → `getRequestMode`、`request.header.keys` →
+  `getRequestHeaderKeys`、`response.body.data.set` → `setResponseBodyData` …）。
+  组那一层一个都不落地——没有 `requestHeader` 这类中间对象，也没有 `t.` 前缀，
+  成员体就是一行"转调某个裸函数"。命名按叶子语义加域前缀：取用 `get*` / 变更
+  `set*` / 布尔 `is*` / 删除 `delete*`；唯一的非函数叶子 `distributorCtor`
+  （类是值，不是调用）保持原名。
+- **每个实现点自带一份冻结的 options 上下文**（2026-10-11 用户口径"所有实现点都
+  增加一个面向 options 的上下文冻结对象，然后给那些纯函数用"）：七个具体类各有
+  一个私有槽 `[I_OPTIONS_CONTEXT]`，值是 `Object.freeze({ self, internal })`——
+  `self` 是该实现点自身，`internal` 是它要服务的记录（part 取
+  `this[PART.$I.INTERNAL]`，Exchange 取 `this[EXCHANGE.I.INTERNAL]`）。实测：
+  `ctx.self` **就是**消费者手里那个对象（`super()` 返回的已经是 proxy，字段初始化
+  时 `this` 即它），`ctx.internal` 与调用点传下来的记录同一个。
+- **树函数（那批纯函数）的首参就是这个上下文**：`getRequestMode` / `header.get` /
+  `status.set` … 一律收 `ctx`，要记录读 `ctx.internal`、要实例读 `ctx.self`；成员
+  自己的 `internal` 形参因此空置（写作 `_internal`）。相比"记录 + `this` 两个通道
+  分发"，交付物有名字、被冻结、且不受调用方是否用 `.call` 影响。
+  - 代价（已知）：`ctx.self` 不是死数据，作者可以绕回自己（在 `getResponseStatus`
+    里用 `ctx.self.request.header.get(…)` 之类）形成回环，不报错、只是重复跑树。
+    写法上立为禁忌。
+  - `distributorCtor` 是类（值），不走上下文。
+- **校验照原版写法：显式逐层块，无形状表、不碰符号表**（用户口径）：`normalizeOptions`
+  一层层 `isPlainObject` 判到组，再 `typeof === 'function'` 判到叶子，报错路径就是
+  字符串（`args[0].request.header.get` / `args[0].response.body` …），与旧文件同形。
+  树里 `request.body.distributorCtor` 也是**必填**（值须为函数——它是
+  `_S.DISTRIBUTOR_CTOR`，形状待定见第 23 条）。
+- **旧树里 `meta` 没有落点**：旧版的 `meta.name` 供生成类的 `static get meta()`，
+  新契约里既无成员也无静态槽，所以当前按**删除**处理。要保留得先定它挂哪里。
+- **多余键不再被拒**（原版就是如此：只读它认识的那些键，其余忽略）。含义：旧树
+  遗留的键（`meta` 之类）传进来会**静默无效**，而不会像前几版那样报错。
+- **7 个具体类全在 `Implement` 闭包内，且全部过 `SCP`**（用户口径"所有子类都
+  应该 SCP"）：`ImplementedExchange` / `Request` / `Response` /
+  `Request{Header,Body}` / `Response{Header,Body}`；只 `return` 第 1 个给下游注
+  册，其余六个仅经 `_S` 静态槽互指。于是**下游一个类都不用写**——构造器漏洞在
+  本族七个位置都无从出现，早前讨论的 `Reflect.construct` 绕过手段对本包的
+  subject 不再需要。
+- **`Implement/` 是一个目录（2026-10-11）**：`index.mjs` 只留装配（七个
+  `Implemented*` + `SCP` 表 + `return`），选项校验拆到 `Normalize.mjs`（导出
+  一个 `normalize()`）。该目录既无 `_Abstract.mjs` 也无 `_Concrete.mjs`，按
+  LAY-5 是**非 subject 元素**，不受 `_Symbol.mjs` / `_Borrow.mjs` 约束；它
+  照旧用 Exchange 自己的 `../_Borrow.mjs` / `../_Symbol.mjs`（非 subject 元素
+  属于所属 module，不是新 module）。
+- **实现细节**：声明为 `.returns(M.Undefined)` 的四个成员（`STATUS.SET` /
+  `STATUS_TEXT.SET` / `ResponseHeader.SET` / `.DELETE`）**不转发**树函数的返回
+  值，否则会把下游的 `Map#set` 之类漏出去、被契约拦下；其余成员体都是一行"转调
+  解构绑定好的具名函数"。
+- **残留风险（已知）**：校验只盖"组是不是普通对象、叶子是不是函数"（这是原版写
+  法的能力边界）：①`_I` 新增一个成员时，没有任何东西会提醒它还没在树／成员体里
+  接上；②成员体里绑错变量拦不住（两个名字都在作用域里，写错不报错）；③多余的键
+  静默忽略——旧树遗留键不会报错。
 
 ### Exchange 的构造与装配
 
@@ -340,11 +407,12 @@ Distributor has been terminated`）；**已发出的副本继续读到各自终�
    员符号（`_I.COMPOSE.EXTEND` / `_I.COMPILE_ARTIFACT`）按 PUB-3 以"选择"的形式
    开出去。参考实现的做法是包出口带 `SYMBOL.<模块>.<表>.<键>`，并直接暴露抽象
    subject 供下游 `extends`。
-3. **`Exchange/Implement.mjs` 未接线，且归属存疑**：`Exchange/index.mjs` 已不再
-   导出它（否则整包在载入期就炸）。**要重写的是选项树的形状**（见"adapter 定义
-   者的交付面"）。另："用函数树生成具体类"这种工厂算**框架模型**（留本包）还是
-   算**预设组装**（搬到 `@produck/kitty`），未定。用户口径："先把所有 subject
-   的结构搞清楚"。
+3. **`Exchange/Implement/` ——已定（2026-10-11 已落地）**：**机制留本包、预设归
+   `@produck/kitty`**（工厂是"用函数树生成具体类"的框架能力，预设只是现成的一套
+   入参对象）。已按当前 subject 设计重写并重新接线：`Exchange/index.mjs`
+   `export { default as Implement }`（属 **Exchange 的 subject export**；接到
+   **package export** 那一步随 PUB-2 暂缓）。相关：`Exchange/_Borrow.mjs` 新增
+   （它要借六个 subject 的表）。仍未定的是树里那个类位置，见第 23 条。
 4. **（已定，见"Exchange 的构造与装配"）**
 5. **Body 与 `config` 的关系未定**：`Exchange/Config.mjs` 已有 `maxBodySize` /
    `maxRequestBodyBuffer` / `allowedBodyMethods`，一个都还没接到 fugue 上。要定
@@ -440,6 +508,25 @@ Distributor has been terminated`）；**已发出的副本继续读到各自终�
     是否同路径未逐项验证）。要定的：①`useExchange` 读不到时自己先抛一句人话
     （例如 "ExchangeKit carries no exchange."）；②把代理里的拼字符串问题报到
     `@produck/kit`（模板里 `String(property)`）。倾向①——本包能自保。
+22. **入参树里那个类位置怎么表达未定**（2026-10-11 记，用户口径：暂缓讨论）：
+    `Implement` 的树里 `REQUEST.BODY.DISTRIBUTOR_CTOR` 是唯一"值是类"的位置
+    ——fugue 没有自己的 implement，且 `Fugue.Distributor` 还必须配降级介质类
+    （介质自己又要配 transferrer）。三种放法：①树里放**介质类**（包提供的现成
+    类，如 `NodeFile.ChunkReader`），我们生成 `ImplementedDistributor extends
+Fugue.Distributor` 并填介质槽；②树里放 **Distributor 类**（下游自备，那一
+    处重新暴露"下游自备类"）；③连介质也用函数生成（要替 fugue 表达
+    `_I.{READ,INITIALIZE,CLOSE,SEEK}` + `_S.TRANSFERRER_CTOR`）。当前实现只是
+    "原样取树里的值填槽"，值为 `undefined` 时由抽象层报 `Static member … must
+be implemented`。
+23. **交付面示例还没改**（2026-10-11 记）：`test/Adapter.example.mjs` 目前演示的
+    是**手写七个类**的路线（抽象层仍可达，那条路线也依然有效），没有演示
+    `Implement`。要不要让它改以 `Implement` 为主、手写路线降为附注，未定。
+24. **`Implement/` 的两个小节未定**（2026-10-11 记）：①`PART` 表目前从
+    `../Request/_Borrow.mjs` 借——那是**别的 module 的 `_Borrow.mjs`**（BTB-5 反
+    对），是否改由 `Exchange/_Borrow.mjs` 再导出 `PART`、只借自己 module 的表；
+    ②`I_OPTIONS_CONTEXT` 定义在 `Implement/index.mjs` 里（私有级 `.#`），按 STB-1
+    键该进 `_Symbol.mjs`，而该目录按 LAY-5 是非 subject 元素、不受该约束——要不
+    要给它一张表。
 
 ## 决策日志（演进 · 按时间追加）
 
