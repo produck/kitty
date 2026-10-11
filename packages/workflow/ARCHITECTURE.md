@@ -248,12 +248,12 @@ When an exchange arrives via `handleExchange`:
 
 ```text
 1. ExchangeKit derived from DeploymentKit
-2. Exchange constructed from the registered adapter class + `internal`;
-   the Exchange installs itself on that ExchangeKit during construction
-3. Identity read once: one identity backs at most one dispatch
-4. Adapter exchange attachers  → abstract Exchange foundation
-5. Mixin exchange attachers    → concrete per-exchange extensions
-6. Workflow handler pipeline
+2. Exchange constructed from the registered adapter class + `internal`
+3. Exchange installed on the ExchangeKit, under `K_EXCHANGE`
+4. Identity read once: one identity backs at most one dispatch
+5. Adapter exchange attachers  → abstract Exchange foundation
+6. Mixin exchange attachers    → concrete per-exchange extensions
+7. Workflow handler pipeline
 ```
 
 ### Relationship with `use()`
@@ -590,8 +590,11 @@ workflow handler runs.
 - `internal` is passed straight to the Exchange constructor and stored
   by the Exchange; the core never inspects its shape.
 - The Exchange is constructed here, from the registered class and the
-  ExchangeKit derived here — not installed by the adapter beforehand. It
-  installs itself on that kit while it is being constructed.
+  ExchangeKit derived here — not installed by the adapter beforehand — and
+  installed on that kit here, under `K_EXCHANGE`, after construction. The
+  slot itself is declared by the Workflow layer
+  (`Workflow/Capability.mjs`), so "an ExchangeKit carries an exchange" is
+  a Workflow-level requirement; `useExchange(kit)` is its reader.
 - `Exchange[$I.IDENTITY]` is read once; the same identity must not back
   more than one dispatch.
 

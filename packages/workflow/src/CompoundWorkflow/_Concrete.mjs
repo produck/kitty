@@ -11,6 +11,7 @@ import { assertHandlerByIndex } from '../Workflow/Assert.mjs';
 import { useServer } from '../Workflow/Capability.mjs';
 import { I } from './_Symbol.mjs';
 import { WORKFLOW } from './_Borrow.mjs';
+import { K_EXCHANGE } from '../Workflow/Capability.mjs';
 
 function assertAttacher(value) {
   if (typeof value !== 'function') {
@@ -90,6 +91,7 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       }
 
       handledExchanges.add(identity);
+      ExchangeKit[K_EXCHANGE] = exchange;
 
       try {
         for (const attacher of [
