@@ -13,8 +13,9 @@
 //   5.   the adapter builds `internal` — its record of this exchange's native
 //        objects — and awaits handleExchange(internal)
 //   6. handleExchange: derive the ExchangeKit → construct adapter.Exchange →
-//        dedup on `$I.IDENTITY` → install K_EXCHANGE → attachers → handler
-//        pipeline → finally dispatch `close`
+//        dedup on `$I.IDENTITY` → attachers → handler pipeline → finally
+//        dispatch `close`. The Exchange installs itself on the kit while it
+//        is being constructed, so nothing outside has to do it.
 //   7. the adapter writes the response back onto the socket
 //
 // The adapter hands the framework a class, not a factory. `Registry` requires
@@ -354,7 +355,7 @@ export default {
 // 5. Construction and installation are the framework's job, not the adapter's:
 //    `handleExchange(internal)` derives the ExchangeKit, constructs
 //    `adapter.Exchange(ExchangeKit, internal)`, dedups on `$I.IDENTITY`,
-//    installs K_EXCHANGE, runs the attachers and the handler pipeline, and
+//    runs the attachers and the handler pipeline, and
 //    dispatches `close` from a `finally`. The adapter supplies one record
 //    (`internal`) and one class (the `Exchange` entry of its registry record).
 //    What is still open is where the response is written back from, now that

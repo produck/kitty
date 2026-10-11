@@ -181,13 +181,22 @@ adapter 相关抽象成员靠 `internal` 里的对象实现，而那份记录的
 
 1. 派生 `ExchangeKit`（`DeploymentKit('Kitty<Exchange>')`）；
 2. `new adapter.Exchange(ExchangeKit, internal)`——类来自 `Adapter.Registry`
-   记录的 `Exchange` 项（注册期已校），`internal` 走参数；
+   记录的 `Exchange` 项（注册期已校），`internal` 走参数；**Exchange 在自己的
+   构造器里就把自己挂到 `ExchangeKit` 上**（`K_EXCHANGE`）；
 3. 读一次 `exchange[$I.IDENTITY]`，用 `handledExchanges`（**按 identity**，不再
    按实例）拒绝重复派发；
-4. 写 `ExchangeKit[K_EXCHANGE]`，然后跑 attachers（deployment 级在前、mixin 级
-   在后）与 handler pipeline；
+4. 跑 attachers（deployment 级在前、mixin 级在后）与 handler pipeline；
 5. `finally` 里 `exchange.dispatchEvent(new Event('close'))`。
 
+- **`K_EXCHANGE` 的写侧只有一处，就在 Exchange 构造器里**（2026-10-11 用户口
+  径）："在构造后由外部附着看上去时机过于落后，怕类似 `startTiming` 这样的动作
+  有副作用依赖 `ExchangeKit`"。`handleExchange` 不再写它（写侧也不导出），
+  `useExchange()` 仍是读面。
+- **代价：挂在 kit 上的是"构造期可见的那个对象"，不是 `new` 的返回值**
+  （2026-10-11 实测，详见待定第 20 条）：`Abstract()` 在 `Reflect.construct()`
+  **之后**才包代理，于是 `K_EXCHANGE === part.exchange` 成立，而
+  `K_EXCHANGE === new` 的返回值**不成立**；`useExchange(kit)` 因此给到 handler
+  的是**未代理**实例。
 - **两层守卫合一**：`ARCHITECTURE.md` 原先描述的"identity 消耗在模型层、重复派
   发校验在桥层"的**两层分离**，现在两件事同处 `handleExchange` 一个函数。这是
   构造点搬进来的必然结果，那份文档要跟着改。
@@ -397,9 +406,9 @@ Distributor has been terminated`）；**已发出的副本继续读到各自终�
      `handleExchange`。Exchange 构造器又是整棵 part 树的入口，所以这一环缺着，
      下游就没有任何东西能跑起来。
      - 构造点本身已有候选：**搬进 `handleExchange`**，见第 17 条。
-   - **结论（2026-10-11 回填）**：写侧就在 `handleExchange`（第 17 条已实现），
-     `K_EXCHANGE` / `useExchange()` 保持**纯读面**（给 handler），`K_EXCHANGE` 不
-     导出。上面那串候选一个也没用上。
+   - **结论（2026-10-11 回填）**：写侧在 **Exchange 构造器**（第 20 条），
+     `K_EXCHANGE` / `useExchange()` 的读面仍给 handler，`K_EXCHANGE` 不导出。上面
+     那串候选一个也没用上。
    - **构造期守卫全部消失**：`touchExchange(ExchangeKit)` 的读取与
      `Adapter.Throw('Exchange is not installed.')` 一并没了，也不再校
      `K_DEPLOYMENT_SELF` 派生、`ExchangeKit !== DeploymentKit`、
@@ -568,7 +577,8 @@ Distributor has been terminated`）；**已发出的副本继续读到各自终�
          `exchange[$I.IDENTITY]` 就用它去重（`handledExchanges` 从实例集合改成
          identity 集合）。`ARCHITECTURE.md` 的"两层分离"要同步改。
       2. `internal` 走参数还是挂 kit——**走参数**（第 14 条）。
-      3. `K_EXCHANGE` 写侧导不导出——**不导出**，写只发生在 `handleExchange`。
+      3. `K_EXCHANGE` 写侧导不导出——**不导出**；实际写点在 **Exchange 构造器**
+         （2026-10-11 用户口径，见第 20 条），不在 `handleExchange`。
       4. "类从哪来"——**`Adapter.Registry` 记录的 `Exchange` 项**（第 15 条）。
       5. 守卫强度——`ExchangeKit` 的既有校验**已被删除**，构造前后的校验只剩注册
          期那一道；`internal` 无校验。净放宽（见第 4 条）。
@@ -592,6 +602,26 @@ class of net.Server" expected.`：默认值是死代码，而"必填"这件事�
     地方。两种收口：①删掉默认值、明记必填；②改成
     `X === net.Server || isSubConstructor(X, net.Server)`，让默认值名副其实。倾
     向②。未定。
+20. **`K_EXCHANGE` 上是未代理实例，`new` 返回的是代理**（2026-10-11 实测，构造
+    期附着的副作用）：`@produck/es-abstract` 的 `AbstractConstructor` 在
+    `Reflect.construct(target, argumentList, newTarget)` **之后**才
+    `new Proxy(instance, instanceProxyHandler)`。所以同一个 exchange 有两个面：
+    - **未代理实例**：基类构造器里的 `this`、part 们拿到的 `this.exchange`、现在
+      `K_EXCHANGE` 上挂的那个；
+    - **代理**：adapter 子类构造器里的 `this`（`super()` 的返回值接上来的）、
+      `new adapter.Exchange(...)` 的返回值。
+      由此得到三条可用判据：`K_EXCHANGE === part.exchange` 成立；
+      `K_EXCHANGE === new` 的返回值**不**成立；adapter 的 Exchange 构造器里
+      `this === this.request.exchange` **为 false**。
+    - **要定的**：`useExchange()` 是 handler 面，现拿到未代理实例，于是那四个
+      `_I.*` 抽象成员的 `M.Method().returns(...)` 校验在 handler 路径上**不再触
+      发**（校验只存在于代理的 `get` 陷阱里）。三条路：①就这样（承认 handler
+      面不校验）；②构造期先挂未代理实例、`handleExchange` 拿到代理后立即改成代
+      理（同一个槽先后两个值，构造期读者与稳态读者看到不同对象）；③把那四个成员
+      的校验从不依赖代理的位置再校一遍。
+    - 同源事实（与 `K_EXCHANGE` 无关但同因）：**任何** adapter 具体类的构造器里
+      `this` 都是代理，而 part 的 `.exchange` 是未代理实例——全包同时存在两把
+      "同一个 exchange"的尺子。
 
 ## 决策日志（演进 · 按时间追加）
 
@@ -756,5 +786,13 @@ DeploymentKit`、`instanceof Exchange.Abstract`、构造后的
   不可达（新增第 19 条）。
 - **新的悬空点**：listener 不再持有 Exchange，"写回响应"的路由没了着落（第 16
   条）。
+- **`K_EXCHANGE` 改为 Exchange 构造期自附**（用户口径：构造后由外部附着"时机过
+  于落后，怕类似 `startTiming` 这样的动作有副作用依赖 `ExchangeKit`"）；
+  `handleExchange` 里的写入与相应 import 删除。
+- **实测出一个结构事实**（写探针断言时撞上的）：`Abstract()` 在
+  `Reflect.construct` 之后才包代理，所以 `K_EXCHANGE` 上挂的是**未代理实例**，
+  而 `new` 的返回值与 adapter 子类构造器里的 `this` 都是**代理**；`useExchange()`
+  因此把未代理对象交给 handler，四个 `_I.*` 的 `.returns()` 校验在 handler 路径上
+  不再触发。已记为待定第 20 条（三条收口候选）。
 - **顺序纪律**：用户口径"先改善后代码，然后更新文档"——代码先收口，文档后同
   步；倾向不落笔（先记到 DEV）这条已第三次重申。

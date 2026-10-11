@@ -6,6 +6,7 @@ import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
 import * as P from './Parser.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
+import { K_EXCHANGE } from './Capability.mjs';
 import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
 import { useConfig } from './Config.mjs';
@@ -19,11 +20,12 @@ class KittyExchange extends EventTarget {
 
     const TargetConstructor = new.target;
 
-    this[SYMBOL.CONSTRUCTOR] = TargetConstructor;
+    ExchangeKit[K_EXCHANGE] = this;
     this[$I.KIT] = ExchangeKit;
     this[I.INTERNAL] = internal;
     this[I.REQUEST] = new TargetConstructor[_S.REQUEST_CTOR](this);
     this[I.RESPONSE] = new TargetConstructor[_S.RESPONSE_CTOR](this);
+    this[SYMBOL.CONSTRUCTOR] = TargetConstructor;
 
     this[I.START_TIMING]();
   }
