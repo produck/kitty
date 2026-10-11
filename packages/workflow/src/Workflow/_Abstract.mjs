@@ -5,11 +5,7 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 
 import * as Exchange from '../Exchange/index.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
-import {
-  K_WORKFLOW,
-  K_DEPLOYMENT_SELF,
-  K_DEPLOYMENT_SERVER,
-} from './Capability.mjs';
+import { K_WORKFLOW, K_DEPLOYMENT_SERVER } from './Capability.mjs';
 import { assertHandlerByIndex } from './Assert.mjs';
 
 const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
@@ -75,7 +71,6 @@ class KittyWorkflow {
     server,
     DeploymentKit = this[$I.KIT]('Kitty<Deployment>'),
   ) {
-    DeploymentKit[K_DEPLOYMENT_SELF] = true;
     DeploymentKit[K_DEPLOYMENT_SERVER] = server;
 
     return this[_I.COMPILE_ARTIFACT](DeploymentKit);

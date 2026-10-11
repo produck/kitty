@@ -102,7 +102,6 @@ classDiagram
   }
   class DeploymentKit {
     <<mixinable>>
-    +true ~self~
     +net.Server ~Server~
     ...
   }

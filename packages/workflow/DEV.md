@@ -199,11 +199,17 @@ adapter 相关抽象成员靠 `internal` 里的对象实现，而那份记录的
   是"外部可见性"那一步，而它本来就该等交换对象定形后再做。adapter 在组装期拿
   到 kit，本来就是为了服务 handler 下游。
 - **符号的归属：Workflow 层统一管理**（2026-10-11 用户口径）：`K_EXCHANGE` 与
-  `useExchange` / `touchExchange` 从 `Exchange/Capability.mjs` 移到
-  `Workflow/Capability.mjs`，与 `K_WORKFLOW` / `K_DEPLOYMENT_SELF` /
-  `K_DEPLOYMENT_SERVER` 并列——即 **Workflow 抽象层要求 `ExchangeKit` 上带着
-  exchange**；`Exchange/Capability.mjs` 随之删除（无剩余内容、无导入者）。kit
-  槽位的声明从此只有一个地方。
+  `useExchange` 从 `Exchange/Capability.mjs` 移到 `Workflow/Capability.mjs`，与
+  `K_WORKFLOW` / `K_DEPLOYMENT_SERVER` 并列——即 **Workflow 抽象层要求
+  `ExchangeKit` 上带着 exchange**；`Exchange/Capability.mjs` 随之删除（无剩余内
+  容、无导入者）。kit 槽位的声明从此只有一个地方。描述串统一为
+  `<Kit>.<slot>` 形式（`Symbol('KittyExchange.exchange')`）。
+- **`K_DEPLOYMENT_SELF` 直接移除**（2026-10-11 用户口径）："已经无必要，
+  `ExchangeKit` 的构造权已经收给框架了。"——那个 self 标记当初是给 adapter 自
+  证"我派生的是当前 deployment"用的，构造权收给 `handleExchange` 后没有消费者；
+  `touchExchange`（只读自有槽的那个 getter）与它同类，一并消失。现在
+  `Workflow/Capability.mjs` 只剩三个槽：`K_WORKFLOW` / `K_DEPLOYMENT_SERVER` /
+  `K_EXCHANGE`。
 - **两层守卫合一**：`ARCHITECTURE.md` 原先描述的"identity 消耗在模型层、重复派
   发校验在桥层"的**两层分离**，现在两件事同处 `handleExchange` 一个函数。这是
   构造点搬进来的必然结果，那份文档要跟着改。
@@ -810,9 +816,10 @@ DeploymentKit`、`instanceof Exchange.Abstract`、构造后的
   是 `handleExchange` 写。
 - **符号归属改为 Workflow 层**（用户口径："`K_EXCHANGE` 符号应该交给 Workflow 那
   边统一管理，也就是 Workflow 抽象层要求 `ExchangeKit` 上有 exchange"）：
-  `K_EXCHANGE` 与 `useExchange` / `touchExchange` 移入 `Workflow/Capability.mjs`，
-  与 `K_WORKFLOW` / `K_DEPLOYMENT_SELF` / `K_DEPLOYMENT_SERVER` 并列，
-  `Exchange/Capability.mjs` 删除。
+  `K_EXCHANGE` 与 `useExchange` 移入 `Workflow/Capability.mjs`，与 `K_WORKFLOW` /
+  `K_DEPLOYMENT_SERVER` 并列，`Exchange/Capability.mjs` 删除；同日 `touchExchange`
+  与 `K_DEPLOYMENT_SELF` 一并移除（用户口径：ExchangeKit 的构造权已收给框架，
+  self 标记无消费者）。
 - **实测出的结构事实**（写探针断言时撞上的）：`Abstract()` 在
   `Reflect.construct` 之后才包代理，所以同一份 exchange 有两个面——part 的
   `.exchange` 是未代理实例，adapter 子类构造器里的 `this` 与 `new` 的返回值是代
