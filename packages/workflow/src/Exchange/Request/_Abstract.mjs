@@ -4,6 +4,7 @@ import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
 import * as P from './Parser.mjs';
 import { I, _I, _S } from './_Symbol.mjs';
+import { PART } from './_Borrow.mjs';
 import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';
 import * as Body from './Body/index.mjs';
@@ -32,15 +33,15 @@ class AbstractRequest extends Part.Concrete {
   }
 
   get method() {
-    return this[_I.METHOD.GET]();
+    return this[_I.METHOD.GET](this[PART.$I.INTERNAL]);
   }
 
   get mode() {
-    return this[_I.MODE.GET]();
+    return this[_I.MODE.GET](this[PART.$I.INTERNAL]);
   }
 
   get url() {
-    const raw = this[_I.URL.GET]();
+    const raw = this[_I.URL.GET](this[PART.$I.INTERNAL]);
 
     try {
       return new URL(raw);
@@ -59,9 +60,9 @@ class AbstractRequest extends Part.Concrete {
 export default Abstract(
   AbstractRequest,
   Abstract({
-    [_I.MODE.GET]: M.Method().returns(P.ExchangeMode),
-    [_I.METHOD.GET]: M.Method().returns(P.HttpMethod),
-    [_I.URL.GET]: M.Method().returns(M.String),
+    [_I.MODE.GET]: M.Method().args(M.Any).returns(P.ExchangeMode),
+    [_I.METHOD.GET]: M.Method().args(M.Any).returns(P.HttpMethod),
+    [_I.URL.GET]: M.Method().args(M.Any).returns(M.String),
   }),
   Abstract.Static({
     [_S.HEADER_CTOR]: SubConstructorOf(Header.Abstract),

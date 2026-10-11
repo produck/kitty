@@ -4,6 +4,7 @@ import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
 import * as Assert from '../Parser.mjs';
 import { I, _I, _S } from './_Symbol.mjs';
+import { PART } from './_Borrow.mjs';
 import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';
 import * as Body from './Body/index.mjs';
@@ -31,39 +32,39 @@ class AbstractResponse extends Part.Concrete {
   }
 
   get statusCode() {
-    return this[_I.STATUS.GET]();
+    return this[_I.STATUS.GET](this[PART.$I.INTERNAL]);
   }
 
   get statusText() {
-    return this[_I.STATUS_TEXT.GET]();
+    return this[_I.STATUS_TEXT.GET](this[PART.$I.INTERNAL]);
   }
 
   setStatus(code, text) {
     Assert.HTTPStatusCode(code);
 
-    this[_I.STATUS.SET](code);
+    this[_I.STATUS.SET](this[PART.$I.INTERNAL], code);
 
     if (text !== undefined) {
       Assert.HeaderValue(text);
-      this[_I.STATUS_TEXT.SET](text);
+      this[_I.STATUS_TEXT.SET](this[PART.$I.INTERNAL], text);
     }
   }
 
   get isFinished() {
-    return this[_I.IS_FINISHED]();
+    return this[_I.IS_FINISHED](this[PART.$I.INTERNAL]);
   }
 }
 
 export default Abstract(
   AbstractResponse,
   Abstract({
-    [_I.STATUS.GET]: M.Method().returns(Assert.HTTPStatusCode),
+    [_I.STATUS.GET]: M.Method().args(M.Any).returns(Assert.HTTPStatusCode),
     [_I.STATUS.SET]: M.Method()
-      .args(Assert.HTTPStatusCode)
+      .args(M.Any, Assert.HTTPStatusCode)
       .returns(M.Undefined),
-    [_I.STATUS_TEXT.GET]: M.Method().returns(M.String),
-    [_I.STATUS_TEXT.SET]: M.Method().args(M.String).returns(M.Undefined),
-    [_I.IS_FINISHED]: M.Method().returns(M.Boolean),
+    [_I.STATUS_TEXT.GET]: M.Method().args(M.Any).returns(M.String),
+    [_I.STATUS_TEXT.SET]: M.Method().args(M.Any, M.String).returns(M.Undefined),
+    [_I.IS_FINISHED]: M.Method().args(M.Any).returns(M.Boolean),
   }),
   Abstract.Static({
     [_S.HEADER_CTOR]: SubConstructorOf(Header.Abstract),

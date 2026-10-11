@@ -796,6 +796,9 @@ planned requirements that are still under design.
   `handleExchange(internal)` for each incoming logical exchange.
 - Answer `$I.IDENTITY` with one native object per logical exchange, and
   never let two exchanges answer the same identity.
+- Answer each `_I` member from the first argument it receives: every
+  `_I` member — a part's and the Exchange's alike — is called with the
+  connection-time record as its first argument.
 - Treat bridge errors as adapter implementation errors and fail fast.
 
 > Superseded behaviors: building `ExchangeKit`, installing the `Exchange`

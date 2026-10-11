@@ -355,6 +355,10 @@ registers a concrete `Exchange` subclass alongside its server
 constructor; `handleExchange` constructs it, installs it on the derived
 `ExchangeKit`, and hands `internal` in as a constructor argument.
 
+Every `_I` member — a part's and the Exchange's alike — is called with
+that record as its **first** argument, so an implementation answers from
+the call instead of keeping the record in a slot of its own.
+
 ### Exchange public API
 
 ```text

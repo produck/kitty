@@ -6,6 +6,7 @@ import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 import * as Fugue from '@produck/fugue';
 
 import { I, _I, _S } from './_Symbol.mjs';
+import { PART } from './_Borrow.mjs';
 import * as Part from '../../Part/index.mjs';
 
 class AbstractRequestBody extends Part.Concrete {
@@ -15,7 +16,7 @@ class AbstractRequestBody extends Part.Concrete {
     super(exchange);
 
     const TargetConstructor = this[SYMBOL.CONSTRUCTOR];
-    const source = Readable.toWeb(this[_I.SOURCE.GET]());
+    const source = Readable.toWeb(this[_I.SOURCE.GET](this[PART.$I.INTERNAL]));
     const distributor = new TargetConstructor[_S.DISTRIBUTOR_CTOR](source);
 
     this[I.DISTRIBUTOR] = distributor;
@@ -29,7 +30,7 @@ class AbstractRequestBody extends Part.Concrete {
 export default Abstract(
   AbstractRequestBody,
   Abstract({
-    [_I.SOURCE.GET]: M.Method().returns(M.Instance(Readable)),
+    [_I.SOURCE.GET]: M.Method().args(M.Any).returns(M.Instance(Readable)),
   }),
   Abstract.Static({
     [_S.DISTRIBUTOR_CTOR]: SubConstructorOf(Fugue.Distributor),

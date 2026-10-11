@@ -81,15 +81,15 @@ class KittyExchange extends EventTarget {
   }
 
   get server() {
-    return this[_I.SERVER.GET]();
+    return this[_I.SERVER.GET](this[I.INTERNAL]);
   }
 
   get protocol() {
-    return this[_I.SERVER.PROTOCOL.GET]();
+    return this[_I.SERVER.PROTOCOL.GET](this[I.INTERNAL]);
   }
 
   get httpVersion() {
-    return this[_I.HTTP_VERSION.GET]();
+    return this[_I.HTTP_VERSION.GET](this[I.INTERNAL]);
   }
 }
 
@@ -97,9 +97,9 @@ export default Abstract(
   KittyExchange,
   Abstract({
     [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
-    [_I.SERVER.GET]: M.Method().returns(M.Instance(net.Server)),
-    [_I.SERVER.PROTOCOL.GET]: M.Method().returns(P.ServerProtocol),
-    [_I.HTTP_VERSION.GET]: M.Method().returns(P.HttpVersion),
+    [_I.SERVER.GET]: M.Method().args(M.Any).returns(M.Instance(net.Server)),
+    [_I.SERVER.PROTOCOL.GET]: M.Method().args(M.Any).returns(P.ServerProtocol),
+    [_I.HTTP_VERSION.GET]: M.Method().args(M.Any).returns(P.HttpVersion),
   }),
   Abstract.Static({
     [_S.REQUEST_CTOR]: SubConstructorOf(Request.Abstract),

@@ -13,17 +13,18 @@
 //   5.   the adapter builds `internal` — its record of this exchange's native
 //        objects — and awaits handleExchange(internal)
 //   6. handleExchange: derive the ExchangeKit → construct adapter.Exchange →
-//        dedup on `$I.IDENTITY` → attachers → handler pipeline → finally
-//        dispatch `close`. The Exchange installs itself on the kit while it
-//        is being constructed, so nothing outside has to do it.
+//        dedup on `$I.IDENTITY` → install the Exchange on the kit → attachers
+//        → handler pipeline → finally dispatch `close`
 //   7. the adapter writes the response back onto the socket
+//
+// Every `_I` member is called with `internal` as its first argument — parts and
+// the Exchange alike — so an implementation reads the record from there
+// instead of keeping a slot of its own.
 //
 // The adapter hands the framework a class, not a factory. `Registry` requires
 // every record to carry `Exchange`, and `handleExchange` is the only place an
 // Exchange is constructed. That is also how `internal` reaches the adapter: as
-// the Exchange's second constructor argument. It cannot travel as a member —
-// `I.INTERNAL` never leaves the package, and no `$I` member would let a
-// subclass keep a per-exchange record of its own.
+// the Exchange's second constructor argument.
 //
 // AdapterKit also offers `attachDeployment(name, value)` and
 // `appendExchangeAttacher(fn)`; this example needs neither.
@@ -54,17 +55,6 @@ import { _I as SH_I } from '../src/Exchange/Response/Header/_Symbol.mjs';
 import * as ResponseBody from '../src/Exchange/Response/Body/index.mjs';
 import { _I as SB_I } from '../src/Exchange/Response/Body/_Symbol.mjs';
 import { useServer } from '../src/Workflow/Capability.mjs';
-
-// The adapter's own slot for `internal`. It only works on the Exchange because
-// the Exchange base no longer freezes; Request / Response still do, so their
-// concretes read the record through `this.exchange` instead — see note 1.
-const CONTEXT = Symbol('context');
-
-function contextOf(part) {
-  return part instanceof Exchange.Abstract
-    ? part[CONTEXT]
-    : part.exchange[CONTEXT];
-}
 
 //
 // -------------------------------------------------------------- the adapter
@@ -143,8 +133,6 @@ class Http1Exchange extends Exchange.Abstract {
   constructor(ExchangeKit, internal) {
     super(ExchangeKit, internal);
 
-    this[CONTEXT] = internal;
-
     // `close` arrives from `handleExchange`'s `finally`, after the handler
     // pipeline has run. [pending 16] — the write-back route is not settled:
     // the alternative is `handleExchange` answering the Exchange, so that the
@@ -171,16 +159,16 @@ class Http1Exchange extends Exchange.Abstract {
     return internal.request;
   }
 
-  [X_I.SERVER.GET]() {
-    return contextOf(this).server;
+  [X_I.SERVER.GET](internal) {
+    return internal.server;
   }
 
   [X_I.SERVER.PROTOCOL.GET]() {
     return 'http:';
   }
 
-  [X_I.HTTP_VERSION.GET]() {
-    return contextOf(this).request.httpVersion;
+  [X_I.HTTP_VERSION.GET](internal) {
+    return internal.request.httpVersion;
   }
 }
 
@@ -201,26 +189,26 @@ class Http1Request extends Request.Abstract {
     return 'http';
   }
 
-  [R_I.METHOD.GET]() {
-    return contextOf(this).request.method;
+  [R_I.METHOD.GET](internal) {
+    return internal.request.method;
   }
 
   // Origin-form only, e.g. `/a?b=1`. The base turns it into an absolute URL
   // with the `Host` header and `exchange.protocol` — which is why that fallback
   // exists in the first place.
-  [R_I.URL.GET]() {
-    return contextOf(this).request.url;
+  [R_I.URL.GET](internal) {
+    return internal.request.url;
   }
 }
 
 class Http1RequestHeader extends RequestHeader.Abstract {
   // Node lowercases incoming header names.
-  [RH_I.GET](key) {
-    return contextOf(this).request.headers[key];
+  [RH_I.GET](internal, key) {
+    return internal.request.headers[key];
   }
 
-  [RH_I.KEYS]() {
-    return Object.keys(contextOf(this).request.headers);
+  [RH_I.KEYS](internal) {
+    return Object.keys(internal.request.headers);
   }
 }
 
@@ -231,8 +219,8 @@ class Http1RequestBody extends RequestBody.Abstract {
 
   // Must be a byte stream: `Readable.from([...])` defaults to objectMode and
   // breaks the degrade probe. `IncomingMessage` is a byte stream.
-  [RB_I.SOURCE.GET]() {
-    return contextOf(this).request;
+  [RB_I.SOURCE.GET](internal) {
+    return internal.request;
   }
 }
 
@@ -259,52 +247,52 @@ class Http1Response extends Response.Abstract {
 
   // Status and finished-ness map straight onto Node's own response object, so
   // the adapter keeps no state of its own for them.
-  [S_I.STATUS.GET]() {
-    return contextOf(this).response.statusCode;
+  [S_I.STATUS.GET](internal) {
+    return internal.response.statusCode;
   }
 
-  [S_I.STATUS.SET](code) {
-    contextOf(this).response.statusCode = code;
+  [S_I.STATUS.SET](internal, code) {
+    internal.response.statusCode = code;
   }
 
-  [S_I.STATUS_TEXT.GET]() {
-    return contextOf(this).response.statusMessage ?? '';
+  [S_I.STATUS_TEXT.GET](internal) {
+    return internal.response.statusMessage ?? '';
   }
 
-  [S_I.STATUS_TEXT.SET](text) {
-    contextOf(this).response.statusMessage = text;
+  [S_I.STATUS_TEXT.SET](internal, text) {
+    internal.response.statusMessage = text;
   }
 
-  [S_I.IS_FINISHED]() {
-    return contextOf(this).response.writableEnded;
+  [S_I.IS_FINISHED](internal) {
+    return internal.response.writableEnded;
   }
 }
 
 class Http1ResponseHeader extends ResponseHeader.Abstract {
-  [SH_I.GET](key) {
-    return contextOf(this).response.getHeader(key);
+  [SH_I.GET](internal, key) {
+    return internal.response.getHeader(key);
   }
 
-  [SH_I.KEYS]() {
-    return contextOf(this).response.getHeaderNames();
+  [SH_I.KEYS](internal) {
+    return internal.response.getHeaderNames();
   }
 
-  [SH_I.SET](key, value) {
-    contextOf(this).response.setHeader(key, value);
+  [SH_I.SET](internal, key, value) {
+    internal.response.setHeader(key, value);
   }
 
-  [SH_I.DELETE](key) {
-    contextOf(this).response.removeHeader(key);
+  [SH_I.DELETE](internal, key) {
+    internal.response.removeHeader(key);
   }
 }
 
 class Http1ResponseBody extends ResponseBody.Abstract {
-  [SB_I.DATA.GET]() {
-    return contextOf(this).body;
+  [SB_I.DATA.GET](internal) {
+    return internal.body;
   }
 
-  [SB_I.DATA.SET](value) {
-    contextOf(this).body = value;
+  [SB_I.DATA.SET](internal, value) {
+    internal.body = value;
   }
 }
 
@@ -327,14 +315,13 @@ export default {
 //
 // ------------------------------------------------- observations on the design
 //
-// 1. `Object.freeze(this)` is no longer uniform across the part bases. The
-//    Exchange base does not freeze, so a concrete Exchange can hold a field of
-//    its own (`this[CONTEXT]`) and a subclass field initializer runs normally.
+// 1. `Object.freeze(this)` is not uniform across the part bases. The Exchange
+//    base does not freeze, so a concrete Exchange may hold a field of its own.
 //    Request and Response still freeze at the end of `super()`, so a subclass
 //    field initializer there throws "Cannot define property field, object is
-//    not extensible", and their concretes must read state through
-//    `this.exchange`. Header / Body never froze, but they are handed only the
-//    exchange, so they read through it too.
+//    not extensible" — which is why those concretes read the delivered
+//    `internal` instead of keeping state in fields. Header and Body never
+//    froze.
 //
 // 2. `_I.GET` is declared `.returns(M.String)` on both header subjects, yet
 //    `has()` and `Request.get url()` treat `undefined` as "missing". It cannot

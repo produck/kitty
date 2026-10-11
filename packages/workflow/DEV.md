@@ -59,6 +59,13 @@
   `export`。
 - `_Symbol.mjs` 只定义自己的表，是纯叶子；转发别人的表放 `_Borrow.mjs`，用
   `export * as NAME from '…'` 的命名空间形式。
+- **借用一律走本模块自己的 `_Borrow.mjs`**（规范 BTB-2 / BTB-3 / BTB-6）：本仓
+  现在有这些——`CompoundWorkflow` 借 `Workflow` 与 `Exchange`；`Exchange/Part`
+  **向上**借 `Exchange` 的 `I` 表（只为了读 `I.INTERNAL` 槽）；六个 subject
+  （`Request` / `Response` 及各自的 Header / Body）借 `Part` 的 `$I` 表（为了取
+  `$I.INTERNAL` 传给抽象成员）。命名空间用来源**模块名的大写**形式
+  （`EXCHANGE` / `WORKFLOW` / `PART`），与 `import * as Part from '…/index.mjs'`
+  那种**出口**导入区分开；`_A` 仍为空（待定第 1 条）。
 - 跨包借表：**直接用对方的键**，不另立符号、不做翻译。`Body` 就是这样——它的
   `_S.DISTRIBUTOR_CTOR` 指向 `Fugue.Distributor`，介质槽
   `Fugue.SYMBOL.DISTRIBUTOR._S.DEGRADED_CHUNK_READER_CTOR` 由下游在具体
@@ -120,19 +127,28 @@ h2 用 `stream` / `req` / `res`，https 再加 TLS 相关对象。
     `_I.IDENTITY.GET(internal)`，答案是去重键。
   - `get [$I.INTERNAL]()`（在 **`ExchangePart`** 上，`$I` 取自
     `Part/_Symbol.mjs`）：整条记录。挂在 `ExchangePart` 上，所以六个 subject 全部
-    继承——part 的 adapter 子类直接 `this[$I.INTERNAL]` 就能实现自己的成员，不必
-    自己安排 `internal` 的存放处（内部实现是读 `this[I.EXCHANGE]` 的
-    `I.INTERNAL` 槽，对外只是一条 getter）。
+    继承——基类调用抽象成员时靠它把记录取出来传给下游（内部实现是读
+    `this[I.EXCHANGE]` 的 `I.INTERNAL` 槽，对外只是一条 getter）。
     记录本身仍不由核心解释。用户口径原话："毕竟 `INTERNAL` 无法设置为公有，保护
     级不出 package，所以 adaptor 只能走 exchange 类内的参数传递了。"
     不挂到 kit 上：kit 是核心的部署对象，`internal` 是 adapter 的业务记录，所有权
     与生命周期都不同。
+- **记录怎么到下游：抽象成员的第一个实参就是它**（2026-10-11 定）：Part 调用
+  `_I` 成员时一律传 `this[PART.$I.INTERNAL]`（六个 subject 共 16 处）；Exchange
+  自己的四个成员也全部传 `this[I.INTERNAL]`（`IDENTITY.GET` 早已如此，
+  `SERVER.GET` / `SERVER.PROTOCOL.GET` / `HTTP_VERSION.GET` 同日跟齐，于是
+  adapter 的 Exchange 子类不需要任何自有槽）。对应地，成员声明把首参声明为
+  `M.Any`（形状由 adapter 定，写不出更具体的 parser）；`IDENTITY.GET` 仍写作
+  `.args().rest(M.Any)`（允许任意尾参），其余一律 `.args(M.Any)`。于是 adapter
+  的实现类形如 `[R_I.METHOD.GET](internal) { return internal.request.method; }`
+  ——不必自备存放处，也不需要用到 `$I`；确实用不到记录的实现少声明参数即可
+  （声明之外的位置走 `rest`，不校验）。
 - **它是结构上必需的，不只是"有用"**（实测）：子类字段初始化在 `super()` 返回
   **之后**才跑，基类构造器末尾 `Object.freeze(this)` 会让具体类**存不下自己的
   任何字段**（`Cannot define property field, object is not extensible`）。
   现在冻结面是**有意不对称**的：`Exchange` 基类不冻结（具体 Exchange 能持有自己
-  的字段，存 `internal` 就是它的用途），`Request` / `Response` / `Workflow` 仍
-  冻结（它们的具体类只能经 `this.exchange` 读）。
+  的字段），`Request` / `Response` / `Workflow` 仍冻结（它们的具体类存不下字段，
+  所以只能从被传入的 `internal` 读）。
 - 与 identity 的关系：identity 必须是**每个 exchange 一个的原生对象**（见"术
   语"）；`internal` 正好是"连接期对象"的收纳处，同一片上下文里的两个用途。
 

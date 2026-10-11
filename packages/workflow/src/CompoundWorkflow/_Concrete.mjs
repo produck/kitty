@@ -3,15 +3,12 @@ import * as Kit from '@produck/kit';
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 import { compose } from '@produck/compose';
 
-import * as EXCHANGE from '../Exchange/_Symbol.mjs';
 import * as Adapter from '../Adapter/index.mjs';
 import * as Mixin from '../Mixin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
-import { assertHandlerByIndex } from '../Workflow/Assert.mjs';
-import { useServer } from '../Workflow/Capability.mjs';
+
 import { I } from './_Symbol.mjs';
-import { WORKFLOW } from './_Borrow.mjs';
-import { K_EXCHANGE } from '../Workflow/Capability.mjs';
+import { EXCHANGE, WORKFLOW } from './_Borrow.mjs';
 
 function assertAttacher(value) {
   if (typeof value !== 'function') {
@@ -49,7 +46,7 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       }
     }
 
-    const server = useServer(DeploymentKit);
+    const server = Workflow.Capability.useServer(DeploymentKit);
     const adapter = Adapter.Registry.getByServer(server);
     const handledExchanges = new WeakSet();
     const AdapterKit = DeploymentKit('Kitty<Adapter>');
@@ -91,7 +88,7 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       }
 
       handledExchanges.add(identity);
-      ExchangeKit[K_EXCHANGE] = exchange;
+      ExchangeKit[Workflow.Capability.K_EXCHANGE] = exchange;
 
       try {
         for (const attacher of [
@@ -216,7 +213,7 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       for (const index in handlerList) {
         const handler = handlerList[index];
 
-        assertHandlerByIndex(handler, index);
+        Workflow.Assert.assertHandlerByIndex(handler, index);
       }
 
       this[I.MIXIN.HANDLER.PREFIX.LIST].push(...handlerList);
