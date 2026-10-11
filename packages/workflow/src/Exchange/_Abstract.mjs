@@ -1,9 +1,8 @@
 import * as net from 'node:net';
 
-import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
+import { Ow, SYMBOL } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
-import * as Kit from '@produck/kit';
 
 import * as P from './Parser.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
@@ -11,35 +10,26 @@ import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
 import { useConfig } from './Config.mjs';
 
-const CONSUMED_IDENTITY = new WeakSet();
-
 class KittyExchange extends EventTarget {
   [I.REQUEST] = null;
   [I.RESPONSE] = null;
 
-  constructor(ExchangeKit) {
-    if (!Kit.isKit(ExchangeKit)) {
-      ThrowTypeError('args[0] as ExchangeKit', 'Kit');
-    }
+  constructor(ExchangeKit, internal) {
+    super();
 
     const TargetConstructor = new.target;
 
-    super();
     this[SYMBOL.CONSTRUCTOR] = TargetConstructor;
     this[$I.KIT] = ExchangeKit;
-
-    const identity = this[_I.IDENTITY.GET]();
-
-    if (CONSUMED_IDENTITY.has(identity)) {
-      Ow.Error.Common('Adapter identity object has already been consumed.');
-    }
-
-    CONSUMED_IDENTITY.add(identity);
-
+    this[I.INTERNAL] = internal;
     this[I.REQUEST] = new TargetConstructor[_S.REQUEST_CTOR](this);
     this[I.RESPONSE] = new TargetConstructor[_S.RESPONSE_CTOR](this);
 
-    const config = useConfig(ExchangeKit);
+    this[I.START_TIMING]();
+  }
+
+  [I.START_TIMING]() {
+    const config = useConfig(this[$I.KIT]);
 
     const timer = setTimeout(() => {
       if (!this.response.isFinished) {
@@ -48,8 +38,10 @@ class KittyExchange extends EventTarget {
     }, config.timeout * 1000);
 
     this.addEventListener('close', () => clearTimeout(timer), { once: true });
+  }
 
-    Object.freeze(this);
+  get [$I.IDENTITY]() {
+    return this[_I.IDENTITY.GET](this[I.INTERNAL]);
   }
 
   get request() {

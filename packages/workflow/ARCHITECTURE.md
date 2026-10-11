@@ -109,7 +109,7 @@ classDiagram
   class AdapterKit["⚙️AdapterKit"] {
     +attachDeployment(key, any) void
     +appendExchangeAttacher(attacher) void
-    +handleExchange(ExchangeKit) Promise~unknown~
+    +handleExchange(internal) Promise~unknown~
     +exportListener(name, listener) void
     +setServerLinker(link) void
   }
@@ -247,10 +247,13 @@ post-finalization calls via `this[$I.ASSERT.NOT_FINALIZED]()`.
 When an exchange arrives via `handleExchange`:
 
 ```text
-1. ExchangeKit validated (handleExchange guardrails)
-2. Adapter exchange attachers  → abstract Exchange foundation
-3. Mixin exchange attachers    → concrete per-exchange extensions
-4. Workflow handler pipeline
+1. ExchangeKit derived from DeploymentKit
+2. Exchange constructed from the registered adapter class + `internal`
+3. Identity read once: one identity backs at most one dispatch
+4. Exchange installed on ExchangeKit
+5. Adapter exchange attachers  → abstract Exchange foundation
+6. Mixin exchange attachers    → concrete per-exchange extensions
+7. Workflow handler pipeline
 ```
 
 ### Relationship with `use()`
@@ -276,6 +279,7 @@ Adapters are registered globally via
 
 | Option        | Description                                                       |
 | ------------- | ----------------------------------------------------------------- |
+| `Exchange`    | Concrete `Exchange` subclass paired with this adapter; required   |
 | `constructor` | Subclass of `net.Server` that this adapter targets                |
 | `name`        | Logical adapter identifier (string)                               |
 | `install`     | Function `(AdapterKit) => void` that installs deployment behavior |
@@ -301,8 +305,12 @@ registry. This covers two usage patterns:
   subclasses or temporary setups use `adapt()` to bind an adapter
   directly to a specific instance, bypassing global registration.
 
-The registry entry stores `{ name, install }`:
+The registry entry stores `{ Exchange, name, install }`:
 
+- `Exchange`: the concrete `Exchange` subclass paired with this
+  adapter, validated with `SubConstructorOf(Exchange.Abstract)` at
+  registration time. It is the only class `handleExchange` will
+  instantiate.
 - `name`: human-readable label; may carry variant/modifier markers for
   adapter composition scenarios.
 - `install`: the function that populates listeners and linkers.
@@ -313,13 +321,13 @@ When `adapter.install(AdapterKit)` is invoked, it receives an
 `AdapterKit` derived from `DeploymentKit`. It is a one-time isolation
 port — adapter authors cannot mutate `DeploymentKit` directly.
 
-| Method                                           | Behavior                                                                                                   |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output listeners record                                           |
-| `adapterKit.setServerLinker(link)`               | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install |
-| `adapterKit.handleExchange(ExchangeKit)`         | Passes an ExchangeKit into the workflow pipeline after validation                                          |
-| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use                                                     |
-| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit` at runtime                                                    |
+| Method                                           | Behavior                                                                                                                                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output listeners record                                                                                                             |
+| `adapterKit.setServerLinker(link)`               | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install                                                                   |
+| `adapterKit.handleExchange(internal)`            | Derives the ExchangeKit, constructs the registered `Exchange` class with `internal`, rejects a repeated identity, installs it, then runs attachers and the workflow pipeline |
+| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use                                                                                                                       |
+| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit` at runtime                                                                                                                      |
 
 All methods guard against post-compilation calls via an internal
 `compiled` flag.
@@ -328,6 +336,7 @@ All methods guard against post-compilation calls via an internal
 
 ```js
 registry.set(Constructor, {
+  Exchange: Http1Exchange,
   name: 'http',
   install(AdapterKit) {
     /* ... */
@@ -335,16 +344,17 @@ registry.set(Constructor, {
 });
 ```
 
-The registry stores `install` and `name`. `listeners` and `link` are
-produced at compile time by executing the `install` function against
-an `AdapterKit`.
+`Exchange`, `install`, and `name` are stored. `listeners` and `link`
+are produced at compile time by executing the `install` function
+against an `AdapterKit`.
 
 ## Exchange Template
 
 The Exchange abstraction (`Exchange/Abstract.mjs`) is part of the
 `workflow` core package, not an independent sub-package. Every adapter
-must install an `Exchange` instance on `ExchangeKit` before calling
-`handleExchange`.
+registers a concrete `Exchange` subclass alongside its server
+constructor; `handleExchange` constructs it, installs it on the derived
+`ExchangeKit`, and hands `internal` in as a constructor argument.
 
 ### Exchange public API
 
@@ -400,9 +410,10 @@ Response concepts    → KittyExchangeResponse
 
 ### Exchange identity
 
-Exchange construction validates identity-object consumption via
-`CONSUMED_IDENTITY` WeakSet. An identity object used for one Exchange
-cannot be reused for another Exchange instance.
+`handleExchange` reads `Exchange[$I.IDENTITY]` once, right after
+construction, and records it in `handledExchanges`. One identity object
+may therefore back at most one dispatch; a second Exchange answering
+the same identity is rejected before any workflow handler runs.
 
 ### Exchange Implement
 
@@ -491,12 +502,13 @@ server-agnostic).
 - **Adapter recipe** receives an `AdapterKit`. It must:
   1. Attach protocol-specific listeners to the server via
      `exportListener`.
-  2. On each incoming exchange, derive an `ExchangeKit` from
-     `DeploymentKit`, install an `Exchange` instance, and call
-     `adapterKit.handleExchange(ExchangeKit)`.
-- **handle** validates the ExchangeKit against guardrails, runs
-  exchange attachers (adapter then mixin), then executes the composed
-  workflow pipeline.
+  2. On each incoming exchange, build the per-exchange `internal`
+     record its own Exchange class needs, and call
+     `adapterKit.handleExchange(internal)`.
+- **handle** derives the ExchangeKit, constructs the Exchange from the
+  registered class and `internal`, rejects a repeated identity, installs
+  it on the ExchangeKit, runs exchange attachers (adapter then mixin),
+  then executes the composed workflow pipeline.
 
 ### Protocol invariant
 
@@ -568,36 +580,44 @@ Adapter compilation produces an artifact with two fields:
 
 ## handleExchange Guardrails
 
-handleExchange is the adapter-to-workflow bridge. It must reject bad
-adapter input before any workflow handler runs.
+handleExchange is the adapter-to-workflow bridge, and the only place an
+Exchange is constructed. It must reject bad adapter input before any
+workflow handler runs.
 
-- ExchangeKit must be derived from the current DeploymentKit.
-- ExchangeKit must not be the DeploymentKit itself.
-- Exchange must already be installed on ExchangeKit.
-- Installed Exchange must be an instance of the Exchange abstraction.
-- Exchange must be linked to the current server.
-- The same Exchange instance must not be dispatched more than once.
+- The adapter must be registered with an `Exchange` class; that pairing
+  is checked at registration time with
+  `SubConstructorOf(Exchange.Abstract)`.
+- `internal` is passed straight to the Exchange constructor and stored
+  by the Exchange; the core never inspects its shape.
+- The Exchange is constructed here, from the registered class and the
+  ExchangeKit derived here — not installed by the adapter beforehand.
+- `Exchange[$I.IDENTITY]` is read once; the same identity must not back
+  more than one dispatch.
 
 Responsibility boundary:
 
 - Violations at this boundary are adapter errors, not handler errors.
 - `.use()` handlers may assume a validated ExchangeKit once workflow
   execution begins.
+- The adapter's own listener still decides whether an incoming event
+  produces an exchange at all; `handleExchange` owns only construction,
+  installation, and the dispatch guard.
 
 ## Duplicate-Consumption Principle
 
-Kitty uses two binding checks to prevent accidental duplicate
-processing:
+Kitty uses one binding check to prevent accidental duplicate
+processing. It lives in `handleExchange`, because that is where an
+Exchange is constructed and where the adapter's identity object first
+becomes readable:
 
-- Identity-exchange strong binding (Exchange layer):
-  Exchange construction validates identity-object consumption semantics
-  so one consumed identity cannot be rebound to another Exchange.
-- Exchange-workflow execution strong binding (bridge layer):
-  `handleExchange` rejects repeated dispatch of the same Exchange
-  instance before workflow execution.
+- `handleExchange` reads `Exchange[$I.IDENTITY]` once and records it in
+  `handledExchanges`. A second Exchange answering the same identity is
+  rejected before workflow execution.
 
-This keeps model-level identity safety and bridge-level execution
-safety separated while preserving adapter responsibility boundaries.
+The Exchange constructor no longer validates identity consumption. The
+model layer exposes identity; the bridge layer owns consumption. That is
+not two guards but two responsibilities — the model answers, the bridge
+decides.
 
 ## Adapter Identity Quick Rules
 
@@ -617,7 +637,7 @@ Operational expectation:
 
 - Adapter authors choose identity by selection, not by invention.
 - If identity is implemented poorly, failures should surface early at
-  Exchange construction or bridge dispatch boundaries.
+  the bridge dispatch boundary.
 
 ## Design Constraints
 

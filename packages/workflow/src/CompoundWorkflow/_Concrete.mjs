@@ -3,15 +3,15 @@ import * as Kit from '@produck/kit';
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 import { compose } from '@produck/compose';
 
-import * as Exchange from '../Exchange/index.mjs';
-import { touchExchange } from '../Exchange/Capability.mjs';
+import * as EXCHANGE from '../Exchange/_Symbol.mjs';
 import * as Adapter from '../Adapter/index.mjs';
 import * as Mixin from '../Mixin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 import { assertHandlerByIndex } from '../Workflow/Assert.mjs';
-import { K_DEPLOYMENT_SELF, useServer } from '../Workflow/Capability.mjs';
+import { useServer } from '../Workflow/Capability.mjs';
 import { I } from './_Symbol.mjs';
 import { WORKFLOW } from './_Borrow.mjs';
+import { K_EXCHANGE } from '../Exchange/Capability.mjs';
 
 function assertAttacher(value) {
   if (typeof value !== 'function') {
@@ -81,36 +81,17 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       linkList.unshift(link);
     };
 
-    AdapterKit.handleExchange = async function handleExchange(ExchangeKit) {
-      try {
-        void ExchangeKit[K_DEPLOYMENT_SELF];
-      } catch (cause) {
-        Adapter.Throw('ExchangeKit not derived from DeploymentKit.', cause);
-      }
+    AdapterKit.handleExchange = async function handleExchange(internal) {
+      const ExchangeKit = DeploymentKit('Kitty<Exchange>');
+      const exchange = new adapter.Exchange(ExchangeKit, internal);
+      const identity = exchange[EXCHANGE.$I.IDENTITY];
 
-      if (ExchangeKit === DeploymentKit) {
-        Adapter.Throw('ExchangeKit MUST NOT be a DeploymentKit.');
-      }
-
-      const exchange = touchExchange(ExchangeKit);
-
-      if (exchange === undefined) {
-        Adapter.Throw('Exchange is not installed.');
-      }
-
-      if (!(exchange instanceof Exchange.Abstract)) {
-        Adapter.Throw('It MUST be an Exchange instance.');
-      }
-
-      if (exchange.server !== server) {
-        Adapter.Throw('Bad linked server.');
-      }
-
-      if (handledExchanges.has(exchange)) {
+      if (handledExchanges.has(identity)) {
         Adapter.Throw('Adapter dispatched one Exchange more than once.');
       }
 
-      handledExchanges.add(exchange);
+      handledExchanges.add(identity);
+      ExchangeKit[K_EXCHANGE] = exchange;
 
       try {
         for (const attacher of [
@@ -120,6 +101,10 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
           attacher(ExchangeKit);
         }
 
+        // IMPORTANT: the only call site of the handler pipeline, where the
+        // business flow defined by downstream handlers runs. Every exchange
+        // reaches this line exactly once, guarded by `handledExchanges` above,
+        // and the `close` event in the `finally` below is paired with it.
         await this[WORKFLOW.$I.WORKFLOW](ExchangeKit);
       } finally {
         exchange.dispatchEvent(new Event('close'));

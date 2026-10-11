@@ -479,30 +479,22 @@ on trust or demonstrated quality. If an Adapter fails to call `handle`,
 the symptom is clear at runtime (requests hang or error), and the
 consumer can switch to a different Adapter.
 
-### Planned: logical exchange identity getter
+### Logical exchange identity getter
 
-Current runtime guard rejects repeated dispatch of the same `Exchange`
-instance. A stronger guard for logical duplicates is planned.
-
-Direction:
-
-- `_I.INTERNAL` remains the internal object-group surface.
-- Adapter implementations should expose a separate identity-specific
-  symbol/getter for logical exchange deduplication.
-- The identity should represent one logical exchange in the underlying
-  protocol runtime (for example req/res pair, stream, or equivalent).
-- Identity consumption is enforced in Exchange construction rather than
-  in `handleExchange`.
-
-Planned binding model:
-
-- Exchange layer validates identity object semantics at construction
-  time to enforce identity-exchange strong binding.
-- `handleExchange` keeps duplicate-dispatch checks to enforce
-  exchange-workflow execution strong binding.
-
-This is an adapter contract extension and remains an adapter
+Implemented as an adapter contract extension, and still an adapter
 responsibility boundary.
+
+- `I.INTERNAL` holds the per-exchange record the adapter hands in as the
+  Exchange constructor's second argument. It never leaves the package.
+- Adapter implementations answer identity through the protected
+  `$I.IDENTITY` getter, which receives that record as its argument and
+  returns one native object per logical exchange (for example a req/res
+  pair, or a stream).
+- Identity consumption is enforced in `handleExchange`, not in Exchange
+  construction: the bridge reads `Exchange[$I.IDENTITY]` once and records
+  it in `handledExchanges`.
+- `handleExchange` therefore enforces both identity-exchange binding and
+  exchange-workflow execution binding, in one place and one read.
 
 ### Exchange Template
 
@@ -737,6 +729,14 @@ protocol-specific resources directly onto `ExchangeKit`:
 });
 ```
 
+> **Affected by the construction move**: the adapter no longer derives
+> `ExchangeKit` — `handleExchange` does, from its own `DeploymentKit`. So
+> protocol resources cannot be installed on the kit from the adapter's
+> listener any more; they would travel in the `internal` record instead
+> (readable by the adapter's own Exchange and parts), or be installed by
+> an exchange attacher that runs before the handler pipeline. Which of
+> the two is the intended route is still open.
+
 - `stream` gives access to stream-level features (trailers, push,
   reset).
 - `stream.session` gives access to session-level features (settings,
@@ -787,14 +787,18 @@ planned requirements that are still under design.
 
 ### Current required behaviors
 
-- Build `ExchangeKit` from the provided `DeploymentKit` for each
-  incoming logical exchange.
-- Install a valid `Exchange` instance on `ExchangeKit` before calling
-  `handleExchange`.
-- Ensure `Exchange` links to the same server instance associated with
-  `DeploymentKit`.
-- Never dispatch the same `Exchange` instance more than once.
+- Register a concrete `Exchange` subclass alongside the server
+  constructor; the pairing is validated at registration time.
+- Build the per-exchange `internal` record and call
+  `handleExchange(internal)` for each incoming logical exchange.
+- Answer `$I.IDENTITY` with one native object per logical exchange, and
+  never let two exchanges answer the same identity.
 - Treat bridge errors as adapter implementation errors and fail fast.
+
+> Superseded behaviors: building `ExchangeKit`, installing the `Exchange`
+> instance on it, and linking the Exchange to the deployment's server are
+> no longer adapter duties. `handleExchange` derives the kit and
+> constructs the Exchange from the registered class.
 
 ### Planned adapter contract extensions
 

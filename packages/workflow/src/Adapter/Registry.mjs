@@ -3,6 +3,8 @@ import * as net from 'node:net';
 import { Ow, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 
+import * as Exchange from '../Exchange/index.mjs';
+
 const registry = new Map();
 const instanceMap = new WeakMap();
 
@@ -28,6 +30,7 @@ function normalizeOptions(options) {
   if (isOptionsRecord(options)) {
     const {
       constructor: _constructor = net.Server,
+      Exchange: _Exchange,
       name: _name,
       install: _install,
     } = options;
@@ -36,6 +39,12 @@ function normalizeOptions(options) {
       _options.constructor = _constructor;
     } else {
       ThrowTypeError('options.constructor', 'sub class of net.Server');
+    }
+
+    if (isSubConstructor(_Exchange, Exchange.Abstract)) {
+      _options.Exchange = _Exchange;
+    } else {
+      ThrowTypeError('options.Exchange', 'sub class of Exchange.Abstract');
     }
 
     if (_name) {
