@@ -113,13 +113,20 @@ h2 用 `stream` / `req` / `res`，https 再加 TLS 相关对象。
 - 差异之大有实例：h1 与 h2 的 header 实现差很多，但那是下游各自实现
   `Header` 的 `_I.GET` / `_I.KEYS` 的事；`internal` 只是**把这些对象递进去的那
   只手**。
-- **形态**：构造参数 `constructor(ExchangeKit, internal)` → 私有槽 `I.INTERNAL`
-  → 读面是受保护的 `get [$I.IDENTITY]()`，它把 `this[I.INTERNAL]` 作为**实参**
-  交给 adapter 实现的 `_I.IDENTITY.GET(internal)`。于是 adapter 拿得到记录，而
-  核心不解释它。用户口径原话："毕竟 `INTERNAL` 无法设置为公有，保护级不出
-  package，所以 adaptor 只能走 exchange 类内的参数传递了。"
-  不挂到 kit 上：kit 是核心的部署对象，`internal` 是 adapter 的业务记录，所有权
-  与生命周期都不同。
+- **形态**：构造参数 `constructor(ExchangeKit, internal)` →私有槽 `I.INTERNAL`
+  （`Exchange` 的 `I` 表）。受保护读面两个：
+  - `get [$I.IDENTITY]()`（在 `Exchange` 上，`$I` 取自 `Exchange/_Symbol.mjs`）：
+    把 `this[I.INTERNAL]` 作为**实参**交给 adapter 实现的
+    `_I.IDENTITY.GET(internal)`，答案是去重键。
+  - `get [$I.INTERNAL]()`（在 **`ExchangePart`** 上，`$I` 取自
+    `Part/_Symbol.mjs`）：整条记录。挂在 `ExchangePart` 上，所以六个 subject 全部
+    继承——part 的 adapter 子类直接 `this[$I.INTERNAL]` 就能实现自己的成员，不必
+    自己安排 `internal` 的存放处（内部实现是读 `this[I.EXCHANGE]` 的
+    `I.INTERNAL` 槽，对外只是一条 getter）。
+    记录本身仍不由核心解释。用户口径原话："毕竟 `INTERNAL` 无法设置为公有，保护
+    级不出 package，所以 adaptor 只能走 exchange 类内的参数传递了。"
+    不挂到 kit 上：kit 是核心的部署对象，`internal` 是 adapter 的业务记录，所有权
+    与生命周期都不同。
 - **它是结构上必需的，不只是"有用"**（实测）：子类字段初始化在 `super()` 返回
   **之后**才跑，基类构造器末尾 `Object.freeze(this)` 会让具体类**存不下自己的
   任何字段**（`Cannot define property field, object is not extensible`）。
@@ -187,7 +194,10 @@ adapter 相关抽象成员靠 `internal` 里的对象实现，而那份记录的
   （`Request` / `Response` / `Header`×2 / `Body`×2）都从它继承，而它们自己是抽
   象构造函数。子类抽象不违反规范。
 - `[I.EXCHANGE]` 私有槽 + `get exchange()`；构造器落
-  `this[SYMBOL.CONSTRUCTOR] = new.target`。
+  `this[SYMBOL.CONSTRUCTOR] = new.target`。构造参数**不带默认值**
+  （`constructor(exchange)`）：part 一律由框架构造，不存在"没有 exchange 的
+  part"这种状态，所以不做 `= null` 兜底（与 `Request` / `Response` / `Body` 一
+  致）。受保护的 `get [$I.INTERNAL]()` 见"Exchange internal"。
 - **`extends EventTarget`**：所有 part 都是事件目标，事件通道因此有了落点（见待
   定第 13 条）。实测两处容易担心的都不成问题：经 `Abstract` 代理后
   `instanceof EventTarget` 成立；`Request` / `Response` 构造器里的

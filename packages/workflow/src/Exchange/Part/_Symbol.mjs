@@ -5,3 +5,9 @@ const I_EXCHANGE = Symbol('.#exchange');
 export const I = deepFreeze({
   EXCHANGE: I_EXCHANGE,
 });
+
+const $I_INTERNAL = Symbol('.$internal');
+
+export const $I = deepFreeze({
+  INTERNAL: $I_INTERNAL,
+});

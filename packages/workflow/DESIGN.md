@@ -486,6 +486,9 @@ responsibility boundary.
 
 - `I.INTERNAL` holds the per-exchange record the adapter hands in as the
   Exchange constructor's second argument. It never leaves the package.
+- That record is readable through the protected `$I.INTERNAL` getter on
+  `ExchangePart`, so every subject inherits it and a part implementation
+  can reach the record as `this[$I.INTERNAL]`.
 - Adapter implementations answer identity through the protected
   `$I.IDENTITY` getter, which receives that record as its argument and
   returns one native object per logical exchange (for example a req/res

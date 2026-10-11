@@ -1,11 +1,12 @@
 import { SYMBOL } from '@produck/argot';
 
-import { I } from './_Symbol.mjs';
+import { I as EXCHANGE_I } from '../_Symbol.mjs';
+import { I, $I } from './_Symbol.mjs';
 
 export default class ExchangePart extends EventTarget {
   [I.EXCHANGE] = null;
 
-  constructor(exchange = null) {
+  constructor(exchange) {
     super();
     this[SYMBOL.CONSTRUCTOR] = new.target;
     this[I.EXCHANGE] = exchange;
@@ -13,5 +14,9 @@ export default class ExchangePart extends EventTarget {
 
   get exchange() {
     return this[I.EXCHANGE];
+  }
+
+  get [$I.INTERNAL]() {
+    return this[I.EXCHANGE][EXCHANGE_I.INTERNAL];
   }
 }
