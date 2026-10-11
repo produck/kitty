@@ -2,7 +2,7 @@ import { SYMBOL } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
-import * as P from '../Parser.mjs';
+import * as P from './Parser.mjs';
 import { I, _I, _S } from './_Symbol.mjs';
 import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';

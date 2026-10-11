@@ -272,6 +272,14 @@ Distributor has been terminated`）；**已发出的副本继续读到各自终�
 - **subject**（主题目录）＝一个类一个目录：`_Abstract.mjs` 或
   `_Concrete.mjs`（存在性互斥）+ `index.mjs` + `_Symbol.mjs`（借表时多一个
   `_Borrow.mjs`）。目录路径即其符号命名空间。
+- **`Parser.mjs` 也跟着 subject 分区**（2026-10-11）：校验词汇归它的 subject。
+  现在 `Request/Parser.mjs` 持有 `HttpMethod` / `ExchangeMode`（前者原本在共享
+  的 `Exchange/Parser.mjs` 里），`Request/index.mjs` 里
+  `export * as Parser`；共享的那份只剩跨界词汇（HTTP 版本、状态码、协议、
+  header 名/值、`Iterable`、配置用的整数校验）与 `HttpMethodList`。
+  `HttpMethodList` 留在 Exchange 侧但**从 `Request/Parser.mjs` 引 `HttpMethod`**
+  ——于是多了一条"Exchange 级模块依赖 Request 级"的边，与
+  `Exchange/_Abstract.mjs` 引 `Request/index.mjs` 同向，可以接受。
 - **part** ＝ `ExchangePart` 家族的实例（Request / Response / Header / Body
   以及后续成员）。
 - **slot**（槽位）＝ `_S` 里的一个键，值是一个类引用，语义是"下游必须在这里
