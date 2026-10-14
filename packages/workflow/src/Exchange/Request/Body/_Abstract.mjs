@@ -1,20 +1,30 @@
 import { Readable } from 'node:stream';
 
 import Abstract, { Member as M } from '@produck/es-abstract';
+import * as Fugue from '@produck/fugue';
 
 import { useWorkflow } from '../../../Capability.mjs';
+import * as Configuration from '../../../Configuration/index.mjs';
 import * as Part from '../../Part/index.mjs';
-import { I, _I, A } from './_Symbol.mjs';
 import { EXCHANGE, PART, WORKFLOW } from './_Borrow.mjs';
+import { I, _I, A } from './_Symbol.mjs';
 
-class AbstractRequestBody extends Part.Concrete {
+class RequestBody extends Part.Concrete {
   [I.DISTRIBUTOR] = null;
 
   constructor(exchange) {
     super(exchange);
 
     const source = Readable.toWeb(this[_I.SOURCE.GET](this[PART.$I.INTERNAL]));
+    const ExchangeKit = this[PART.I.EXCHANGE][EXCHANGE.$I.KIT];
     const distributor = new this[A.I.DISTRIBUTOR_CTOR](source);
+    const workflow = useWorkflow(ExchangeKit);
+
+    for (const { key } of Configuration.Item.Distributor) {
+      const value = Configuration.Get[`get${key}`](workflow);
+
+      Fugue.Options.Tune[key](distributor, value);
+    }
 
     this[I.DISTRIBUTOR] = distributor;
   }
@@ -32,7 +42,7 @@ class AbstractRequestBody extends Part.Concrete {
 }
 
 export default Abstract(
-  AbstractRequestBody,
+  RequestBody,
   Abstract({
     [_I.SOURCE.GET]: M.Method().args(M.Any).returns(M.Instance(Readable)),
   }),

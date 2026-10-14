@@ -20,19 +20,22 @@ They can arrive in either order:
 
 ## Timeout semantics
 
-### Handler execution timeout (`config.timeout`)
+### Handler execution timeout (`config.maxExchangeTimeout`)
 
-Guarded by: `close` event (workflow return).
+Guarded by: `close` event (workflow return). Measured in milliseconds and
+handed to `setTimeout` as-is.
 
-When the timeout fires before `close`, the current strategy is to dispatch a
-`timeout` event on the Exchange. Handlers that care about timeout may listen
-and take action (e.g., `setStatus(504)`). Frame-level auto-503 is
-intentionally avoided — the handler owns the response semantics.
+Armed at Exchange construction and disarmed by `close`. When it fires
+before `close` and the response is not yet finished, the current strategy is
+to answer with `503` — the exchange is declared unable to finish, and the
+response gets a result instead of hanging. Frame-level event dispatch is not
+yet in place; see the EventTarget hierarchy note below.
 
 JS is single-threaded and cooperative. A `setTimeout` callback cannot
 preempt a running call stack. The timeout signal is advisory: it can mark
 finished and prevent further writes via existing guards, but it cannot kill
-in-flight handler code.
+in-flight handler code. Because the clock stops at `close`, it does not cover
+the response drain that may follow.
 
 ### Response write timeout (future)
 
@@ -40,6 +43,48 @@ Guarded by: response `finish` event (stream complete).
 
 Not yet implemented. Will require the Request/Response EventTarget
 refinement. A separate `config.responseTimeout` entry is expected.
+
+## Request body distributor options
+
+The request body builds one `@produck/fugue` distributor per exchange. Its
+tunables are proxied by this package: a consumer reaches them through
+`Configuration` and never imports fugue. The values are only recorded —
+the body is the one that applies them to the distributor it builds.
+
+- `Configuration.Tune.tuneXxx(workflow, value)` adjusts one entry.
+- `Configuration.Get.getXxx(workflow)` reads one entry.
+- The name after `tune` / `get` is the item key.
+
+Keys are the item keys, which are also the fugue option names:
+
+```text
+MaxChunkStashByteLength
+MaxTransferrerBacklogWarningByteLength
+DegradeOnChunkStashFullAndDone
+ForkedReadableStreamHighWaterMark
+MaxChunkReaderInitializeRetryCount
+ChunkReaderInitializeRetryInterval
+MaxTransferrerInitializeRetryCount
+TransferrerInitializeRetryInterval
+MaxTransferrerDumpRetryCount
+TransferrerDumpRetryInterval
+MaxTransferrerDrainRetryCount
+TransferrerDrainRetryInterval
+```
+
+- The defaults are fugue's own values, copied here: a consumer never reads
+  fugue to learn them. One of them is derived inside fugue rather than
+  fixed — `MaxTransferrerBacklogWarningByteLength` follows
+  `MaxChunkStashByteLength` — and the copy is static, so both default to
+  `1 << 30` here and a tuned stash length no longer drags the warning
+  threshold along.
+- Values are asserted when set, and fugue asserts them again when applied.
+- They are applied to every distributor right after construction, so a
+  change affects the exchanges created after it.
+- Where they are kept: a private `WeakMap<workflow, configuration>` inside
+  this package, installed at workflow construction and seeded from the
+  Configuration items.
+- A value that fails its item assertion is rejected at tune time.
 
 ## Handler awareness
 

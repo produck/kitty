@@ -198,6 +198,13 @@ that it can actually use.
 
 ## Stable Invariants
 
+- **Fugue distributor tunables are proxied**: the request body builds one
+  distributor per exchange, and every one of its options is recorded by
+  `Configuration` — downstream code does not import fugue, and the item
+  defaults are fugue's own values copied here, so a consumer never reads
+  fugue to learn them. Tuners and readers are generated per configuration
+  item, one entry each; the request body applies every value to each
+  distributor right after construction.
 - Workflow core does not hardcode protocol behavior.
 - **The readable stream distributor class is deployment-scoped workflow
   state**: the application sets it with
@@ -357,7 +364,7 @@ against an `AdapterKit`.
 
 ## Exchange Template
 
-The Exchange abstraction (`Exchange/Abstract.mjs`) is part of the
+The Exchange abstraction (`Exchange/_Abstract.mjs`) is part of the
 `workflow` core package, not an independent sub-package. Every adapter
 registers a concrete `Exchange` subclass alongside its server
 constructor; `handleExchange` constructs it, installs it on the derived
@@ -444,9 +451,10 @@ generate a functional Exchange subclass.
 ## Supplier Configuration (`tune` Pattern)
 
 Suppliers (Mixin, Adapter, Exchange) own their configuration grammar.
-No central options bag, no `configure(workflow, patch)` protocol.
-Each supplier exposes named `tune*` functions keyed by workflow
-identity through a private `WeakMap`.
+No central options bag, no `configure(workflow, patch)` protocol. Each
+supplier exposes named `tune*` functions keyed by workflow identity:
+core's own `Configuration` keys into a private `WeakMap`, a supplier keys
+into its own.
 
 ### Vocabulary
 
@@ -458,10 +466,13 @@ identity through a private `WeakMap`.
 ### Mechanism
 
 ```text
-Supplier (e.g. Exchange.Configuration, cookie Mixin, cors Adapter)
-  → private WeakMap<workflow, config>
-  → install(WorkflowKit, workflow) — called by core at construction
-  → tuneTimeout(workflow, value) — called by user post-construction
+Core configuration (Configuration)
+  → private WeakMap<workflow, configuration>
+  → installConfiguration(workflow) — called by core at construction
+  → Tune.tuneXxx(workflow, value) — one tuner per item
+  → Get.getXxx(workflow) — one reader per item
+
+A supplier that keeps state of its own does the same with its own WeakMap
 ```
 
 ### Consumer API
@@ -470,7 +481,8 @@ Supplier (e.g. Exchange.Configuration, cookie Mixin, cors Adapter)
 import { Configuration } from '@produck/kitty-workflow';
 
 const workflow = new KittyWorkflow(kit);
-Configuration.tuneTimeout(workflow, 300);
+Configuration.Tune.tuneMaxExchangeTimeout(workflow, 2 * 60 * 1000);
+Configuration.Tune.tuneMaxChunkStashByteLength(workflow, 4096);
 workflow.use(handler).finalize();
 ```
 
@@ -604,8 +616,9 @@ workflow handler runs.
   ExchangeKit derived here — not installed by the adapter beforehand — and
   installed on that kit here, under `K_EXCHANGE`, after construction. The
   slot itself is declared by the Workflow layer
-  (`Workflow/Capability.mjs`), so "an ExchangeKit carries an exchange" is
-  a Workflow-level requirement; `useExchange(kit)` is its reader.
+  (`Capability.mjs`, at the package root), so "an ExchangeKit carries an
+  exchange" is a Workflow-level requirement; `useExchange(kit)` is its
+  reader.
 - `Exchange[$I.IDENTITY]` is read once; the same identity must not back
   more than one dispatch.
 

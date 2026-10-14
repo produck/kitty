@@ -5,8 +5,8 @@ import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import * as Composer from '@produck/compose';
 import * as Fugue from '@produck/fugue';
 
-import * as Exchange from '../Exchange/index.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
+import * as Configuration from '../Configuration/index.mjs';
 import { K_WORKFLOW, K_DEPLOYMENT_SERVER } from '../Capability.mjs';
 import { assertHandlerByIndex } from './Assert.mjs';
 
@@ -26,7 +26,7 @@ class KittyWorkflow {
 
     this[$I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = $(this);
-    Exchange.Configuration.install(WorkflowKit, $(this));
+    Configuration.install($(this));
   }
 
   [$I.COMPOSE.PREPEND](...handler) {

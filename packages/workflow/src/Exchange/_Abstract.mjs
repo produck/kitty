@@ -4,12 +4,12 @@ import { Ow, SYMBOL } from '@produck/argot';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
-import { K_EXCHANGE } from '../Capability.mjs';
+import { K_EXCHANGE, useWorkflow } from '../Capability.mjs';
 import * as P from './Parser.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
-import { useConfig } from './Config.mjs';
+import { Get } from '../Configuration/index.mjs';
 
 class KittyExchange extends EventTarget {
   [I.REQUEST] = null;
@@ -18,26 +18,24 @@ class KittyExchange extends EventTarget {
   constructor(ExchangeKit, internal) {
     super();
 
-    const TargetConstructor = new.target;
-
-    this[SYMBOL.CONSTRUCTOR] = TargetConstructor;
+    ExchangeKit[K_EXCHANGE] = $(this);
     this[$I.KIT] = ExchangeKit;
     this[I.INTERNAL] = internal;
-    this[I.REQUEST] = new TargetConstructor[_S.REQUEST_CTOR]($(this));
-    this[I.RESPONSE] = new TargetConstructor[_S.RESPONSE_CTOR]($(this));
+    this[I.REQUEST] = new this[SYMBOL.CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
+    this[I.RESPONSE] = new this[SYMBOL.CONSTRUCTOR][_S.RESPONSE_CTOR]($(this));
 
     this[I.START_TIMING]();
-    ExchangeKit[K_EXCHANGE] = $(this);
   }
 
   [I.START_TIMING]() {
-    const config = useConfig(this[$I.KIT]);
+    const workflow = useWorkflow(this[$I.KIT]);
+    const maxExchangeTimeout = Get.getMaxExchangeTimeout(workflow);
 
     const timer = setTimeout(() => {
       if (!this.response.isFinished) {
         this.setStatus(503);
       }
-    }, config.timeout * 1000);
+    }, maxExchangeTimeout);
 
     this.addEventListener('close', () => clearTimeout(timer), { once: true });
   }

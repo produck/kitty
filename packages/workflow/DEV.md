@@ -292,8 +292,9 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   在 exchange 生命周期上提供流的可观测性——每个作用域只关心**自己拿到的那几份流的
   状态**，而那是**流实例自身的状态**（`ReadableStream.locked` / reader 的
   `closed`）；adapter 交完源流就退场，同样不需要。随之定下：`degraded` /
-  `terminated` / 12 项 `options` / 10 个 warn 码都不进公开面；`I.DISTRIBUTOR` **保
-  持私有**（连"升格为 `$I`"也否决）。源流状态也不提供观测：会与分发语义冲突——消费
+  `terminated` / 10 个 warn 码都不进公开面（**2026-10-14 反转**：12 项 `options`
+  改由本包代理进公开面，见下一条）；`I.DISTRIBUTOR` **保持私有**（连"升格为
+  `$I`"也否决）。源流状态也不提供观测：会与分发语义冲突——消费
   较慢的 fork 还没结束，却看见源流已关闭，观感是错的。
 - **源流收尾未定**：可能做**延迟释放**；"先 `terminate()`"可能是更安全的策略。当前
   Body 只建 distributor、只开 `data`。实测对照（同一份 body、两份 fork、读完 `a` 的
@@ -313,6 +314,51 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   getter"，另一条关的是"事件有没有通道"。
 - **不自己定义 Distributor 层**：Body 只认"整个具体 Distributor"，介质契约回到
   fugue 自己的公开面（`$I.STATE.ReadableStreamDistributor` + fugue 的介质槽）。
+- **12 项 fugue 选项由本包代理**（2026-10-14，用户口径"全都要 + 本仓代理，替下游
+  屏蔽 distributor 的复杂性"）：键用 **PascalCase**（`MaxChunkStashByteLength` /
+  `ForkedReadableStreamHighWaterMark` / `DegradeOnChunkStashFullAndDone` / 4 组重试
+  次数与间隔），目录 `Configuration/`（`items/exchange.mjs` 与
+  `items/distributor.mjs` 各自**默认导出**一组项、`index.mjs` 汇总为 `Item.{Exchange,
+Distributor}` 并生成逐项访问器与读点）——**不用标记位区分**哪些项是代理项，
+  靠"住在 `items/distributor.mjs` 里"这件事本身说明；**配置只是记录**：record 由
+  `Configuration` 自己用 **`WeakMap<workflow, configuration>`** 挂着（2026-10-15 用户
+  口径："算了，还是解耦吧，用弱映射建立 configuration 记录到 workflow 实例的关系。
+  别瞎暴露符号了"——中间那版"record 挂进 `$I.STATE` + 从 `Workflow/index.mjs` 导出
+  `STATE` 符号"已回退）；**安装由 `Workflow` 构造时正常做**（同口径："在这边正常进行
+  configuration 的安装"）：构造器调 `installConfiguration($(this))`——键必须是
+  `$(this)` 的那个**面**，因为 Exchange / Body / `Tune` 拿到的都是面；
+  `configurationOf(workflow)`（**模块私有、不导出**，2026-10-15 用户口径：
+  "`configurationOf` 不应该被导出"）只查不建，查不到就按**参数类型错**抛
+  `Invalid "args[0] as workflow", one "Workflow" expected.`（2026-10-15 用户口径：
+  用 `ThrowTypeError`，不走 `Ow.Error.Common`）；**外部读值只走 `Get.get<键>`**（同样是
+  2026-10-15 口径：Body 构造器里那个 `value` "应该用 Get 接口实现"，Exchange 的
+  `maxExchangeTimeout` 一并发成 `Get.getMaxExchangeTimeout(workflow)`）。
+  **默认值是抄 fugue 的**（2026-10-15 用户口径："我没说过不重述 fugue 的默认值。kitty 是对
+  fugue 的全面代理，屏蔽了 fugue 的复杂性的默认值抄写吧"）：12 项都给了具体初值
+  （`1 << 30` / `false` / `1` / `Infinity` / `1000`），因此 Body 那边曾经那个
+  `value !== undefined` 门禁**删掉了**——结构上值必有值，逐项直接 `Tune`。抄写的一个
+  已知偏差：fugue 的 `MaxTransferrerBacklogWarningByteLength` 是**读时派生**（跟随
+  `MaxChunkStashByteLength`），我们抄成了静态 `1 << 30`，所以调大/调小 stash 上限时它
+  不再跟着变（要跟就得在 Body 里给这一项传 getter 函数，属于另一件事）。
+  **`Fugue.Options.Tune` 不在 `Configuration` 里发生**，而在 Body 建分发器那一步：
+  `Request/Body/_Abstract.mjs` 的构造器里，拿 `Configuration.Item.Distributor` 的键直接查
+  fugue 的 `Options.Tune.<键>`（键即 fugue 的名字；**不做加载期校验**——2026-10-15 用户
+  口径："这个检查用不上，`applyOptions` 只是包内使用"；同一轮又定"直接内联到
+  `AbstractRequestBody` 的构造器里，这里不复杂"，于是 `Request/Body/Options.mjs`
+  整块删除），Body 在 `new` 完 distributor 后立刻跑这个循环；入口只有逐项的
+  `Configuration.Tune.tune<键>(workflow, value)` / `Get.get<键>(workflow)`
+  （2026-10-15：`Accessor.mjs` 合进 `index.mjs` 直接实现、不再有创建工厂；**批量
+  `tune(workflow, options)` 已删**）。**未代理**：fugue 的
+  `Preset.*`。**per-exchange
+  粒度做不到**：Body 构造早于 attacher 与 handler，且 `I.DISTRIBUTOR` 私有。
+- **`Configuration` 与 `Workflow` 单边依赖**（2026-10-15）：`Configuration` 不再
+  import `Workflow`（连 `_Borrow.mjs` 都没有，也不需要导出任何符号）；反方向留一条
+  `Workflow/_Abstract.mjs → Configuration`，用途只是构造时 `installConfiguration()`。
+  这条边不成环：`Configuration` 只 import 两个 items 文件与 argot，所以
+  `Workflow/index → _Abstract → Configuration` 到头。两个遗留代价：①记录以**对象
+  身份**为键，`$(this)` 取得的面与裸实例是两个键（实测 `new` 交出的就是面，而
+  `useWorkflow(kit)` 也交同一个面，所以正常路径一致）；②`installConfiguration` 必须
+  在构造期就把面装进去，否则一次 `Get.get<键>` 就会抛 `args[0] as workflow`。
 - **源流必须是字节流（`objectMode: false`）**。实测 objectMode 源会让 fugue 的降级
   探针在第一次 pull 就误判越限，随后去读介质槽并抛
   `Static member "._transferrerCtor" must be implemented`；http1.1 / http2 的入站流
@@ -326,9 +372,9 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   `_I.COMPILE_ARTIFACT`。
 - `Workflow` 构造器把自己的 Exchange 配置装到自己的 kit 上，并把**面**登记进去：
   `WorkflowKit[K_WORKFLOW] = $(this)`、
-  `Exchange.Configuration.install(WorkflowKit, $(this))`——`$(this)` 必须有：构造期
+  `Configuration.install(WorkflowKit, $(this))`——`$(this)` 必须有：构造期
   直接交 `this` 会把生实例登记出去（`useWorkflow` 发出去的面失去校验，
-  `tuneTimeout(workflow, …)` 也查不到，实测）。
+  `tuneMaxExchangeTimeout(workflow, …)` 也查不到，实测）。
 - `[$I.COMPILE](server, DeploymentKit = this[$I.KIT]('Kitty<Deployment>'))` 写
   `DeploymentKit[K_DEPLOYMENT_SERVER] = server`。
 - `get isFinalized()` 就是 `Object.isFrozen(this)`，没有单独布尔位。
@@ -402,7 +448,7 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
    （`_I.COMPOSE.EXTEND` / `_I.COMPILE_ARTIFACT`）尚未按 PUB-3 以"选择"的形式开出
    去。参考做法：包出口带 `SYMBOL.<模块>.<表>.<键>`，并直接暴露抽象 subject 供下游
    `extends`。
-3. **Body 与 config 的关系未定**：`Exchange/Config.mjs` 已有 `maxBodySize` /
+3. **Body 与 config 的关系未定**：`Configuration/` 已有 `maxBodySize` /
    `maxRequestBodyBuffer` / `allowedBodyMethods`，一个都没接到 fugue 上。要定
    `maxBodySize` 对应 fugue 的哪一档（`MaxChunkStashByteLength`？还是硬上限 +
    413）。
