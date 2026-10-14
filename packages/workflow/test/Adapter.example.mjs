@@ -54,7 +54,7 @@ import * as ResponseHeader from '../src/Exchange/Response/Header/index.mjs';
 import { _I as SH_I } from '../src/Exchange/Response/Header/_Symbol.mjs';
 import * as ResponseBody from '../src/Exchange/Response/Body/index.mjs';
 import { _I as SB_I } from '../src/Exchange/Response/Body/_Symbol.mjs';
-import { useServer } from '../src/Workflow/Capability.mjs';
+import { useServer } from '../src/Capability.mjs';
 
 //
 // -------------------------------------------------------------- the adapter

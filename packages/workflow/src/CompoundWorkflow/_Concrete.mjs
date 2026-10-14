@@ -4,6 +4,7 @@ import { deepFreeze } from '@produck/deep-freeze-enumerable';
 import { compose } from '@produck/compose';
 
 import * as Adapter from '../Adapter/index.mjs';
+import * as Capability from '../Capability.mjs';
 import * as Mixin from '../Mixin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
@@ -46,7 +47,7 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       }
     }
 
-    const server = Workflow.Capability.useServer(DeploymentKit);
+    const server = Capability.useServer(DeploymentKit);
     const adapter = Adapter.Registry.getByServer(server);
     const handledExchanges = new WeakSet();
     const AdapterKit = DeploymentKit('Kitty<Adapter>');
@@ -88,7 +89,6 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       }
 
       handledExchanges.add(identity);
-      ExchangeKit[Workflow.Capability.K_EXCHANGE] = exchange;
 
       try {
         for (const attacher of [

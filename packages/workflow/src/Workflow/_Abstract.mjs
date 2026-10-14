@@ -1,11 +1,11 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
 import * as Kit from '@produck/kit';
 import * as Composer from '@produck/compose';
-import Abstract, { Member as M } from '@produck/es-abstract';
+import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 
 import * as Exchange from '../Exchange/index.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
-import { K_WORKFLOW, K_DEPLOYMENT_SERVER } from './Capability.mjs';
+import { K_WORKFLOW, K_DEPLOYMENT_SERVER } from '../Capability.mjs';
 import { assertHandlerByIndex } from './Assert.mjs';
 
 const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
@@ -22,8 +22,8 @@ class KittyWorkflow {
     const WorkflowKit = kit('Kitty<Workflow>');
 
     this[$I.KIT] = WorkflowKit;
-    WorkflowKit[K_WORKFLOW] = this;
-    Exchange.Configuration.install(WorkflowKit, this);
+    WorkflowKit[K_WORKFLOW] = $(this);
+    Exchange.Configuration.install(WorkflowKit, $(this));
   }
 
   [$I.COMPOSE.PREPEND](...handler) {

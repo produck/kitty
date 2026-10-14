@@ -19,16 +19,24 @@
 - 声明面 `Abstract(cls, Abstract({...}), Abstract.Static({...}))`，契约用
   `Member as M`（`M.Method().args(...).returns(...)`）。
 - 实例成员、静态槽、`.returns()` 全是**访问时惰性校验**：缺实现分别抛
-  `Instance member … must be implemented in the subclass.` /
-  `Static member … must be implemented in the subclass.`（只声明不阻断
-  `extends`）；`_I.SOURCE.GET` 答非 `Readable` 时抛 `TypeError`（实测）。抽象构造
-  器**不能直接 `new`**（`Illegal construction on an abstract constructor.`）。
-- **同一份实例有两个面**（实测）：代理在 `Reflect.construct(...)` **之后**才建。
-  于是基类构造器体内的 `this`、`part.exchange` 是**未代理实例**；派生类构造器体内
-  的 `this`（`super()` 的返回值）与 `new` 的返回值是**代理**——adapter 的 Exchange
-  子类里 `this !== this.request.exchange`，而 `handleExchange` 里 `new` 出来的代理
-  才是挂到 kit 上的那个（"写侧的 `exchange`"一律指代理）。符号槽写在**目标**上，
-  代理对 `this[sym]` 读写照常穿透。
+  `Instance member "Symbol(…)" must be implemented.` /
+  `Static member "…" must be implemented.`（只声明不阻断 `extends`）；
+  `_I.SOURCE.GET` 答非 `Readable` 时抛 `TypeError`（实测）。抽象构造器**不能直接
+  `new`**（`Illegal construction on an abstract constructor.`）。声明了
+  `Abstract.Static({…})` 的类，其派生类**必须经 `SubConstructorProxy` 构造**，
+  否则构造期抛 `It MUST SubConstructorProxy("<name>").`（实测，0.4.x 起）。
+- **构造体内的 `this` 是生实例，其余都是面**（实测）：代理在
+  `Reflect.construct(...)` **之后**才建，所以被包的那个类的构造体里 `this`（以及它
+  祖先构造体里的 `this`）是**未代理实例**；派生类构造体里的 `this`（`super()` 的
+  返回值）与 `new` 的返回值是**代理**。因此凡是要把自己或别人交出去的地方都取面：
+  Exchange 用 `$(this)` 建两个 part、并用 `$(this)` 把自己挂上 kit，part 拿到的于
+  是就是面（`exchange.request.exchange === exchange`，实测）。符号槽写在**目标**
+  上，代理对 `this[sym]` 读写照常穿透。
+- **要把"面"从构造体里交出去，用 `ShadowThis as $`**（`$(this)`）：层按实例缓存
+  （`Instance.proxyOf` 存 WeakMap），所以 `$(this)` 与包装层最后返回的是**同一个
+  对象**；传入已是面时原样返回，传入非抽象类实例则抛 `ShadowThis() requires an
+instance of an abstract class.`。于是"构造体内登记自己"不再等于把生实例交出去
+  ——两处需要（`K_WORKFLOW` / `K_EXCHANGE`）的都是这么做的。
 - 因此**不用 JS 的 `#` 私有字段**（代理不认私有字段归属，`this.#x` 会抛）：本仓
   "私有"一律指 `I` 表的符号槽。
 
@@ -51,8 +59,8 @@
   `ReferenceError: Dependence "X" is undefined.`，所以"允许缺失"用
   `Kit.Getter(name).touch(kit)`（返回 `undefined`）；属性是 Symbol 时这条拼字符串
   本身会先抛（实测，见第 21 条）。
-- 能力 = `K_*` 键 + `use*` getter（`Workflow/Capability.mjs`、
-  `Exchange/Config.mjs`）。部署级写入口 `AdapterKit.attachDeployment(name, value)`
+- 能力 = `K_*` 键 + `use*` getter（集中在 `src/Capability.mjs`，见"Symbol 表
+  约定"）。部署级写入口 `AdapterKit.attachDeployment(name, value)`
   带 `assertNotCompiled()` 闸门：**编译后关闭**。
 - **层级即可见域**：`AdapterKit` 与 `ExchangeKit` 都是 `DeploymentKit` 的**兄弟**
   （`DeploymentKit('Kitty<…>')`），互看不到对方自表的键；读只向上，所以"只让某些
@@ -79,9 +87,12 @@
   `_S.DISTRIBUTOR_CTOR` 指向 `Fugue.Distributor`，介质槽
   `Fugue.SYMBOL.DISTRIBUTOR._S.DEGRADED_CHUNK_READER_CTOR` 由下游在具体
   Distributor 上赋，本仓不声明也不转发。
-- **kit 槽位符号集中在 `Workflow/Capability.mjs`**（`K_WORKFLOW` /
+- **kit 槽位符号集中在 `src/Capability.mjs`**（`K_WORKFLOW` /
   `K_DEPLOYMENT_SERVER` / `K_EXCHANGE`），描述串统一 `<Kit>.<slot>`；读面用
-  `Kit.Getter` 派生的 `useXxx`。
+  `Kit.Getter` 派生的 `useXxx`。用户口径：**这类定义跟"端口"走，不跟 subject
+  走**——能力符号描述的是 kit 层级（端口），与某个 subject 的成员表无关，所以它
+  不在任何 subject 目录下、也不挂在任何 subject export 上（`Workflow/index.mjs`
+  不再出口 `Capability`），用方直接 `import` 该模块。
 
 ### 私有槽 + 只读 getter
 
@@ -206,8 +217,11 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   `isPlainObject` 判到组、`typeof === 'function'` 判到叶子，报错路径是字面量
   （`args[0].request.header.get` / `args[0].response.body` …）。旧树的 `meta` 在新
   契约里既无成员也无静态槽 → 按**删除**处理；多余的键**不再被拒**（只读它认识的
-  键，其余忽略），遗留键传进来静默无效。`distributorCtor` 是**必填**（见第 22
-  条）。
+  键，其余忽略），遗留键传进来静默无效。`distributorCtor` 是**必填**，而且 0.4.x
+  起这一格**必须是被 `SubConstructorProxy` 包装过的类**（层要求"声明了静态抽象成员
+  的类，其派生类必须经包装构造"，裸类在 body 构造期抛
+  `It MUST SubConstructorProxy("Distributor").`——实测）；如何收口见第 22
+  条。
 - **实现细节**：声明 `.returns(M.Undefined)` 的四个成员（`STATUS.SET` /
   `STATUS_TEXT.SET` / `ResponseHeader.SET` / `.DELETE`）**不转发**树函数的返回
   值，否则会把 `Map#set` 之类漏出去、被契约拦下。
@@ -218,16 +232,19 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
 
 **装配由框架做，adapter 只交一个类和一份记录**：
 `CompoundWorkflow.handleExchange(internal)` 是 Exchange 的**唯一构造点**，一次收口
-五件事：①派生 `ExchangeKit`（`DeploymentKit('Kitty<Exchange>')`）；②
-`new adapter.Exchange(ExchangeKit, internal)`（类来自 `Adapter.Registry` 记录的
-`Exchange` 项，注册期已校；`internal` 走参数）；③读一次 `exchange[$I.IDENTITY]`，
-用 `handledExchanges`（**按 identity**）拒绝重复派发；④写
-`ExchangeKit[K_EXCHANGE]`，然后跑 attachers（deployment 级在前、mixin 级在后）与
-handler pipeline；⑤`finally` 里 `exchange.dispatchEvent(new Event('close'))`。
+四件事：①派生 `ExchangeKit`（`DeploymentKit('Kitty<Exchange>')`）；②
+`new adapter.Exchange(ExchangeKit, internal)`——类来自 `Adapter.Registry` 记录的
+`Exchange` 项（注册期已校）、`internal` 走参数，而**构造器末尾自己把面挂上 kit**
+（`ExchangeKit[K_EXCHANGE] = $(this)`）；③读一次 `exchange[$I.IDENTITY]`，用
+`handledExchanges`（**按 identity**）拒绝重复派发；④跑 attachers（deployment 级在
+前、mixin 级在后）与 handler pipeline，`finally` 里
+`exchange.dispatchEvent(new Event('close'))`。
 
-- **`K_EXCHANGE` 的写侧只有这一处，符号归 Workflow 层**：写的是 `new` 出来的**代
-  理**，所以 handler 拿到的是带 `.returns()` 校验的那一面；写侧不导出，
-  `useExchange()` 是给 handler 的读面。
+- **`K_EXCHANGE` 的写侧只有一处，在 `KittyExchange` 的构造器里**（符号在
+  `src/Capability.mjs`）：写的是 `$(this)` 取出的**面**，所以 handler 拿到的是带
+  `.returns()` 校验的那一面；写侧不导出，`useExchange()` 是给 handler 的读面。
+  连带一条约束：**交给构造器的 kit 必须每 exchange 一份**（kit 的 `set` 拒绝同层
+  二次写入），框架里由 `DeploymentKit('Kitty<Exchange>')` 保证。
 - **校验的落点**：合法性在注册期（`SubConstructorOf`）与 identity 去重处收敛；构造
   期不额外校验 kit 的来历（`handleExchange` 可以被塞进任意 kit，只要它是 kit），
   `internal` 也不校验（连"必须是对象"都没有）——符合"不解释形状"的本意，见第 14
@@ -304,8 +321,11 @@ handler pipeline；⑤`finally` 里 `exchange.dispatchEvent(new Event('close'))`
 
 - `Workflow/_Abstract.mjs` 的抽象面只有 `_I.COMPOSE.EXTEND` 与
   `_I.COMPILE_ARTIFACT`。
-- `Workflow` 构造器把自己的 Exchange 配置装到自己的 kit 上：
-  `Exchange.Configuration.install(WorkflowKit, this)`。
+- `Workflow` 构造器把自己的 Exchange 配置装到自己的 kit 上，并把**面**登记进去：
+  `WorkflowKit[K_WORKFLOW] = $(this)`、
+  `Exchange.Configuration.install(WorkflowKit, $(this))`——`$(this)` 必须有：构造期
+  直接交 `this` 会把生实例登记出去（`useWorkflow` 发出去的面失去校验，
+  `tuneTimeout(workflow, …)` 也查不到，实测）。
 - `[$I.COMPILE](server, DeploymentKit = this[$I.KIT]('Kitty<Deployment>'))` 写
   `DeploymentKit[K_DEPLOYMENT_SERVER] = server`。
 - `get isFinalized()` 就是 `Object.isFrozen(this)`，没有单独布尔位。
@@ -357,7 +377,8 @@ handler pipeline；⑤`finally` 里 `exchange.dispatchEvent(new Event('close'))`
    是否覆盖**包内家族基类**（`ExchangePart` 是具体类却被六个 subject 继承）；⑤
    LAY-7 与 LAY-8 在共享具体基类下互相打架；⑥
    `20-produck-commit.instructions.md` 举例 `message.draft.ignore` 不匹配它自己要
-   求的 `*.ign*`。
+   求的 `*.ign*`；⑦能力符号（`K_*`）不在任何 subject 的 `_Symbol.mjs` 里——它跟
+   端口走，STB-1 是否要为本类定义开例外或另立一条。
 2. **PUB-2 未做**：`src/index.mjs` 只导出 `Workflow`，Workflow 的抽象成员符号
    （`_I.COMPOSE.EXTEND` / `_I.COMPILE_ARTIFACT`）尚未按 PUB-3 以"选择"的形式开出
    去。参考做法：包出口带 `SYMBOL.<模块>.<表>.<键>`，并直接暴露抽象 subject 供下游
@@ -454,6 +475,11 @@ net.Server)`。倾向②。
       `Request/Body/_Abstract.mjs` import fugue）；Workflow 只提供"能写的地方"；校
       验落在 attach 那一级。
     - **默认值归消费方**，用 `Getter.touch` 判缺失——第 6 条由此有落点。
+    - **树里那一格现在必须是包装过的类**：0.4.x 起层要求派生类经
+      `SubConstructorProxy` 构造，裸类在 body 构造期抛
+      `It MUST SubConstructorProxy("Distributor").`（实测）。两条路：下游自己包
+      （写进交付面契约），或本包在树边界包一次（需幂等——同一类包两次抛
+      `Extending proxy has already been created`）。
     - **观测**"这个 exchange 用哪一个"不必额外记账：实例已在构造时快照进
       `I.DISTRIBUTOR`，`data` 每次 `fork()`。
     - **Configuration 面与它的关系未定**（2026-10-11：用户指出我此前那部分的理解

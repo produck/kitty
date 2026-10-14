@@ -15,11 +15,8 @@ class AbstractResponse extends Part.Concrete {
 
   constructor(exchange) {
     super(exchange);
-
-    const TargetConstructor = this[SYMBOL.CONSTRUCTOR];
-
-    this[I.HEADER] = new TargetConstructor[_S.HEADER_CTOR](exchange);
-    this[I.BODY] = new TargetConstructor[_S.BODY_CTOR](exchange);
+    this[I.HEADER] = new this[SYMBOL.CONSTRUCTOR][_S.HEADER_CTOR](exchange);
+    this[I.BODY] = new this[SYMBOL.CONSTRUCTOR][_S.BODY_CTOR](exchange);
   }
 
   get header() {

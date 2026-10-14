@@ -1,9 +1,10 @@
 import * as net from 'node:net';
 
 import { Ow, SYMBOL } from '@produck/argot';
-import Abstract, { Member as M } from '@produck/es-abstract';
+import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
+import { K_EXCHANGE } from '../Capability.mjs';
 import * as P from './Parser.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 import * as Request from './Request/index.mjs';
@@ -22,10 +23,11 @@ class KittyExchange extends EventTarget {
     this[SYMBOL.CONSTRUCTOR] = TargetConstructor;
     this[$I.KIT] = ExchangeKit;
     this[I.INTERNAL] = internal;
-    this[I.REQUEST] = new TargetConstructor[_S.REQUEST_CTOR](this);
-    this[I.RESPONSE] = new TargetConstructor[_S.RESPONSE_CTOR](this);
+    this[I.REQUEST] = new TargetConstructor[_S.REQUEST_CTOR]($(this));
+    this[I.RESPONSE] = new TargetConstructor[_S.RESPONSE_CTOR]($(this));
 
     this[I.START_TIMING]();
+    ExchangeKit[K_EXCHANGE] = $(this);
   }
 
   [I.START_TIMING]() {
