@@ -145,7 +145,7 @@ export default function normalize(options) {
       if (isPlainObject(_body)) {
         const body = (request.body = {});
 
-        const { source: _source, distributorCtor: _distributorCtor } = _body;
+        const { source: _source } = _body;
 
         if (isPlainObject(_source)) {
           const source = (body.source = {});
@@ -159,12 +159,6 @@ export default function normalize(options) {
           }
         } else {
           ThrowTypeError('args[0].request.body.source', 'plain object');
-        }
-
-        if (typeof _distributorCtor === 'function') {
-          body.distributorCtor = _distributorCtor;
-        } else {
-          ThrowTypeError('args[0].request.body.distributorCtor', 'function');
         }
       } else {
         ThrowTypeError('args[0].request.body', 'plain object');

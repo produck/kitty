@@ -1,13 +1,11 @@
 import { Readable } from 'node:stream';
 
-import { SYMBOL } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
-import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
-import * as Fugue from '@produck/fugue';
 
-import { I, _I, _S } from './_Symbol.mjs';
-import { PART } from './_Borrow.mjs';
+import { useWorkflow } from '../../../Capability.mjs';
 import * as Part from '../../Part/index.mjs';
+import { I, _I, A } from './_Symbol.mjs';
+import { EXCHANGE, PART, WORKFLOW } from './_Borrow.mjs';
 
 class AbstractRequestBody extends Part.Concrete {
   [I.DISTRIBUTOR] = null;
@@ -15,11 +13,17 @@ class AbstractRequestBody extends Part.Concrete {
   constructor(exchange) {
     super(exchange);
 
-    const TargetConstructor = this[SYMBOL.CONSTRUCTOR];
     const source = Readable.toWeb(this[_I.SOURCE.GET](this[PART.$I.INTERNAL]));
-    const distributor = new TargetConstructor[_S.DISTRIBUTOR_CTOR](source);
+    const distributor = new this[A.I.DISTRIBUTOR_CTOR](source);
 
     this[I.DISTRIBUTOR] = distributor;
+  }
+
+  get [A.I.DISTRIBUTOR_CTOR]() {
+    const ExchangeKit = this[PART.I.EXCHANGE][EXCHANGE.$I.KIT];
+    const workflow = useWorkflow(ExchangeKit);
+
+    return workflow[WORKFLOW.$I.STATE].ReadableStreamDistributor;
   }
 
   get data() {
@@ -31,8 +35,5 @@ export default Abstract(
   AbstractRequestBody,
   Abstract({
     [_I.SOURCE.GET]: M.Method().args(M.Any).returns(M.Instance(Readable)),
-  }),
-  Abstract.Static({
-    [_S.DISTRIBUTOR_CTOR]: SubConstructorOf(Fugue.Distributor),
   }),
 );

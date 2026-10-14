@@ -1,7 +1,9 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
 import * as Kit from '@produck/kit';
-import * as Composer from '@produck/compose';
+import { isSubConstructor } from '@produck/is-sub-constructor';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
+import * as Composer from '@produck/compose';
+import * as Fugue from '@produck/fugue';
 
 import * as Exchange from '../Exchange/index.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
@@ -12,6 +14,7 @@ const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
 
 class KittyWorkflow {
   [I.HANDLER_LIST] = [];
+  [$I.STATE] = { ReadableStreamDistributor: null };
   [$I.WORKFLOW] = DEFAULT_PASSTHROUGH;
 
   constructor(kit) {
@@ -57,13 +60,13 @@ class KittyWorkflow {
 
   [$I.ASSERT.FINALIZED]() {
     if (!this.isFinalized) {
-      Ow.throw('It MUST be finalized.');
+      Ow.Error.Common('It MUST be finalized.');
     }
   }
 
   [$I.ASSERT.NOT_FINALIZED]() {
     if (this.isFinalized) {
-      Ow.throw('It has been finalized.');
+      Ow.Error.Common('It has been finalized.');
     }
   }
 
@@ -77,6 +80,10 @@ class KittyWorkflow {
   }
 
   async [$I.DEPLOY](server, DeploymentKit) {
+    if (this[$I.STATE].ReadableStreamDistributor === null) {
+      Ow.Error.Common('It MUST set a readable stream distributor.');
+    }
+
     const { link } = await this[$I.COMPILE](server, DeploymentKit);
 
     link();
@@ -94,6 +101,16 @@ class KittyWorkflow {
     this[$I.ASSERT.FINALIZED]();
 
     return this[$I.DEPLOY](server);
+  }
+
+  async setReadableStreamDistributor(Constructor) {
+    if (!isSubConstructor(Constructor, Fugue.Distributor)) {
+      ThrowTypeError('args[0]', 'sub class of Fugue.Distributor');
+    }
+
+    this[$I.STATE].ReadableStreamDistributor = Constructor;
+
+    return this;
   }
 }
 

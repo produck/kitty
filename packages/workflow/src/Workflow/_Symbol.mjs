@@ -8,6 +8,7 @@ export const I = deepFreeze({
 
 const $I_KIT = Symbol('.$kit');
 const $I_WORKFLOW = Symbol('.$workflow');
+const $I_STATE = Symbol('.$state');
 const $I_COMPILE = Symbol('.$compile()');
 const $I_DEPLOY = Symbol('.$deploy()');
 const $I_PREPEND = Symbol('.$prependCompose()');
@@ -17,6 +18,7 @@ const $I_ASSERT_NOT_FINALIZED = Symbol('.$assertNotFinalized()');
 export const $I = deepFreeze({
   KIT: $I_KIT,
   WORKFLOW: $I_WORKFLOW,
+  STATE: $I_STATE,
   COMPILE: $I_COMPILE,
   DEPLOY: $I_DEPLOY,
   COMPOSE: {

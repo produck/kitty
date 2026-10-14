@@ -199,6 +199,14 @@ that it can actually use.
 ## Stable Invariants
 
 - Workflow core does not hardcode protocol behavior.
+- **The readable stream distributor class is deployment-scoped workflow
+  state**: the application sets it with
+  `Workflow.setReadableStreamDistributor(Ctor)` (validated as a
+  `Fugue.Distributor` derivation), the workflow keeps it in its own
+  private state record, and the request body reads it through the
+  `useWorkflow(kit)` port. The value may be replaced at any time,
+  including after `finalize()`. `deploy(server)` does not run while the
+  class is unset; `compile(server)` is not gated.
 - Adapters map protocol events to ExchangeKit and enter workflow through
   handleExchange.
 - Exchange state access is mediated through the Exchange abstraction.

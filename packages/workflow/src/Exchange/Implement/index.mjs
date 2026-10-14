@@ -32,7 +32,6 @@ export function Implement(options) {
       header: { get: getRequestHeader, keys: getRequestHeaderKeys },
       body: {
         source: { get: getRequestBodySource },
-        distributorCtor,
       },
     },
     response: {
@@ -80,10 +79,6 @@ export function Implement(options) {
     constructor(...args) {
       super(...args);
       Object.freeze(this);
-    }
-
-    static get [REQUEST_BODY._S.DISTRIBUTOR_CTOR]() {
-      return distributorCtor;
     }
 
     [REQUEST_BODY._I.SOURCE.GET](_internal) {

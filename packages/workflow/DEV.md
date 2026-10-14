@@ -84,7 +84,8 @@ instance of an abstract class.`。于是"构造体内登记自己"不再等于�
   （`Implement/` 要用它们的 `_I` / `_S`）；六个 subject 借 `Part` 的 `$I` 表（取
   `$I.INTERNAL` 传给抽象成员）。
 - 跨包借表**直接用对方的键**，不另立符号、不做翻译：`Body` 的
-  `_S.DISTRIBUTOR_CTOR` 指向 `Fugue.Distributor`，介质槽
+  `_S.DISTRIBUTOR_CTOR` 指向 `Fugue.Distributor`（2026-10-14：该键已删，Body 的介质类
+  改由 Workflow 的 `$I.STATE.ReadableStreamDistributor` 提供），介质槽
   `Fugue.SYMBOL.DISTRIBUTOR._S.DEGRADED_CHUNK_READER_CTOR` 由下游在具体
   Distributor 上赋，本仓不声明也不转发。
 - **kit 槽位符号集中在 `src/Capability.mjs`**（`K_WORKFLOW` /
@@ -185,7 +186,7 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   保留原版的具名结构（用户口径），叶子按 subject 分组：
   `identity.get`；`server.{get,protocol.get}`；`httpVersion.get`；
   `request.{mode,method,URL}.get`、`request.header.{get,keys}`、
-  `request.body.{source.get,distributorCtor}`；`response.status.{get,set}`、
+  `request.body.{source.get}`；`response.status.{get,set}`、
   `response.statusText.{get,set}`、`response.finished.is`、
   `response.header.{get,keys,set,delete}`、`response.body.data.{get,set}`。
   `index.mjs` 只留装配（七个 `Implemented*` + `SCP` 表 + `return`），选项校验拆到
@@ -201,7 +202,7 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   （`request.mode.get` → `getRequestMode`、`response.body.data.set` →
   `setResponseBodyData` …），组那一层一个都不落地；命名按叶子语义加域前缀（取用
   `get*` / 变更 `set*` / 布尔 `is*` / 删除 `delete*`），唯一的非函数叶子
-  `distributorCtor` 保持原名。
+  `distributorCtor` 保持原名（2026-10-14：该叶子已删，树里不再有非函数叶子）。
 - **每个实现点自带一份冻结的 options 上下文**（用户口径"所有实现点都增加一个面向
   options 的上下文冻结对象"）：私有槽 `[I_OPTIONS_CONTEXT]` =
   `Object.freeze({ self, internal })`——`self` 是该实现点自身（实测**就是**消费者手
@@ -212,12 +213,13 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   员自己的 `internal` 形参因此空置（写作 `_internal`）。比"记录 + `this` 两个通
   道"稳：交付物有名字、被冻结、不受调用方是否用 `.call` 影响。代价：`ctx.self` 不
   是死数据，作者可以绕回自己（`ctx.self.request.header.get(…)`）形成回环、不报错
-  只是重复跑树——立为禁忌。`distributorCtor` 是类（值），不走上下文。
+  只是重复跑树——立为禁忌。`distributorCtor` 是类（值），不走上下文（2026-10-14：该叶子已删）。
 - **校验照原版写法：显式逐层块，无形状表、不碰符号表**（用户口径）：逐层
   `isPlainObject` 判到组、`typeof === 'function'` 判到叶子，报错路径是字面量
   （`args[0].request.header.get` / `args[0].response.body` …）。旧树的 `meta` 在新
   契约里既无成员也无静态槽 → 按**删除**处理；多余的键**不再被拒**（只读它认识的
-  键，其余忽略），遗留键传进来静默无效。`distributorCtor` 是**必填**，而且 0.4.x
+  键，其余忽略），遗留键传进来静默无效。`distributorCtor` 是**必填**（2026-10-14：
+  该格随树一起删除，下面的必填与包装要求随之失效），而且 0.4.x
   起这一格**必须是被 `SubConstructorProxy` 包装过的类**（层要求"声明了静态抽象成员
   的类，其派生类必须经包装构造"，裸类在 body 构造期抛
   `It MUST SubConstructorProxy("Distributor").`——实测）；如何收口见第 22
@@ -279,7 +281,8 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
 ### Request Body 与 @produck/fugue
 
 - 契约：`_I.SOURCE.GET()` 答 **node `Readable`**（下游交入站流）；
-  `_S.DISTRIBUTOR_CTOR` 答 `Fugue.Distributor` 的具体子类。
+  `_S.DISTRIBUTOR_CTOR` 答 `Fugue.Distributor` 的具体子类（2026-10-14：该键已删，
+  改答来自 Workflow 的 `$I.STATE.ReadableStreamDistributor`）。
 - `data` = `distributor.fork()`，**每次访问都 fork 一份新的完整拷贝**
   （`body.data !== body.data`），返回 **WHATWG `ReadableStream`**（不再过
   `Readable.fromWeb()`）；转换边界只剩源侧一处
@@ -309,7 +312,7 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   针对事件做动作（如写日志），见第 13 条。两件事不矛盾：一条关的是"不开状态
   getter"，另一条关的是"事件有没有通道"。
 - **不自己定义 Distributor 层**：Body 只认"整个具体 Distributor"，介质契约回到
-  fugue 自己的公开面（`_S.DISTRIBUTOR_CTOR` + fugue 的介质槽）。
+  fugue 自己的公开面（`$I.STATE.ReadableStreamDistributor` + fugue 的介质槽）。
 - **源流必须是字节流（`objectMode: false`）**。实测 objectMode 源会让 fugue 的降级
   探针在第一次 pull 就误判越限，随后去读介质槽并抛
   `Static member "._transferrerCtor" must be implemented`；http1.1 / http2 的入站流
@@ -329,6 +332,22 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
 - `[$I.COMPILE](server, DeploymentKit = this[$I.KIT]('Kitty<Deployment>'))` 写
   `DeploymentKit[K_DEPLOYMENT_SERVER] = server`。
 - `get isFinalized()` 就是 `Object.isFrozen(this)`，没有单独布尔位。
+- **`setReadableStreamDistributor(Constructor)` 是应用侧设置可读流分发器的入口**
+  （2026-10-14 落）：类写进 **Workflow 的私有 `STATE` record**
+  （`$I.STATE = { ReadableStreamDistributor: null }`）——所以 `finalize()` 的
+  `Object.freeze(this)` 之后**仍可换**（用户口径："运行时也允许切换分发器类"；
+  这是"改的实现必须显式写出来"的一个实例）。用户口径（2026-10-14）：**专门给
+  Workflow 开一个 `STATE` 私有成员，作为 record 形状维护那些可变的相关资源**；
+  **record 内部的键直接用 string，不用符号**。**不是 Exchange 的 Configuration
+  要素，也不落 kit**（同日回退了早先那版）。setter 先做类型检查：
+  `isSubConstructor(Constructor, Fugue.Distributor)`，不过则抛
+  `args[0]`（与本包 `Adapter/Registry.mjs` 同一口径；`@produck/fugue` 已在
+  `dependencies` 里）。实测（`logs/probe-workflow-face.ign.mjs`）：设后读回同一个
+  类；`finalize()` 之后再设成功，而实例仍是 frozen；非派生类被拒。**消费侧已接**
+  （2026-10-14）：Body 的 `A.I.DISTRIBUTOR_CTOR` getter 经
+  `useWorkflow(this[PART.I.EXCHANGE][EXCHANGE.$I.KIT])` 读 `$I.STATE`——先前的
+  “未定”已定，且实测见第 17 条。**门禁**（2026-10-14）：`$I.DEPLOY` 先查
+  `$I.STATE.ReadableStreamDistributor`，未设直接 `Ow.Error.Common` 抛，不得部署。
 - `CompoundWorkflow/_Borrow.mjs` 以
   `export * as WORKFLOW from '../Workflow/_Symbol.mjs'` 转发；这是本仓唯一还需要
   `_Borrow.mjs` 的地方。
@@ -460,20 +479,32 @@ net.Server)`。倾向②。
     的话（实测对象是 `Kit.global` 直接读；`Getter.use` 是否同路径未逐项验证）。收
     口：①`useExchange` 读不到时自己先抛一句人话；②报给 `@produck/kit`（模板里
     `String(property)`）。倾向①。
-17. **Distributor 落在哪一级、谁来提供**（2026-10-11 记，待办）：现状是树的
+17. **Distributor 落在哪一级、谁来提供**（2026-10-11 记，2026-10-14 已落）：当时现状是树的
     `REQUEST.BODY.DISTRIBUTOR_CTOR` 一格（值不是函数），由 `RequestBody` 静态槽
     `_S.DISTRIBUTOR_CTOR` 在 body 构造时取用（记录就在同一行可用）。问题是**层级错
     配**：类级（设计期）槽，主人却是应用配置级（**部署期**）事实。已形成的口径：
     - **改从端口拿**：body 构造时读 kit → `_S.DISTRIBUTOR_CTOR` 整格可删，树里不再
-      有"值是类"的例外格，`RequestBody` 静态面清空。
+      有"值是类"的例外格，`RequestBody` 静态面清空。**入口已落**（2026-10-14）：
+      `Workflow.setReadableStreamDistributor()` 把类写进 **Workflow 自己的私有槽**
+      （`$I.STATE.ReadableStreamDistributor`；record 内部键是 string），定义期
+      与运行期都可换，**消费侧已接**（2026-10-14）：Body 的 `A.I.DISTRIBUTOR_CTOR`
+      getter 经 `useWorkflow` 读这里；**树里那格已死**——marker 探针
+      （`logs/probe-implement.ign.mjs`）证明被构造的是 Workflow 给的那个类，树里的
+      `distributorCtor` 一次也没被构造。**已删（2026-10-14）**：Body 的 `_S` 整张表
+      与 `Abstract.Static` 那一行、`Implement/Normalize.mjs` 的 `distributorCtor`
+      分支、`Implement/index.mjs` 的静态 getter 与解构、`test/Adapter.example.mjs`
+      的静态 getter（示例里的 `Http1Distributor` 改成 named export，等宿主侧接线）。
+      副作用：Exchange 现在必须在 Workflow 之下构造（探针已改成真 kit 链）。
     - **状态活在层级上／改的能力（权限）是你选的面／改的实现（机制）必须显式写出
       来**。例：要求"运行期不停机替换、且不外溢给 Adapter / Mixin 面"⇒ 只能挂
       `ExchangeKit`（`AdapterKit` 的兄弟，读只向上；每次 exchange 新建，首次 `set`
       必然合法）。
     - **键与类型归消费方**：键由 Exchange 家族拥有并出口（PUB-2）；`Fugue.Distributor`
       的引用与 `SubConstructorOf` 校验留在消费方（唯一构造点已在
-      `Request/Body/_Abstract.mjs` import fugue）；Workflow 只提供"能写的地方"；校
-      验落在 attach 那一级。
+      `Request/Body/_Abstract.mjs` import fugue）；Workflow 只提供"能写的地方"；
+      校验落在 attach 那一级。（2026-10-14 修订：setter 里的早校验让 Workflow
+      也 import 了 fugue——"校验归消费方"这条与现状有出入，待定要不要把 setter
+      那段撤掉。）
     - **默认值归消费方**，用 `Getter.touch` 判缺失——第 6 条由此有落点。
     - **树里那一格现在必须是包装过的类**：0.4.x 起层要求派生类经
       `SubConstructorProxy` 构造，裸类在 body 构造期抛

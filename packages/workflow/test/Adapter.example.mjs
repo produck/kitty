@@ -44,10 +44,7 @@ import { _I as R_I, _S as R_S } from '../src/Exchange/Request/_Symbol.mjs';
 import * as RequestHeader from '../src/Exchange/Request/Header/index.mjs';
 import { _I as RH_I } from '../src/Exchange/Request/Header/_Symbol.mjs';
 import * as RequestBody from '../src/Exchange/Request/Body/index.mjs';
-import {
-  _I as RB_I,
-  _S as RB_S,
-} from '../src/Exchange/Request/Body/_Symbol.mjs';
+import { _I as RB_I } from '../src/Exchange/Request/Body/_Symbol.mjs';
 import * as Response from '../src/Exchange/Response/index.mjs';
 import { _I as S_I, _S as S_S } from '../src/Exchange/Response/_Symbol.mjs';
 import * as ResponseHeader from '../src/Exchange/Response/Header/index.mjs';
@@ -213,10 +210,6 @@ class Http1RequestHeader extends RequestHeader.Abstract {
 }
 
 class Http1RequestBody extends RequestBody.Abstract {
-  static get [RB_S.DISTRIBUTOR_CTOR]() {
-    return Http1Distributor;
-  }
-
   // Must be a byte stream: `Readable.from([...])` defaults to objectMode and
   // breaks the degrade probe. `IncomingMessage` is a byte stream.
   [RB_I.SOURCE.GET](internal) {
@@ -226,7 +219,7 @@ class Http1RequestBody extends RequestBody.Abstract {
 
 // The medium is a package, not something the Body assembles: the reader family
 // arrives whole, and it already points at its own transferrer.
-class Http1Distributor extends Fugue.Distributor {
+export class Http1Distributor extends Fugue.Distributor {
   static get [Fugue.SYMBOL.DISTRIBUTOR._S.DEGRADED_CHUNK_READER_CTOR]() {
     return NodeFile.ChunkReader;
   }
