@@ -360,8 +360,9 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   `useWorkflow(kit)` 也交同一个面，所以正常路径一致）；②`installConfiguration` 必须
   在构造期就把面装进去，否则一次 `Get.get<键>` 就会抛 `args[0] as workflow`。
 - **Response body 是 sink：形状 / 预设 / 责任边界已定，先落 `DESIGN.md`**（2026-10-15 用户
-  口径）：归一形状 `{ stream: ReadableStream | null, length?: number }`（**`length` 可选**，
-  省略即未知）；核心库只实现内建预设 `null` / `undefined` / `string`（长度取
+  口径）：归一形状 `{ stream: ReadableStream | null, length: number | null }`（**`length`
+  必须显式写**：非负整数或 `null`，`null` 表示未知，缺失即非法）；核心库只实现内建预设
+  `null` / `undefined` / `string`（长度取
   `Buffer.byteLength`，不是 `.length`）/ `Uint8Array`、`Buffer` / `ReadableStream` /
   node `Readable`；预设是 `{ name, match, convert }` 的**声明集**（按注册顺序、未命中原样
   报出已注册名），不做 `toJSON` 式探测；**`Content-Length` 与 `Transfer-Encoding` 全部
@@ -369,6 +370,18 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   默认集合的组装留给 `@produck/kitty`。待定：编程命名（记录/preset/声明集读取器）、
   `get data` 回答什么、`Uint8Array`/`Buffer` 是否留在内建集。详见 `DESIGN.md` 的
   "Response body data: the sink contract"。
+- **`Exchange/Response/Body/DataNormalizer/` 是 subject（2026-10-15 用户口径）**：目录名短、
+  类名＝路径拼接（`ResponseBodyDataNormalizer`），与 `ResponseHeader` / `ResponseBody` 同规。
+  表：`_S.TEST`（**静态抽象方法**，`M.Method().args(M.Any).returns(M.Boolean)`，就是匹配
+  器）、`_I.NORMALIZE`（抽象方法，`.returns(P.ReadableStreamResult)`）、`$I.TEST` /
+  `$I.NORMALIZE`（基类给的保护级方法，前者转给 `_S.TEST`、后者转给 `_I.NORMALIZE`）、
+  `static test()`（公开静态入口，转给 `_S.TEST`）。因为声明了 `Abstract.Static`，填
+  `_S.TEST` 的派生类必须 `SubConstructorProxy` 包装。`Parser.mjs` 的
+  `ReadableStreamResult` 管记录形状：`stream` 是 `ReadableStream` 或 `null`
+  （**不得 `locked`**，且这条是 `Ow.Error.Common` 而不是类型错）、`length` 必须显式是
+  `null` 或非负整数，**且 stream 为 `null` 时 length 必须恰好是 `0`**（无 body ＝ 已知
+  零字节，不允许用 `null` 表示）。实测：成员 schema 在运行期真的生效（`Member.Method()` 会给实现套
+  一层，args/returns 都走 parser，经 `$I.*` 或直接读抽象成员两条路都验）。
 - **源流必须是字节流（`objectMode: false`）**。实测 objectMode 源会让 fugue 的降级
   探针在第一次 pull 就误判越限，随后去读介质槽并抛
   `Static member "._transferrerCtor" must be implemented`；http1.1 / http2 的入站流

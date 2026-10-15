@@ -526,23 +526,25 @@ out. This package normalizes that value into one record shape:
 ```js
 {
   stream: ReadableStream | null, // null = no body
-  length?: number, // known byte count; the property is omitted otherwise
+  length: number | null, // known byte count, or null when unknown
 }
 ```
 
-`length` is optional on purpose: a string or a byte array has a known
-length, a stream does not. Nothing is inferred from the absence — an
-absent `length` means exactly "unknown".
+`length` is always present and explicit: a non-negative byte count, or
+`null` when the count is unknown. A string or a byte array has a known
+length, a stream does not. `null` means exactly "unknown" and nothing is
+inferred from it. The two sides must agree: a `null` stream means no body,
+so its length is exactly `0`, never `null`.
 
 Built-in presets, implemented **only** in this package:
 
 | Value                  | Result                                        |
 | ---------------------- | --------------------------------------------- |
-| `null`, `undefined`    | `{ stream: null }`                            |
+| `null`, `undefined`    | `{ stream: null, length: 0 }`                 |
 | `string`               | UTF-8 `ReadableStream`, `length` = byte count |
 | `Uint8Array`, `Buffer` | `ReadableStream`, `length` = `byteLength`     |
-| `ReadableStream`       | as given, `length` omitted                    |
-| node `Readable`        | `Readable.toWeb(value)`, `length` omitted     |
+| `ReadableStream`       | as given, `length` = `null`                   |
+| node `Readable`        | `Readable.toWeb(value)`, `length` = `null`    |
 
 - The `string` length must be the **byte** count (`Buffer.byteLength`),
   never `.length`.
