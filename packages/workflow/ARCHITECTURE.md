@@ -441,7 +441,7 @@ getters/setters for all abstract members:
 
 - `meta`, `method`, `URL`, `status`, `finished`
 - `request.header` (get, keys), `request.body.data` (get)
-- `response.header` (get, keys, set, delete), `response.body.data` (get, set)
+- `response.header` (get, keys, set, delete), `response.body.data` (set)
 
 This factory uses `SubConstructorProxy` from `@produck/es-abstract` to
 generate a functional Exchange subclass.

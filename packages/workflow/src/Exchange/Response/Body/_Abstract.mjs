@@ -1,23 +1,39 @@
 import Abstract, { Member as M } from '@produck/es-abstract';
 
-import { _I } from './_Symbol.mjs';
-import { PART } from './_Borrow.mjs';
+import { useWorkflow } from '../../../Capability.mjs';
 import * as Part from '../../Part/index.mjs';
+import * as DataNormalizer from './DataNormalizer/index.mjs';
+import { _A, PART, EXCHANGE, WORKFLOW } from './_Borrow.mjs';
+import { I, _I } from './_Symbol.mjs';
+
+const { ReadableStreamResult } = DataNormalizer.Parser;
+const NO_BODY = Object.freeze({ stream: null, length: 0 });
 
 class ResponseBody extends Part.Concrete {
+  [I.DATA] = NO_BODY;
+
   get data() {
-    return this[_I.DATA.GET](this[PART.$I.INTERNAL]);
+    const { stream, length } = this[I.DATA];
+
+    return { stream, length };
   }
 
   set data(value) {
-    this[_I.DATA.SET](this[PART.$I.INTERNAL], value);
+    const ExchangeKit = this[PART.I.EXCHANGE][EXCHANGE.$I.KIT];
+    const workflow = useWorkflow(ExchangeKit);
+    const registry = workflow[WORKFLOW.$I.STATE].ResponseBodyNormalizerRegistry;
+    const { stream, length } = registry[_A.REGISTRY.$I.NORMALIZE](value);
+
+    this[I.DATA] = { stream, length };
+    this[_I.DATA.SET](this[PART.$I.INTERNAL], { stream, length });
   }
 }
 
 export default Abstract(
   ResponseBody,
   Abstract({
-    [_I.DATA.GET]: M.Method().args(M.Any).returns(M.Any),
-    [_I.DATA.SET]: M.Method().args(M.Any, M.Any).returns(M.Undefined),
+    [_I.DATA.SET]: M.Method()
+      .args(M.Any, ReadableStreamResult)
+      .returns(M.Undefined),
   }),
 );

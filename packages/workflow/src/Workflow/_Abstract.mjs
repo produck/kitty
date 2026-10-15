@@ -7,6 +7,7 @@ import * as Fugue from '@produck/fugue';
 
 import { I, $I, _I } from './_Symbol.mjs';
 import * as Configuration from '../Configuration/index.mjs';
+import * as DataNormalizerRegistry from './DataNormalizerRegistry/index.mjs';
 import { K_WORKFLOW, K_DEPLOYMENT_SERVER } from '../Capability.mjs';
 import { assertHandlerByIndex } from './Assert.mjs';
 
@@ -14,8 +15,12 @@ const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
 
 class KittyWorkflow {
   [I.HANDLER_LIST] = [];
-  [$I.STATE] = { ReadableStreamDistributor: null };
   [$I.WORKFLOW] = DEFAULT_PASSTHROUGH;
+
+  [$I.STATE] = {
+    ReadableStreamDistributor: null,
+    ResponseBodyNormalizerRegistry: null,
+  };
 
   constructor(kit) {
     if (!Kit.isKit(kit)) {
@@ -27,6 +32,9 @@ class KittyWorkflow {
     this[$I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = $(this);
     Configuration.install($(this));
+
+    this[$I.STATE].ResponseBodyNormalizerRegistry =
+      new DataNormalizerRegistry.Concrete();
   }
 
   [$I.COMPOSE.PREPEND](...handler) {
@@ -103,12 +111,18 @@ class KittyWorkflow {
     return this[$I.DEPLOY](server);
   }
 
-  async setReadableStreamDistributor(Constructor) {
+  setReadableStreamDistributor(Constructor) {
     if (!isSubConstructor(Constructor, Fugue.Distributor)) {
       ThrowTypeError('args[0]', 'sub class of Fugue.Distributor');
     }
 
     this[$I.STATE].ReadableStreamDistributor = Constructor;
+
+    return this;
+  }
+
+  registerResponseBodyNormalizer(Normalizer) {
+    this[$I.STATE].ResponseBodyNormalizerRegistry.register(Normalizer);
 
     return this;
   }

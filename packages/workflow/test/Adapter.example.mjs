@@ -280,10 +280,6 @@ class Http1ResponseHeader extends ResponseHeader.Abstract {
 }
 
 class Http1ResponseBody extends ResponseBody.Abstract {
-  [SB_I.DATA.GET](internal) {
-    return internal.body;
-  }
-
   [SB_I.DATA.SET](internal, value) {
     internal.body = value;
   }

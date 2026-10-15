@@ -45,7 +45,7 @@ export function Implement(options) {
         delete: deleteResponseHeader,
       },
       body: {
-        data: { get: getResponseBodyData, set: setResponseBodyData },
+        data: { set: setResponseBodyData },
       },
     },
   } = normalize(options);
@@ -123,10 +123,6 @@ export function Implement(options) {
     constructor(...args) {
       super(...args);
       Object.freeze(this);
-    }
-
-    [RESPONSE_BODY._I.DATA.GET](_internal) {
-      return getResponseBodyData(this[I_OPTIONS_CONTEXT]);
     }
 
     [RESPONSE_BODY._I.DATA.SET](_internal, value) {

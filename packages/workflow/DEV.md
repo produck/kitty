@@ -188,7 +188,8 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   `request.{mode,method,URL}.get`、`request.header.{get,keys}`、
   `request.body.{source.get}`；`response.status.{get,set}`、
   `response.statusText.{get,set}`、`response.finished.is`、
-  `response.header.{get,keys,set,delete}`、`response.body.data.{get,set}`。
+  `response.header.{get,keys,set,delete}`、
+  `response.body.data.{get,set}`（2026-10-15：`get` 已删，只剩 `set`）。
   `index.mjs` 只留装配（七个 `Implemented*` + `SCP` 表 + `return`），选项校验拆到
   `Normalize.mjs`（导出 `normalize()`）。该目录无 `_Abstract.mjs` /
   `_Concrete.mjs`，按 LAY-5 是**非 subject 元素**、不受 `_Symbol.mjs` /
@@ -382,6 +383,25 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   `null` 或非负整数，**且 stream 为 `null` 时 length 必须恰好是 `0`**（无 body ＝ 已知
   零字节，不允许用 `null` 表示）。实测：成员 schema 在运行期真的生效（`Member.Method()` 会给实现套
   一层，args/returns 都走 parser，经 `$I.*` 或直接读抽象成员两条路都验）。
+- **`Workflow/DataNormalizerRegistry/` 是 Workflow 内部 subject（2026-10-15 用户口径）**：
+  不在任何出口上（`Workflow/index.mjs` 仍只导 `Abstract` / `Assert`），替掉原先 STATE 里的裸
+  数组。存**实例**不存类：`I.NORMALIZER_MAP` 是 `Map<构造器, 实例>`，键取
+  `normalizer[SYMBOL.CONSTRUCTOR]`——**不是 `.constructor`**（那是可被下游覆盖的普通属性，
+  实测两个不同的类各写一次 `this.constructor` 就被判成同一个，消息还烂成
+  `Normalizer(undefined) exists.`；而 `SYMBOL.CONSTRUCTOR` 是本仓 `new.target` 的既有捕获，
+  等于 SCP 包装后的那个类）。重复注册抛 `Ow.Error.Common`，迭代顺序＝注册顺序（`Map` 的
+  `[[MapData]]` 是 List，规范保证），首个 `$I.TEST` 命中者胜。
+- **ResponseBody 的 sink 接线（2026-10-15）**：`set data` 经 workflow 取 registry →
+  `$I.NORMALIZE` 归一 → **只 pick `stream` / `length`** 再分给 `I.DATA` 与
+  `_I.DATA.SET`（预设多塞的键进不来）；`get data` 从 `I.DATA` 组一份新对象（不回适配器），
+  未设时读冻结常量 `NO_BODY = { stream: null, length: 0 }`。`_I.DATA.GET` 因此无人调用，整条删除（含
+  `Implement` 的实现、`Normalize.mjs` 的选项校验、示例里的 `[SB_I.DATA.GET]`）。
+- **逐级出口 + 借表按 partial-constructor 规范（2026-10-15）**：Exchange 出口只导直接子级
+  （`Part` / `Request` / `Response`，各 subject 出口再导自己的子级），跨层引用走层出口
+  （`Exchange.Response.Body.DataNormalizer.Abstract`），层的内部 subject 不出口。借表按
+  BTB-1 / BTB-4：**以源模块自己的名字取表**（`DATA_NORMALIZER_REGISTRY`），别名写在冻结的
+  `_A` 里（`_A.REGISTRY.$I.NORMALIZE`；别名成立依据＝全表达式那行 86 列 > 80，SYM-11），
+  没有别名需求时不写空 `_A`（STB-2）。
 - **源流必须是字节流（`objectMode: false`）**。实测 objectMode 源会让 fugue 的降级
   探针在第一次 pull 就误判越限，随后去读介质槽并抛
   `Static member "._transferrerCtor" must be implemented`；http1.1 / http2 的入站流

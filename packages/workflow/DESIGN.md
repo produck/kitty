@@ -548,11 +548,14 @@ Built-in presets, implemented **only** in this package:
 
 - The `string` length must be the **byte** count (`Buffer.byteLength`),
   never `.length`.
-- A preset is `{ name, match, convert }`; the registered set is small,
-  closed and ordered, and a value that matches nothing is rejected with
-  the registered names in the error. This is a declared set, not a probe:
-  it never asks the value what it is (no `toJSON`-style duck typing), and
-  a workflow exposes which presets it carries.
+- A preset is a `ResponseBodyDataNormalizer` derivation: its matcher is the
+  static `test()` it declares, its converter is its `normalize()`. The
+  registry holds the registered instances, deduplicated by their
+  constructor, and **keeps them in registration order — the first match
+  wins**, so registration order is the declared precedence. A value that
+  matches nothing is rejected with the registered names in the error. This
+  is a declared set, not a probe: it never asks the value what it is (no
+  `toJSON`-style duck typing), and a workflow carries the set.
 - The default assembly is not core's job: this package ships the built-in
   presets, while `@produck/kitty` composes the default set (and may add
   downstream ones, such as JSON) when the packages are put together.
@@ -567,10 +570,15 @@ Responsibility split:
   `Transfer-Encoding` at all. The framework never sets either header; it
   only says what is known about the body.
 
-Still open: the programming names (record, preset, the reader of the
-declared set; the concept name `ResponseBodyDataValue` is for prose
-only), whether `get data` answers the record or the value that was set,
-and whether `Uint8Array`/`Buffer` stays in the built-in set.
+`get data` answers a copy of the record: the body keeps the record in a
+private slot of its own, so reading never calls back into the adapter, and
+a body nobody set reads the no-body record, `{ stream: null, length: 0 }`.
+The setter picks the two contract fields, so a preset that returns extra
+ones never gets them into the body nor to the adapter.
+
+Still open: the programming names (the reader of the declared set; the
+concept name `ResponseBodyDataValue` is for prose only) and whether
+`Uint8Array`/`Buffer` stays in the built-in set.
 
 Core may provide a default caching strategy (threshold → temp file)
 with a policy controller installed on `DeploymentKit`. The

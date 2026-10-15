@@ -272,13 +272,7 @@ export default function normalize(options) {
         if (isPlainObject(_data)) {
           const data = (body.data = {});
 
-          const { get: _get, set: _set } = _data;
-
-          if (typeof _get === 'function') {
-            data.get = _get;
-          } else {
-            ThrowTypeError('args[0].response.body.data.get', 'function');
-          }
+          const { set: _set } = _data;
 
           if (typeof _set === 'function') {
             data.set = _set;
