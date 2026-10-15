@@ -5,7 +5,7 @@ import { PART } from './_Borrow.mjs';
 import * as Part from '../../Part/index.mjs';
 import * as Assert from '../../Parser.mjs';
 
-class AbstractRequestHeader extends Part.Concrete {
+class RequestHeader extends Part.Concrete {
   get(key) {
     Assert.HeaderName(key);
 
@@ -30,7 +30,7 @@ class AbstractRequestHeader extends Part.Concrete {
 }
 
 export default Abstract(
-  AbstractRequestHeader,
+  RequestHeader,
   Abstract({
     [_I.GET]: M.Method().args(M.Any, M.String).returns(M.String),
     [_I.KEYS]: M.Method().args(M.Any).returns(Assert.Iterable),

@@ -4,7 +4,7 @@ import { _I } from './_Symbol.mjs';
 import { PART } from './_Borrow.mjs';
 import * as Part from '../../Part/index.mjs';
 
-class AbstractResponseBody extends Part.Concrete {
+class ResponseBody extends Part.Concrete {
   get data() {
     return this[_I.DATA.GET](this[PART.$I.INTERNAL]);
   }
@@ -15,7 +15,7 @@ class AbstractResponseBody extends Part.Concrete {
 }
 
 export default Abstract(
-  AbstractResponseBody,
+  ResponseBody,
   Abstract({
     [_I.DATA.GET]: M.Method().args(M.Any).returns(M.Any),
     [_I.DATA.SET]: M.Method().args(M.Any, M.Any).returns(M.Undefined),

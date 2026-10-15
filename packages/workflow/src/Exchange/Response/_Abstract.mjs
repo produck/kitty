@@ -9,7 +9,7 @@ import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';
 import * as Body from './Body/index.mjs';
 
-class AbstractResponse extends Part.Concrete {
+class Response extends Part.Concrete {
   [I.HEADER] = null;
   [I.BODY] = null;
 
@@ -52,7 +52,7 @@ class AbstractResponse extends Part.Concrete {
 }
 
 export default Abstract(
-  AbstractResponse,
+  Response,
   Abstract({
     [_I.STATUS.GET]: M.Method().args(M.Any).returns(Assert.HTTPStatusCode),
     [_I.STATUS.SET]: M.Method()

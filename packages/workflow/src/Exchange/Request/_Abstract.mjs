@@ -10,7 +10,7 @@ import * as Header from './Header/index.mjs';
 import * as Body from './Body/index.mjs';
 import { ThrowAdapter } from '../Utils.mjs';
 
-class AbstractRequest extends Part.Concrete {
+class Request extends Part.Concrete {
   [I.HEADER] = null;
   [I.BODY] = null;
 
@@ -54,7 +54,7 @@ class AbstractRequest extends Part.Concrete {
 }
 
 export default Abstract(
-  AbstractRequest,
+  Request,
   Abstract({
     [_I.MODE.GET]: M.Method().args(M.Any).returns(P.ExchangeMode),
     [_I.METHOD.GET]: M.Method().args(M.Any).returns(P.HttpMethod),

@@ -509,13 +509,66 @@ Kitty core is responsible for memory safety. The first-class body
 interface is always stream-based:
 
 ```js
-tx.response.body.data; // Readable | null
 tx.request.body.data; // Readable | null
+tx.response.body.data; // the handler sets it — see the sink contract below
 ```
 
 - **Readable**: Always stream. Never auto-drains to Buffer. Consumers
   pipe or read chunks as needed.
 - **null**: No body.
+
+#### Response body data: the sink contract (draft, 2026-10-15)
+
+The request side is a source; the response side is a **sink**. The
+handler hands a value to `response.body.data` and the adapter writes it
+out. This package normalizes that value into one record shape:
+
+```js
+{
+  stream: ReadableStream | null, // null = no body
+  length?: number, // known byte count; the property is omitted otherwise
+}
+```
+
+`length` is optional on purpose: a string or a byte array has a known
+length, a stream does not. Nothing is inferred from the absence — an
+absent `length` means exactly "unknown".
+
+Built-in presets, implemented **only** in this package:
+
+| Value                  | Result                                        |
+| ---------------------- | --------------------------------------------- |
+| `null`, `undefined`    | `{ stream: null }`                            |
+| `string`               | UTF-8 `ReadableStream`, `length` = byte count |
+| `Uint8Array`, `Buffer` | `ReadableStream`, `length` = `byteLength`     |
+| `ReadableStream`       | as given, `length` omitted                    |
+| node `Readable`        | `Readable.toWeb(value)`, `length` omitted     |
+
+- The `string` length must be the **byte** count (`Buffer.byteLength`),
+  never `.length`.
+- A preset is `{ name, match, convert }`; the registered set is small,
+  closed and ordered, and a value that matches nothing is rejected with
+  the registered names in the error. This is a declared set, not a probe:
+  it never asks the value what it is (no `toJSON`-style duck typing), and
+  a workflow exposes which presets it carries.
+- The default assembly is not core's job: this package ships the built-in
+  presets, while `@produck/kitty` composes the default set (and may add
+  downstream ones, such as JSON) when the packages are put together.
+
+Responsibility split:
+
+- **This package**: the record shape, the built-in presets, the
+  normalization at the setter, and the declared set.
+- **The adapter, downstream**: everything protocol-specific. That
+  includes `Content-Length` versus `Transfer-Encoding` — and the
+  h1/h2 difference in particular: HTTP/1.1 may chunk, HTTP/2 has no
+  `Transfer-Encoding` at all. The framework never sets either header; it
+  only says what is known about the body.
+
+Still open: the programming names (record, preset, the reader of the
+declared set; the concept name `ResponseBodyDataValue` is for prose
+only), whether `get data` answers the record or the value that was set,
+and whether `Uint8Array`/`Buffer` stays in the built-in set.
 
 Core may provide a default caching strategy (threshold → temp file)
 with a policy controller installed on `DeploymentKit`. The

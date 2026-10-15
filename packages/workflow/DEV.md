@@ -359,6 +359,16 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   身份**为键，`$(this)` 取得的面与裸实例是两个键（实测 `new` 交出的就是面，而
   `useWorkflow(kit)` 也交同一个面，所以正常路径一致）；②`installConfiguration` 必须
   在构造期就把面装进去，否则一次 `Get.get<键>` 就会抛 `args[0] as workflow`。
+- **Response body 是 sink：形状 / 预设 / 责任边界已定，先落 `DESIGN.md`**（2026-10-15 用户
+  口径）：归一形状 `{ stream: ReadableStream | null, length?: number }`（**`length` 可选**，
+  省略即未知）；核心库只实现内建预设 `null` / `undefined` / `string`（长度取
+  `Buffer.byteLength`，不是 `.length`）/ `Uint8Array`、`Buffer` / `ReadableStream` /
+  node `Readable`；预设是 `{ name, match, convert }` 的**声明集**（按注册顺序、未命中原样
+  报出已注册名），不做 `toJSON` 式探测；**`Content-Length` 与 `Transfer-Encoding` 全部
+  归适配器下游**（含 h1 分块 / h2 无 `Transfer-Encoding` 的差别，框架一个都不设）；
+  默认集合的组装留给 `@produck/kitty`。待定：编程命名（记录/preset/声明集读取器）、
+  `get data` 回答什么、`Uint8Array`/`Buffer` 是否留在内建集。详见 `DESIGN.md` 的
+  "Response body data: the sink contract"。
 - **源流必须是字节流（`objectMode: false`）**。实测 objectMode 源会让 fugue 的降级
   探针在第一次 pull 就误判越限，随后去读介质槽并抛
   `Static member "._transferrerCtor" must be implemented`；http1.1 / http2 的入站流
