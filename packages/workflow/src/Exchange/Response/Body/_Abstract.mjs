@@ -1,9 +1,8 @@
 import Abstract, { Member as M } from '@produck/es-abstract';
 
-import { useWorkflow } from '../../../Capability.mjs';
 import * as Part from '../../Part/index.mjs';
 import * as DataNormalizer from './DataNormalizer/index.mjs';
-import { _A, PART, EXCHANGE, WORKFLOW } from './_Borrow.mjs';
+import { _A, PART, WORKFLOW } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
 
 const { ReadableStreamResult } = DataNormalizer.Parser;
@@ -19,9 +18,8 @@ class ResponseBody extends Part.Concrete {
   }
 
   set data(value) {
-    const ExchangeKit = this[PART.I.EXCHANGE][EXCHANGE.$I.KIT];
-    const workflow = useWorkflow(ExchangeKit);
-    const registry = workflow[WORKFLOW.$I.STATE].responseBodyNormalizerRegistry;
+    const registry =
+      this.workflow[WORKFLOW.$I.STATE].responseBodyNormalizerRegistry;
     const { stream, length } = registry[_A.REGISTRY.$I.NORMALIZE](value);
 
     this[I.DATA] = { stream, length };

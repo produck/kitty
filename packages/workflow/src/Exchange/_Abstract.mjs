@@ -11,7 +11,7 @@ import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
 import { Get } from '../Configuration/index.mjs';
 
-class KittyExchange extends EventTarget {
+class Exchange extends EventTarget {
   [I.REQUEST] = null;
   [I.RESPONSE] = null;
 
@@ -28,8 +28,7 @@ class KittyExchange extends EventTarget {
   }
 
   [I.START_TIMING]() {
-    const workflow = useWorkflow(this[$I.KIT]);
-    const maxExchangeTimeout = Get.getMaxExchangeTimeout(workflow);
+    const maxExchangeTimeout = Get.getMaxExchangeTimeout(this.workflow);
 
     const timer = setTimeout(() => {
       if (!this.response.isFinished) {
@@ -42,6 +41,10 @@ class KittyExchange extends EventTarget {
 
   get [$I.IDENTITY]() {
     return this[_I.IDENTITY.GET](this[I.INTERNAL]);
+  }
+
+  get workflow() {
+    return useWorkflow(this[$I.KIT]);
   }
 
   get request() {
@@ -94,7 +97,7 @@ class KittyExchange extends EventTarget {
 }
 
 export default Abstract(
-  KittyExchange,
+  Exchange,
   Abstract({
     [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
     [_I.SERVER.GET]: M.Method().args(M.Any).returns(M.Instance(net.Server)),

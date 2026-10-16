@@ -265,6 +265,12 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   `this[SYMBOL.CONSTRUCTOR] = new.target`。构造参数**不带默认值**
   （`constructor(exchange)`）：part 一律由框架构造，不存在"没有 exchange 的 part"
   这种状态（与 `Request` / `Response` / `Body` 一致）。
+- **`get workflow()`：Exchange 拥有查找，part 委托（2026-10-16 用户口径：提高复用度）**：
+  `Exchange` 上是 `useWorkflow(this[$I.KIT])`（`[I.START_TIMING]` 也改用它，于是
+  `useWorkflow` 的导入只剩 Exchange 一处）；`ExchangePart` 上是
+  `this[I.EXCHANGE].workflow`——part 不再自己走 kit 链。三个调用点（`Request.get body()`
+  的设卡、`RequestBody` 构造器取分发器类与选项、`ResponseBody.set data` 取 registry）
+  随之简化，两个 Body 模块的 `EXCHANGE` 借表与 `useWorkflow` 导入都删掉了。
 - **`extends EventTarget`**：所有 part 都是事件目标，事件通道因此有落点（见第 13
   条）。实测两处不必担心：经 `Abstract` 代理后 `instanceof EventTarget` 成立；构造
   器里的冻结不影响 `addEventListener` / `dispatchEvent`（事件挂内部槽，不在属性
@@ -278,6 +284,14 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   `this.header.get('host')` 拼 `this.exchange.protocol`，缺 host 抛 `ThrowAdapter`。
 - `Request/Header` 的 `_I.GET` / `_I.KEYS` 是直接符号键（不是 `{ GET: … }` 嵌
   套），因为该 subject 只有一个概念。
+- **`Request.get body()` 按 `allowedBodyMethods` 设卡（2026-10-16 用户口径）**：不在
+  名单里的 method 读 `body` 直接抛 `Ow.Error.Common`（`It MUST NOT read a body for
+the <METHOD> method.`）——所以**下游必须自己知道哪些 method 合法带 body** 才去碰
+  request body。名单逐次从 workflow 取
+  （`Configuration.Get.getAllowedBodyMethods(workflow)`，默认 `POST` / `PUT` /
+  `PATCH`），因此 `Tune` 改完立刻生效；`get header()` 不设卡。实测
+  `logs/probe-request-body-method.ign.mjs`：默认名单放 POST、挡 GET；改成
+  `['DELETE']` 后 DELETE 通、POST 被挡；读 `body` 是逐次判定，不是每个 request 一次。
 
 ### Request Body 与 @produck/fugue
 
@@ -493,9 +507,9 @@ responseBodyNormalizerRegistry: null }`）——所以 `finalize()` 的
    去。参考做法：包出口带 `SYMBOL.<模块>.<表>.<键>`，并直接暴露抽象 subject 供下游
    `extends`。
 3. **Body 与 config 的关系未定**：`Configuration/` 已有 `maxBodySize` /
-   `maxRequestBodyBuffer` / `allowedBodyMethods`，一个都没接到 fugue 上。要定
-   `maxBodySize` 对应 fugue 的哪一档（`MaxChunkStashByteLength`？还是硬上限 +
-   413）。
+   `maxRequestBodyBuffer` / `allowedBodyMethods`；其中 `allowedBodyMethods` 已在
+   `Request` 侧设卡（2026-10-16，与 fugue 无关），剩两项要定 `maxBodySize` 对应
+   fugue 的哪一档（`MaxChunkStashByteLength`？还是硬上限 + 413）。
 4. **默认降级介质由谁提供未定**：包内没有 `Fugue.DegradedChunkReader` 的实现（内存
    或临时文件）。按"不组装介质"的定调它不在 Body 层，但放哪一级、要不要出未定
    （第 22 条给了落点）。

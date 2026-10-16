@@ -3,10 +3,9 @@ import { Readable } from 'node:stream';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
-import { useWorkflow } from '../../../Capability.mjs';
 import * as Configuration from '../../../Configuration/index.mjs';
 import * as Part from '../../Part/index.mjs';
-import { EXCHANGE, PART, WORKFLOW } from './_Borrow.mjs';
+import { PART, WORKFLOW } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
 
 class RequestBody extends Part.Concrete {
@@ -16,8 +15,7 @@ class RequestBody extends Part.Concrete {
     super(exchange);
 
     const source = Readable.toWeb(this[_I.SOURCE.GET](this[PART.$I.INTERNAL]));
-    const ExchangeKit = this[PART.I.EXCHANGE][EXCHANGE.$I.KIT];
-    const workflow = useWorkflow(ExchangeKit);
+    const { workflow } = this;
     const { RequestBodyDistributor } = workflow[WORKFLOW.$I.STATE];
     const distributor = new RequestBodyDistributor(source);
 

@@ -16,6 +16,10 @@ export default class ExchangePart extends EventTarget {
     return this[I.EXCHANGE];
   }
 
+  get workflow() {
+    return this[I.EXCHANGE].workflow;
+  }
+
   get [$I.INTERNAL]() {
     return this[I.EXCHANGE][EXCHANGE.I.INTERNAL];
   }
