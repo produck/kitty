@@ -206,9 +206,9 @@ that it can actually use.
   item, one entry each; the request body applies every value to each
   distributor right after construction.
 - Workflow core does not hardcode protocol behavior.
-- **The readable stream distributor class is deployment-scoped workflow
+- **The request body distributor class is deployment-scoped workflow
   state**: the application sets it with
-  `Workflow.setReadableStreamDistributor(Ctor)` (validated as a
+  `Workflow.setRequestBodyDistributorConstructor(Ctor)` (validated as a
   `Fugue.Distributor` derivation), the workflow keeps it in its own
   private state record, and the request body reads it through the
   `useWorkflow(kit)` port. The value may be replaced at any time,

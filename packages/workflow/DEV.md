@@ -85,7 +85,7 @@ instance of an abstract class.`。于是"构造体内登记自己"不再等于�
   `$I.INTERNAL` 传给抽象成员）。
 - 跨包借表**直接用对方的键**，不另立符号、不做翻译：`Body` 的
   `_S.DISTRIBUTOR_CTOR` 指向 `Fugue.Distributor`（2026-10-14：该键已删，Body 的介质类
-  改由 Workflow 的 `$I.STATE.ReadableStreamDistributor` 提供），介质槽
+  改由 Workflow 的 `$I.STATE.RequestBodyDistributor` 提供），介质槽
   `Fugue.SYMBOL.DISTRIBUTOR._S.DEGRADED_CHUNK_READER_CTOR` 由下游在具体
   Distributor 上赋，本仓不声明也不转发。
 - **kit 槽位符号集中在 `src/Capability.mjs`**（`K_WORKFLOW` /
@@ -283,7 +283,7 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
 
 - 契约：`_I.SOURCE.GET()` 答 **node `Readable`**（下游交入站流）；
   `_S.DISTRIBUTOR_CTOR` 答 `Fugue.Distributor` 的具体子类（2026-10-14：该键已删，
-  改答来自 Workflow 的 `$I.STATE.ReadableStreamDistributor`）。
+  改答来自 Workflow 的 `$I.STATE.RequestBodyDistributor`）。
 - `data` = `distributor.fork()`，**每次访问都 fork 一份新的完整拷贝**
   （`body.data !== body.data`），返回 **WHATWG `ReadableStream`**（不再过
   `Readable.fromWeb()`）；转换边界只剩源侧一处
@@ -314,7 +314,7 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   针对事件做动作（如写日志），见第 13 条。两件事不矛盾：一条关的是"不开状态
   getter"，另一条关的是"事件有没有通道"。
 - **不自己定义 Distributor 层**：Body 只认"整个具体 Distributor"，介质契约回到
-  fugue 自己的公开面（`$I.STATE.ReadableStreamDistributor` + fugue 的介质槽）。
+  fugue 自己的公开面（`$I.STATE.RequestBodyDistributor` + fugue 的介质槽）。
 - **12 项 fugue 选项由本包代理**（2026-10-14，用户口径"全都要 + 本仓代理，替下游
   屏蔽 distributor 的复杂性"）：键用 **PascalCase**（`MaxChunkStashByteLength` /
   `ForkedReadableStreamHighWaterMark` / `DegradeOnChunkStashFullAndDone` / 4 组重试
@@ -421,9 +421,10 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
 - `[$I.COMPILE](server, DeploymentKit = this[$I.KIT]('Kitty<Deployment>'))` 写
   `DeploymentKit[K_DEPLOYMENT_SERVER] = server`。
 - `get isFinalized()` 就是 `Object.isFrozen(this)`，没有单独布尔位。
-- **`setReadableStreamDistributor(Constructor)` 是应用侧设置可读流分发器的入口**
-  （2026-10-14 落）：类写进 **Workflow 的私有 `STATE` record**
-  （`$I.STATE = { ReadableStreamDistributor: null }`）——所以 `finalize()` 的
+- **`setRequestBodyDistributorConstructor(Constructor)` 是应用侧设置请求体
+  分发器的入口**（2026-10-14 落）：类写进 **Workflow 的私有 `STATE` record**
+  `$I.STATE = { RequestBodyDistributor: null,
+responseBodyNormalizerRegistry: null }`）——所以 `finalize()` 的
   `Object.freeze(this)` 之后**仍可换**（用户口径："运行时也允许切换分发器类"；
   这是"改的实现必须显式写出来"的一个实例）。用户口径（2026-10-14）：**专门给
   Workflow 开一个 `STATE` 私有成员，作为 record 形状维护那些可变的相关资源**；
@@ -436,7 +437,7 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   （2026-10-14）：Body 的 `A.I.DISTRIBUTOR_CTOR` getter 经
   `useWorkflow(this[PART.I.EXCHANGE][EXCHANGE.$I.KIT])` 读 `$I.STATE`——先前的
   “未定”已定，且实测见第 17 条。**门禁**（2026-10-14）：`$I.DEPLOY` 先查
-  `$I.STATE.ReadableStreamDistributor`，未设直接 `Ow.Error.Common` 抛，不得部署。
+  `$I.STATE.RequestBodyDistributor`，未设直接 `Ow.Error.Common` 抛，不得部署。
 - `CompoundWorkflow/_Borrow.mjs` 以
   `export * as WORKFLOW from '../Workflow/_Symbol.mjs'` 转发；这是本仓唯一还需要
   `_Borrow.mjs` 的地方。
@@ -574,8 +575,8 @@ net.Server)`。倾向②。
     配**：类级（设计期）槽，主人却是应用配置级（**部署期**）事实。已形成的口径：
     - **改从端口拿**：body 构造时读 kit → `_S.DISTRIBUTOR_CTOR` 整格可删，树里不再
       有"值是类"的例外格，`RequestBody` 静态面清空。**入口已落**（2026-10-14）：
-      `Workflow.setReadableStreamDistributor()` 把类写进 **Workflow 自己的私有槽**
-      （`$I.STATE.ReadableStreamDistributor`；record 内部键是 string），定义期
+      `Workflow.setRequestBodyDistributorConstructor()` 把类写进 **Workflow 自己的私有槽**
+      （`$I.STATE.RequestBodyDistributor`；record 内部键是 string），定义期
       与运行期都可换，**消费侧已接**（2026-10-14）：Body 的 `A.I.DISTRIBUTOR_CTOR`
       getter 经 `useWorkflow` 读这里；**树里那格已死**——marker 探针
       （`logs/probe-implement.ign.mjs`）证明被构造的是 Workflow 给的那个类，树里的
@@ -612,3 +613,20 @@ net.Server)`。倾向②。
     `Exchange/_Borrow.mjs` 再导出、只借自己 module 的表；②`I_OPTIONS_CONTEXT` 定义
     在 `Implement/index.mjs`（私有级 `.#`），按 STB-1 该进 `_Symbol.mjs`，而该目录
     按 LAY-5 是非 subject 元素、不受该约束——要不要给它一张表。
+20. **`RequestBody.get distributor()` 维持“原样暴露”（2026-10-16 口径）**：用途是给
+    handler 下游一个**可观测机制**（不打算再代理一遍流）；因为“下游手动控制分发器生命
+    周期”的影响**尚未评估**，所以现在不改，评估完再判。已核清的事实（fugue 的公开
+    面）：①`get data()` 每次读就是一次 `fork()`，所以“能不能造副本、造多少”**不在暴露
+    面的差集里**；②直接暴露真正新增的能力只有三个写口——`terminate()`（同步关门禁，
+    只拒新 `fork()`）、`destroy()`（取消源、error 掉活副本、释放介质，幂等）、
+    `setTransferrerArgs()`（一次性）；③可观测性的主体是 `EventTarget` 的事件
+    （`warn` / `degrade` / `fork` / `terminate`）加四个读口（`degraded` /
+    `terminated` / `options` / `getWarningCount(code)`）。已排除两条：**冻结实例**
+    （`terminate` 等方法在原型上，`Object.freeze(instance)` 拦不住）；**`Proxy`**
+    （会变形 `EventTarget` 语义——回调里的 `event.target` / `composedPath()` 指向代
+    理、`instanceof Fugue.Distributor` 变假——而“按名单动态放行”的需求目前为零）。
+    若最后要做，候选是**只读投影**（不拦成员访问：转发四个读口＋直通
+    `addEventListener`，不给三个写口），届时还要定它归谁——挂在 `RequestBody` 上的公
+    开只读视图，还是由 `Workflow` 层提供观察口（与第 10 条 (c)、第 11 条同一问题）。
+    信任边界的注记：handler 与 adapter 同信任级，而 adapter 手里还有整个 `internal`，
+    所以挡住写口主要是**防误用**、不是防越权。

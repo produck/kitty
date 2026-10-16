@@ -184,10 +184,10 @@ This preserves the minimum-knowledge rule for core while still allowing
 real configuration. Core does not interpret downstream configuration;
 it only issues the capability through which permitted effects may occur.
 
-Core's own deployment-scoped facts follow the same rule. The readable
-stream distributor class is not a `deploy(server, options)` field: the
+Core's own deployment-scoped facts follow the same rule. The request
+body distributor class is not a `deploy(server, options)` field: the
 application sets it on the workflow with
-`setReadableStreamDistributor(Ctor)`, the workflow keeps it in its
+`setRequestBodyDistributorConstructor(Ctor)`, the workflow keeps it in its
 private state record, and the request body reads it back through a port
 (`useWorkflow(kit)`). Deployment is gated on the class being set.
 

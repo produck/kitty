@@ -18,8 +18,8 @@ class KittyWorkflow {
   [$I.WORKFLOW] = DEFAULT_PASSTHROUGH;
 
   [$I.STATE] = {
-    ReadableStreamDistributor: null,
-    ResponseBodyNormalizerRegistry: null,
+    RequestBodyDistributor: null,
+    responseBodyNormalizerRegistry: null,
   };
 
   constructor(kit) {
@@ -33,7 +33,7 @@ class KittyWorkflow {
     WorkflowKit[K_WORKFLOW] = $(this);
     Configuration.install($(this));
 
-    this[$I.STATE].ResponseBodyNormalizerRegistry =
+    this[$I.STATE].responseBodyNormalizerRegistry =
       new DataNormalizerRegistry.Concrete();
   }
 
@@ -88,8 +88,8 @@ class KittyWorkflow {
   }
 
   async [$I.DEPLOY](server, DeploymentKit) {
-    if (this[$I.STATE].ReadableStreamDistributor === null) {
-      Ow.Error.Common('It MUST set a readable stream distributor.');
+    if (this[$I.STATE].RequestBodyDistributor === null) {
+      Ow.Error.Common('It MUST set a request body distributor.');
     }
 
     const { link } = await this[$I.COMPILE](server, DeploymentKit);
@@ -111,18 +111,18 @@ class KittyWorkflow {
     return this[$I.DEPLOY](server);
   }
 
-  setReadableStreamDistributor(Constructor) {
+  setRequestBodyDistributorConstructor(Constructor) {
     if (!isSubConstructor(Constructor, Fugue.Distributor)) {
       ThrowTypeError('args[0]', 'sub class of Fugue.Distributor');
     }
 
-    this[$I.STATE].ReadableStreamDistributor = Constructor;
+    this[$I.STATE].RequestBodyDistributor = Constructor;
 
     return this;
   }
 
   registerResponseBodyNormalizer(Normalizer) {
-    this[$I.STATE].ResponseBodyNormalizerRegistry.register(Normalizer);
+    this[$I.STATE].responseBodyNormalizerRegistry.register(Normalizer);
 
     return this;
   }

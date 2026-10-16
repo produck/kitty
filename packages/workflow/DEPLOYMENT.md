@@ -64,8 +64,8 @@ the listeners and leaves linking to the caller.
 
 `deploy(server)` is the default path for ordinary use.
 
-It refuses to run until a readable stream distributor class has been set
-with `workflow.setReadableStreamDistributor(Ctor)`; the class is what a
+It refuses to run until a request body distributor class has been set
+with `workflow.setRequestBodyDistributorConstructor(Ctor)`; the class is what a
 request body instantiates, so deploying without it would fail on the
 first request. `compile(server)` is not gated — producing the listener
 functions may happen before the class is chosen.

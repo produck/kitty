@@ -21,7 +21,7 @@ class ResponseBody extends Part.Concrete {
   set data(value) {
     const ExchangeKit = this[PART.I.EXCHANGE][EXCHANGE.$I.KIT];
     const workflow = useWorkflow(ExchangeKit);
-    const registry = workflow[WORKFLOW.$I.STATE].ResponseBodyNormalizerRegistry;
+    const registry = workflow[WORKFLOW.$I.STATE].responseBodyNormalizerRegistry;
     const { stream, length } = registry[_A.REGISTRY.$I.NORMALIZE](value);
 
     this[I.DATA] = { stream, length };
