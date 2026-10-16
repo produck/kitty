@@ -3,19 +3,15 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import { _I } from './_Symbol.mjs';
 import { PART } from './_Borrow.mjs';
 import * as Part from '../../Part/index.mjs';
-import * as Assert from '../../Parser.mjs';
+import * as Parser from '../../Parser.mjs';
 
 class RequestHeader extends Part.Concrete {
   get(key) {
-    Assert.HeaderName(key);
-
-    return this[_I.GET](this[PART.$I.INTERNAL], key);
+    return this[_I.GET](this[PART.$I.INTERNAL], Parser.HeaderName(key));
   }
 
   has(key) {
-    Assert.HeaderName(key);
-
-    return this.get(key) !== undefined;
+    return this.get(Parser.HeaderName(key)) !== undefined;
   }
 
   keys() {
@@ -32,7 +28,9 @@ class RequestHeader extends Part.Concrete {
 export default Abstract(
   RequestHeader,
   Abstract({
-    [_I.GET]: M.Method().args(M.Any, M.String).returns(M.String),
-    [_I.KEYS]: M.Method().args(M.Any).returns(Assert.Iterable),
+    [_I.GET]: M.Method()
+      .args(M.Any, M.String)
+      .returns(Parser.HeaderValueOrUndefined),
+    [_I.KEYS]: M.Method().args(M.Any).returns(Parser.Iterable),
   }),
 );

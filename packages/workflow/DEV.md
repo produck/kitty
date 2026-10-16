@@ -284,6 +284,16 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   `this.header.get('host')` 拼 `this.exchange.protocol`，缺 host 抛 `ThrowAdapter`。
 - `Request/Header` 的 `_I.GET` / `_I.KEYS` 是直接符号键（不是 `{ GET: … }` 嵌
   套），因为该 subject 只有一个概念。
+- **读松写紧：`HeaderValue` 与 `HeaderValueOrUndefined` 两个 parser**（2026-10-16 用户定）：
+  两个 Header 的 `_I.GET` 用 `.returns(HeaderValueOrUndefined)`（`undefined` ＝ 没有这个
+  header）；写入侧的预检用严格的 `HeaderValue`。两份都在 **`Exchange/Parser.mjs`**，req / res
+  共用；先试过放到 `Request/Header/Parser.mjs` 再由响应侧引过来，但那是一条 Response →
+  Request 的侧向边，用户否决，改回共享位置。于是 `has()` / `entries()` / `Request.get url()`
+  的 `undefined` 判定不再被契约拦下（此前先抛
+  `Invalid "member", one "a header value string" expected.`）。手写而非
+  `Optional(M.String)`：Member 词表没有并集/可选组合子。`set(k, undefined)` 由 `set()` 预检
+  抛 `Invalid "member", one "a header value string" expected.`（先于 `_I.SET` 的
+  `M.String`）。实测 `logs/probe-header-undefined.ign.mjs`。
 - **`Request.get body()` 按 `allowedBodyMethods` 设卡（2026-10-16 用户口径）**：不在
   名单里的 method 读 `body` 直接抛 `Ow.Error.Common`（`It MUST NOT read a body for
 the <METHOD> method.`）——所以**下游必须自己知道哪些 method 合法带 body** 才去碰
@@ -506,10 +516,11 @@ responseBodyNormalizerRegistry: null }`）——所以 `finalize()` 的
    （`_I.COMPOSE.EXTEND` / `_I.COMPILE_ARTIFACT`）尚未按 PUB-3 以"选择"的形式开出
    去。参考做法：包出口带 `SYMBOL.<模块>.<表>.<键>`，并直接暴露抽象 subject 供下游
    `extends`。
-3. **Body 与 config 的关系未定**：`Configuration/` 已有 `maxBodySize` /
-   `maxRequestBodyBuffer` / `allowedBodyMethods`；其中 `allowedBodyMethods` 已在
-   `Request` 侧设卡（2026-10-16，与 fugue 无关），剩两项要定 `maxBodySize` 对应
-   fugue 的哪一档（`MaxChunkStashByteLength`？还是硬上限 + 413）。
+3. **Body 与 config 的关系未定**：`Configuration/` 已有 `MaxBodySize` /
+   `AllowedBodyMethods`；其中 `allowedBodyMethods` 已在 `Request` 侧设卡
+   （2026-10-16，与 fugue 无关），`MaxRequestBodyBuffer` 已删。`MaxBodySize` 试过在
+   `RequestBody` 里插 `TransformStream` 计数 + 413，用户判定不优雅、已回退；倾向
+   改由 fugue 侧提供计量／统计事件，待定。
 4. **默认降级介质由谁提供未定**：包内没有 `Fugue.DegradedChunkReader` 的实现（内存
    或临时文件）。按"不组装介质"的定调它不在 Body 层，但放哪一级、要不要出未定
    （第 22 条给了落点）。
@@ -562,14 +573,11 @@ responseBodyNormalizerRegistry: null }`）——所以 `finalize()` 的
       ②具体 Exchange 在构造器里订阅 `close` 时写回（例子现在这么写，标
       `[pending 16]`）；③attacher 或专用 hook 承担。定之前，
       `test/Adapter.example.mjs` 只是"按现码能跑通"的一种写法。
-14. **header `_I.GET` 的契约与实现不符**（2026-10-11 写例子时发现）：`Request` 与
-    `Response` 的 Header 都把 `_I.GET` 声明为 `.returns(M.String)`，但 `has()` 与
-    `Request.get url()` 靠 `undefined` 判"不存在"，契约会以
-    `Invalid "member", one "string" expected.` 拦下（实测）；`res.getHeader()` 还可
-    能答 number 或数组，同样违约。难点：`returns()` 只收**一个** parser、method
-    member **一次性**（不能二次 `.returns()`），而 Member 词表（`Any` / `String` /
-    `Undefined` / `OrPromise`…）里没有并集或可选组合子——得自己写一个（如
-    `Optional(M.String)`，与 `OrPromise(parser)` 同形）。
+14. **`res.getHeader()` 可能答 number 或数组**（2026-10-11 写例子时发现）：`_I.GET` 的
+    "缺失"那半已定（2026-10-16：`.returns(HeaderValueOrUndefined)`，落在
+    `Exchange/Parser.mjs` 供 req / res 共用，`undefined` ＝ 没有这个 header，见
+    Request / Response 节）；剩下 Node 的 `res.getHeader()` 对某些 header 会答 number
+    或数组，仍与 `string | undefined` 不符——下游自己归一，还是把它也放进 parser，未定。
 15. **`Adapter.Registry` 的 `constructor` 默认值不可达**（实测）：
     `isSubConstructor` 是**严格**的（`isSubConstructor(net.Server, net.Server) ===
 false`），而选项默认值正是 `net.Server`，于是**省略 `constructor` 必然抛**

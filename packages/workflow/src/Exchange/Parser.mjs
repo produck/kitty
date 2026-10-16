@@ -60,6 +60,14 @@ export function HeaderValue(value) {
   return value;
 }
 
+export function HeaderValueOrUndefined(value) {
+  if (value !== undefined && typeof value !== 'string') {
+    ThrowTypeError('member', 'a header value string or undefined');
+  }
+
+  return value;
+}
+
 export function PositiveInteger(value) {
   if (!Number.isInteger(value) || value < 1) {
     ThrowTypeError('member', 'a positive integer');

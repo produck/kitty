@@ -14,11 +14,6 @@ export default [
     assert: Assert.PositiveInteger,
   },
   {
-    key: 'MaxRequestBodyBuffer',
-    default: 4 * Unit.Byte.KB,
-    assert: Assert.NonNegativeInteger,
-  },
-  {
     key: 'AllowedBodyMethods',
     default: ['POST', 'PUT', 'PATCH'],
     assert: Assert.HttpMethodList,
