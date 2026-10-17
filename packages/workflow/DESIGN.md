@@ -628,7 +628,7 @@ This guard is enforced at the Exchange layer via `Guard` delegates
 — Adapter-origin errors are unified under `[AdapterImplementationError]`
 with `AdapterGuard`.
 
-Handler execution timeout is configurable via `Configuration.Tune.tuneMaxExchangeTimeout(workflow, milliseconds)`.
+Handler execution timeout is configurable via `Configuration.Tune.MaxExchangeTimeout(workflow, milliseconds)`.
 The timeout is armed at Exchange construction against the `close` event
 dispatched by `handleExchange` finally block.
 

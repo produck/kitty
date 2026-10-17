@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream';
 
+import { Common } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
@@ -20,12 +21,41 @@ class RequestBody extends Part.Concrete {
     const distributor = new RequestBodyDistributor(source);
 
     for (const { key } of Configuration.Item.Distributor) {
-      const value = Configuration.Get[`get${key}`](workflow);
+      const value = Configuration.Get[key](workflow);
 
       Fugue.Options.Tune[key](distributor, value);
     }
 
     this[I.DISTRIBUTOR] = distributor;
+
+    this[I.MAX_BODY_SIZE]();
+  }
+
+  [I.MAX_BODY_SIZE]() {
+    const distributor = this[I.DISTRIBUTOR];
+    let consumed = 0;
+
+    distributor.addEventListener('metric', (event) => {
+      const { code, delta } = event.detail;
+
+      if (distributor.terminated || code !== 'source-consumed-byte-length') {
+        return;
+      }
+
+      consumed += delta;
+
+      if (consumed <= Configuration.Get.MaxBodySize(this.workflow)) {
+        return;
+      }
+
+      const { response } = this.exchange;
+
+      Common.ignoreRejection(distributor.destroy());
+
+      if (!response.isFinished) {
+        response.setStatus(413);
+      }
+    });
   }
 
   get data() {

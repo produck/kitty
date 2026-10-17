@@ -51,8 +51,8 @@ tunables are proxied by this package: a consumer reaches them through
 `Configuration` and never imports fugue. The values are only recorded —
 the body is the one that applies them to the distributor it builds.
 
-- `Configuration.Tune.tuneXxx(workflow, value)` adjusts one entry.
-- `Configuration.Get.getXxx(workflow)` reads one entry.
+- `Configuration.Tune.Xxx(workflow, value)` adjusts one entry.
+- `Configuration.Get.Xxx(workflow)` reads one entry.
 - The name after `tune` / `get` is the item key.
 
 Keys are the item keys, which are also the fugue option names:

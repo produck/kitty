@@ -27,7 +27,7 @@ class Request extends Part.Concrete {
 
   get body() {
     const { method, workflow } = this;
-    const allowed = Configuration.Get.getAllowedBodyMethods(workflow);
+    const allowed = Configuration.Get.AllowedBodyMethods(workflow);
 
     if (!allowed.includes(method)) {
       Ow.Error.Common(`It MUST NOT read a body for the ${method} method.`);

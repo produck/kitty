@@ -469,8 +469,8 @@ into its own.
 Core configuration (Configuration)
   → private WeakMap<workflow, configuration>
   → installConfiguration(workflow) — called by core at construction
-  → Tune.tuneXxx(workflow, value) — one tuner per item
-  → Get.getXxx(workflow) — one reader per item
+  → Tune.Xxx(workflow, value) — one tuner per item
+  → Get.Xxx(workflow) — one reader per item
 
 A supplier that keeps state of its own does the same with its own WeakMap
 ```
@@ -481,8 +481,8 @@ A supplier that keeps state of its own does the same with its own WeakMap
 import { Configuration } from '@produck/kitty-workflow';
 
 const workflow = new KittyWorkflow(kit);
-Configuration.Tune.tuneMaxExchangeTimeout(workflow, 2 * 60 * 1000);
-Configuration.Tune.tuneMaxChunkStashByteLength(workflow, 4096);
+Configuration.Tune.MaxExchangeTimeout(workflow, 2 * 60 * 1000);
+Configuration.Tune.MaxChunkStashByteLength(workflow, 4096);
 workflow.use(handler).finalize();
 ```
 

@@ -298,7 +298,7 @@ extensible`）。现在七个具体类都重载 `constructor`，参数以 `(...a
   名单里的 method 读 `body` 直接抛 `Ow.Error.Common`（`It MUST NOT read a body for
 the <METHOD> method.`）——所以**下游必须自己知道哪些 method 合法带 body** 才去碰
   request body。名单逐次从 workflow 取
-  （`Configuration.Get.getAllowedBodyMethods(workflow)`，默认 `POST` / `PUT` /
+  （`Configuration.Get.AllowedBodyMethods(workflow)`，默认 `POST` / `PUT` /
   `PATCH`），因此 `Tune` 改完立刻生效；`get header()` 不设卡。实测
   `logs/probe-request-body-method.ign.mjs`：默认名单放 POST、挡 GET；改成
   `['DELETE']` 后 DELETE 通、POST 被挡；读 `body` 是逐次判定，不是每个 request 一次。
@@ -313,6 +313,15 @@ the <METHOD> method.`）——所以**下游必须自己知道哪些 method 合�
   `Readable.fromWeb()`）；转换边界只剩源侧一处
   `Readable.toWeb(this[_I.SOURCE.GET]())`。两侧不同族是有意决定：`data` 交 WHATWG
   不算"要收起来的分配器细节"。
+- **流边界画在哪（2026-10-17 用户定）**：源侧收 node `Readable`、出口给 WHATWG
+  `ReadableStream`，两者都不再互转。源侧收 node 流的理由：本包只面向 Node 运行时
+  （跨平台是 fugue 的属性，不是本包目标），adapter 在 Node 上天然拿到的就是 node
+  流（`http.IncomingMessage`），让每个 adapter 自己 `toWeb` 只是把转换摊到边缘；收
+  在 Body 一处，`Readable.toWeb` 还顺带保证产出的是**本 realm** 的
+  `ReadableStream`（fugue 的 `Checker` 是 `instanceof`，跨 realm 直接拒）。出口不
+  `fromWeb`：它会 `getReader()` 锁掉那支 fork 流，再把 WHATWG 的 error / cancel
+  映射到 node 的 `'error'` / `destroy`，两层状态机同时活着。下游要 node 模型，
+  自己 `Readable.fromWeb`。
 - **观测面不做**（2026-10-10 定）：handler 作者只需要 `data`。上了 fugue 之后不需要
   在 exchange 生命周期上提供流的可观测性——每个作用域只关心**自己拿到的那几份流的
   状态**，而那是**流实例自身的状态**（`ReadableStream.locked` / reader 的
@@ -355,9 +364,9 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   `configurationOf(workflow)`（**模块私有、不导出**，2026-10-15 用户口径：
   "`configurationOf` 不应该被导出"）只查不建，查不到就按**参数类型错**抛
   `Invalid "args[0] as workflow", one "Workflow" expected.`（2026-10-15 用户口径：
-  用 `ThrowTypeError`，不走 `Ow.Error.Common`）；**外部读值只走 `Get.get<键>`**（同样是
+  用 `ThrowTypeError`，不走 `Ow.Error.Common`）；**外部读值只走 `Get.<键>`**（同样是
   2026-10-15 口径：Body 构造器里那个 `value` "应该用 Get 接口实现"，Exchange 的
-  `maxExchangeTimeout` 一并发成 `Get.getMaxExchangeTimeout(workflow)`）。
+  `maxExchangeTimeout` 一并发成 `Get.MaxExchangeTimeout(workflow)`）。
   **默认值是抄 fugue 的**（2026-10-15 用户口径："我没说过不重述 fugue 的默认值。kitty 是对
   fugue 的全面代理，屏蔽了 fugue 的复杂性的默认值抄写吧"）：12 项都给了具体初值
   （`1 << 30` / `false` / `1` / `Infinity` / `1000`），因此 Body 那边曾经那个
@@ -371,7 +380,7 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   口径："这个检查用不上，`applyOptions` 只是包内使用"；同一轮又定"直接内联到
   `AbstractRequestBody` 的构造器里，这里不复杂"，于是 `Request/Body/Options.mjs`
   整块删除），Body 在 `new` 完 distributor 后立刻跑这个循环；入口只有逐项的
-  `Configuration.Tune.tune<键>(workflow, value)` / `Get.get<键>(workflow)`
+  `Configuration.Tune.<键>(workflow, value)` / `Get.<键>(workflow)`
   （2026-10-15：`Accessor.mjs` 合进 `index.mjs` 直接实现、不再有创建工厂；**批量
   `tune(workflow, options)` 已删**）。**未代理**：fugue 的
   `Preset.*`。**per-exchange
@@ -383,7 +392,7 @@ Distributor}` 并生成逐项访问器与读点）——**不用标记位区分*
   `Workflow/index → _Abstract → Configuration` 到头。两个遗留代价：①记录以**对象
   身份**为键，`$(this)` 取得的面与裸实例是两个键（实测 `new` 交出的就是面，而
   `useWorkflow(kit)` 也交同一个面，所以正常路径一致）；②`installConfiguration` 必须
-  在构造期就把面装进去，否则一次 `Get.get<键>` 就会抛 `args[0] as workflow`。
+  在构造期就把面装进去，否则一次 `Get.<键>` 就会抛 `args[0] as workflow`。
 - **Response body 是 sink：形状 / 预设 / 责任边界已定，先落 `DESIGN.md`**（2026-10-15 用户
   口径）：归一形状 `{ stream: ReadableStream | null, length: number | null }`（**`length`
   必须显式写**：非负整数或 `null`，`null` 表示未知，缺失即非法）；核心库只实现内建预设
@@ -516,11 +525,14 @@ responseBodyNormalizerRegistry: null }`）——所以 `finalize()` 的
    （`_I.COMPOSE.EXTEND` / `_I.COMPILE_ARTIFACT`）尚未按 PUB-3 以"选择"的形式开出
    去。参考做法：包出口带 `SYMBOL.<模块>.<表>.<键>`，并直接暴露抽象 subject 供下游
    `extends`。
-3. **Body 与 config 的关系未定**：`Configuration/` 已有 `MaxBodySize` /
-   `AllowedBodyMethods`；其中 `allowedBodyMethods` 已在 `Request` 侧设卡
-   （2026-10-16，与 fugue 无关），`MaxRequestBodyBuffer` 已删。`MaxBodySize` 试过在
-   `RequestBody` 里插 `TransformStream` 计数 + 413，用户判定不优雅、已回退；倾向
-   改由 fugue 侧提供计量／统计事件，待定。
+3. **Body 与 config 的关系**：`MaxRequestBodyBuffer` 已删。`allowedBodyMethods` 在
+   `Request` 侧设卡（与 fugue 无关）；`MaxBodySize` 在 `RequestBody` 侧落地
+   （2026-10-17），走 fugue 的 `metric` 事件而不是插流——监听
+   `source-consumed-byte-length` 累加 `delta`，超限 `distributor.destroy()` +
+   `setStatus(413)`（`response.isFinished` 时不覆盖）。上限每次事件现读配置，
+   所以 `Tune` 立刻生效；计数在源侧，天然被所有 fork 共享一份。`destroy()` 不能
+   带 reason 这个缺口见本地 `issue.ign.md`（不入库）。
+   实测 `logs/probe-body-max-size.ign.mjs` / `probe-fugue-metric.ign.mjs`。
 4. **默认降级介质由谁提供未定**：包内没有 `Fugue.DegradedChunkReader` 的实现（内存
    或临时文件）。按"不组装介质"的定调它不在 Body 层，但放哪一级、要不要出未定
    （第 22 条给了落点）。

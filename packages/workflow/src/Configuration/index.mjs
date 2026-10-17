@@ -23,12 +23,12 @@ function configurationOf(workflow) {
 }
 
 for (const { key, assert } of items) {
-  TUNE[`tune${key}`] = (workflow, value) => {
+  TUNE[key] = (workflow, value) => {
     assert(value);
     configurationOf(workflow)[key] = value;
   };
 
-  GET[`get${key}`] = (workflow) => configurationOf(workflow)[key];
+  GET[key] = (workflow) => configurationOf(workflow)[key];
 }
 
 export const Tune = Object.freeze(TUNE);

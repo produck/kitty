@@ -28,7 +28,7 @@ class Exchange extends EventTarget {
   }
 
   [I.START_TIMING]() {
-    const maxExchangeTimeout = Get.getMaxExchangeTimeout(this.workflow);
+    const maxExchangeTimeout = Get.MaxExchangeTimeout(this.workflow);
 
     const timer = setTimeout(() => {
       if (!this.response.isFinished) {
