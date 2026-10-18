@@ -664,3 +664,39 @@ net.Server)`。倾向②。
     开只读视图，还是由 `Workflow` 层提供观察口（与第 10 条 (c)、第 11 条同一问题）。
     信任边界的注记：handler 与 adapter 同信任级，而 adapter 手里还有整个 `internal`，
     所以挡住写口主要是**防误用**、不是防越权。
+21. **`Exchange` 少一层抽象，`Implement` 的位置也可能上移（2026-10-18 讨论，未落
+    笔）**：①**症状**——`Exchange` 现在同时是"抽象基类"和"HTTP 交换"：
+    `_Abstract.mjs:24-25` 无条件 `new REQUEST_CTOR` / `new RESPONSE_CTOR`
+    （`_S.*_CTOR` 是 `SubConstructorOf`，强制），`[I.START_TIMING]`（第 30-40 行）
+    超时后 `setStatus(503)` 是纯 HTTP 语义，`method` / `url` / `statusCode` /
+    `setStatus` 全委托给 request / response。于是 websocket exchange 也必须伪造
+    `response` 那一组——`Implement/Normalize.mjs` 把 `identity` / `server` /
+    `httpVersion` / `request` / `response` 五组**全设为必填**（每处 else 都
+    `ThrowTypeError`）。②**机制已经允许**：`Adapter/Registry.mjs:44` 用
+    `isSubConstructor(_Exchange, Exchange.Abstract)`，adapter 本来就能注册自己的
+    Exchange 子类。③**方向（2026-10-18 已落）**——`Exchange` 留 `identity` /
+    `server` / `protocol` / `workflow` / `toJSON`，外加 **`request`**（两种协议都有
+    握手请求，所以由抽象层持有）与它的转发 `method` / `url`；`HttpExchange` 留
+    `response` / `statusCode` / `statusText` / `setStatus` / `httpVersion` /
+    `[I.START_TIMING]`；`mode` **不来自 adapter**，而是两个子类各自答固定值
+    （`'http'` / `'websocket'`），`Request` 的 `_I.MODE` 与 `ExchangeMode` 已删。
+    ④**未定**：`WebSocketExchange` 代表**握手那一瞬**（与
+    `HttpExchange` 近乎同构，差别只在 101 的承载）还是**整条连接**（需要
+    `messages` 之类双向载体，request 只是开场快照）；这决定分层是"两兄弟"还是
+    "叔侄"。⑤**`Implement` 的位置（2026-10-18 用户倾向：放到更上层，比如
+    `Adapter`）**——支持的理由：它的输入词汇 `identity` / `server` /
+    `httpVersion` / `request` / `response` 全是 adapter 侧的 native 概念，本质是
+    "native → subject"的翻译层；分层后还要按协议产出不同的类，"用哪套"天然是
+    adapter 的决定。代价：它现在是公开 API（`Exchange.Implement`），移走是
+    breaking；且它直接 `extends` 各 subject 的 `Abstract`，形成更深的
+    `Adapter → Exchange/*` 依赖（方向与既有的 `Registry → Exchange` 一致）。附带
+    收益：上移后 `Registry` 可以一步收下 exchangeOptions 在内部 Implement，adapter
+    不必先 `Implement()` 再注册。**层级梳理期间 `Implement` 冻结**（2026-10-18 用户
+    口径）：后续成员迁移不再同步适配它，等 Exchange / HttpExchange /
+    WebSocketExchange 的形状定下来后统一改——冻结起点是“request 从 `Exchange` 取、
+    response 与 httpVersion 从 `HttpExchange` 取”这一版。
+    ⑥**已修**——`Exchange` 不继承 `Part.Concrete`，原本从不写
+    `this[SYMBOL.CONSTRUCTOR] = new.target`，`_Abstract.mjs:23` 读它必抛，
+    `probe-exchange` / `probe-implement` / `probe-ctx` 三支因此全红；2026-10-18
+    补上后 `probe-exchange` 转绿，另两支改由 `DataNormalizerRegistry` 缺内建预设
+    而红。

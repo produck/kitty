@@ -9,9 +9,9 @@ import * as P from './Parser.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
-import { Get } from '../Configuration/index.mjs';
 
 class Exchange extends EventTarget {
+  [I.INTERNAL] = null;
   [I.REQUEST] = null;
   [I.RESPONSE] = null;
 
@@ -21,22 +21,9 @@ class Exchange extends EventTarget {
     ExchangeKit[K_EXCHANGE] = $(this);
     this[$I.KIT] = ExchangeKit;
     this[I.INTERNAL] = internal;
+    this[SYMBOL.CONSTRUCTOR] = new.target;
     this[I.REQUEST] = new this[SYMBOL.CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
     this[I.RESPONSE] = new this[SYMBOL.CONSTRUCTOR][_S.RESPONSE_CTOR]($(this));
-
-    this[I.START_TIMING]();
-  }
-
-  [I.START_TIMING]() {
-    const maxExchangeTimeout = Get.MaxExchangeTimeout(this.workflow);
-
-    const timer = setTimeout(() => {
-      if (!this.response.isFinished) {
-        this.setStatus(503);
-      }
-    }, maxExchangeTimeout);
-
-    this.addEventListener('close', () => clearTimeout(timer), { once: true });
   }
 
   get [$I.IDENTITY]() {
@@ -63,10 +50,6 @@ class Exchange extends EventTarget {
     return this.request.method;
   }
 
-  get mode() {
-    return this.request.mode;
-  }
-
   get url() {
     return this.request.url;
   }
@@ -91,18 +74,23 @@ class Exchange extends EventTarget {
     return this[_I.SERVER.PROTOCOL.GET](this[I.INTERNAL]);
   }
 
+  get mode() {
+    return this[_I.MODE](this[I.INTERNAL]);
+  }
+
   get httpVersion() {
-    return this[_I.HTTP_VERSION.GET](this[I.INTERNAL]);
+    return this[_I.HTTP_VERSION](this[I.INTERNAL]);
   }
 }
 
 export default Abstract(
   Exchange,
   Abstract({
+    [_I.HTTP_VERSION]: M.Method().args(M.Any).returns(P.HttpVersion),
     [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
+    [_I.MODE]: M.Method().args(M.Any).returns(P.ExchangeMode),
     [_I.SERVER.GET]: M.Method().args(M.Any).returns(M.Instance(net.Server)),
     [_I.SERVER.PROTOCOL.GET]: M.Method().args(M.Any).returns(P.ServerProtocol),
-    [_I.HTTP_VERSION.GET]: M.Method().args(M.Any).returns(P.HttpVersion),
   }),
   Abstract.Static({
     [_S.REQUEST_CTOR]: SubConstructorOf(Request.Abstract),

@@ -40,10 +40,6 @@ class Request extends Part.Concrete {
     return this[_I.METHOD.GET](this[PART.$I.INTERNAL]);
   }
 
-  get mode() {
-    return this[_I.MODE.GET](this[PART.$I.INTERNAL]);
-  }
-
   get url() {
     const raw = this[_I.URL.GET](this[PART.$I.INTERNAL]);
 
@@ -64,7 +60,6 @@ class Request extends Part.Concrete {
 export default Abstract(
   Request,
   Abstract({
-    [_I.MODE.GET]: M.Method().args(M.Any).returns(P.ExchangeMode),
     [_I.METHOD.GET]: M.Method().args(M.Any).returns(P.HttpMethod),
     [_I.URL.GET]: M.Method().args(M.Any).returns(M.String),
   }),

@@ -6,12 +6,13 @@ import * as RequestHeader from '../Request/Header/index.mjs';
 import * as Response from '../Response/index.mjs';
 import * as ResponseBody from '../Response/Body/index.mjs';
 import * as ResponseHeader from '../Response/Header/index.mjs';
-import AbstractExchange from '../_Abstract.mjs';
 
 import { PART } from '../Request/_Borrow.mjs';
 import { REQUEST, REQUEST_BODY, REQUEST_HEADER } from '../_Borrow.mjs';
 import { RESPONSE, RESPONSE_BODY, RESPONSE_HEADER } from '../_Borrow.mjs';
 import * as EXCHANGE from '../_Symbol.mjs';
+import * as HTTP_EXCHANGE from '../../HttpExchange/index.mjs';
+import * as HTTP_EXCHANGE_SYMBOL from '../../HttpExchange/_Symbol.mjs';
 
 import normalize from './Normalize.mjs';
 
@@ -26,7 +27,6 @@ export function Implement(options) {
     },
     httpVersion: { get: getHttpVersion },
     request: {
-      mode: { get: getRequestMode },
       method: { get: getRequestMethod },
       URL: { get: getRequestURL },
       header: { get: getRequestHeader, keys: getRequestHeaderKeys },
@@ -149,10 +149,6 @@ export function Implement(options) {
       return Implemented.RequestBody;
     }
 
-    [REQUEST._I.MODE.GET](_internal) {
-      return getRequestMode(this[I_OPTIONS_CONTEXT]);
-    }
-
     [REQUEST._I.METHOD.GET](_internal) {
       return getRequestMethod(this[I_OPTIONS_CONTEXT]);
     }
@@ -202,7 +198,7 @@ export function Implement(options) {
     }
   }
 
-  class ImplementedExchange extends AbstractExchange {
+  class ImplementedExchange extends HTTP_EXCHANGE.Abstract {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[EXCHANGE.I.INTERNAL],
@@ -217,7 +213,7 @@ export function Implement(options) {
       return Implemented.Request;
     }
 
-    static get [EXCHANGE._S.RESPONSE_CTOR]() {
+    static get [HTTP_EXCHANGE_SYMBOL._S.RESPONSE_CTOR]() {
       return Implemented.Response;
     }
 
@@ -233,7 +229,7 @@ export function Implement(options) {
       return getServerProtocol(this[I_OPTIONS_CONTEXT]);
     }
 
-    [EXCHANGE._I.HTTP_VERSION.GET](_internal) {
+    [EXCHANGE._I.HTTP_VERSION](_internal) {
       return getHttpVersion(this[I_OPTIONS_CONTEXT]);
     }
   }

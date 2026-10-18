@@ -3,13 +3,11 @@ import { deepFreeze } from '@produck/deep-freeze-enumerable';
 const I_INTERNAL = Symbol('.#internal');
 const I_REQUEST = Symbol('.#request');
 const I_RESPONSE = Symbol('.#response');
-const I_START_TIMING = Symbol('.#startTiming()');
 
 export const I = deepFreeze({
   INTERNAL: I_INTERNAL,
   REQUEST: I_REQUEST,
   RESPONSE: I_RESPONSE,
-  START_TIMING: I_START_TIMING,
 });
 
 const $I_IDENTITY = Symbol('.$identity');
@@ -20,23 +18,23 @@ export const $I = deepFreeze({
   KIT: $I_KIT,
 });
 
+const _I_HTTP_VERSION = Symbol('._getHttpVersion()');
 const _I_IDENTITY_GET = Symbol('._getIdentity()');
+const _I_MODE_GET = Symbol('._getMode()');
 const _I_SERVER_GET = Symbol('._getServer()');
 const _I_SERVER_PROTOCOL_GET = Symbol('._getServerProtocol()');
-const _I_HTTP_VERSION_GET = Symbol('._getHttpVersion()');
 
 export const _I = deepFreeze({
+  HTTP_VERSION: _I_HTTP_VERSION,
   IDENTITY: {
     GET: _I_IDENTITY_GET,
   },
+  MODE: _I_MODE_GET,
   SERVER: {
     GET: _I_SERVER_GET,
     PROTOCOL: {
       GET: _I_SERVER_PROTOCOL_GET,
     },
-  },
-  HTTP_VERSION: {
-    GET: _I_HTTP_VERSION_GET,
   },
 });
 

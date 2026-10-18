@@ -8,14 +8,10 @@ export const I = deepFreeze({
   BODY: I_BODY,
 });
 
-const _I_MODE_GET = Symbol('._getMode()');
 const _I_METHOD_GET = Symbol('._getMethod()');
 const _I_URL_GET = Symbol('._getURL()');
 
 export const _I = deepFreeze({
-  MODE: {
-    GET: _I_MODE_GET,
-  },
   METHOD: {
     GET: _I_METHOD_GET,
   },

@@ -44,6 +44,17 @@ export function ServerProtocol(value) {
   return value;
 }
 
+const MODES = Object.freeze(['http', 'websocket']);
+const MODES_TAG = MODES.map((v) => `'${v}'`).join(' | ');
+
+export function ExchangeMode(value) {
+  if (typeof value !== 'string' || !MODES.includes(value)) {
+    ThrowTypeError('member', `an exchange mode (${MODES_TAG})`);
+  }
+
+  return value;
+}
+
 export function HeaderName(value) {
   if (typeof value !== 'string' || value.length === 0) {
     ThrowTypeError('member', 'a non-empty header name string');

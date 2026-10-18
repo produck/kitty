@@ -9,14 +9,3 @@ export function HttpMethod(value) {
 
   return value;
 }
-
-const MODES = Object.freeze(['http', 'websocket']);
-const MODES_TAG = MODES.map((v) => `'${v}'`).join(' | ');
-
-export function ExchangeMode(value) {
-  if (typeof value !== 'string' || !MODES.includes(value)) {
-    ThrowTypeError('member', `a HTTP exchange mode (${MODES_TAG})`);
-  }
-
-  return value;
-}

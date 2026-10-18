@@ -73,26 +73,11 @@ export default function normalize(options) {
       const request = (_options.request = {});
 
       const {
-        mode: _mode,
         method: _method,
         URL: _URL,
         header: _header,
         body: _body,
       } = _request;
-
-      if (isPlainObject(_mode)) {
-        const mode = (request.mode = {});
-
-        const { get: _get } = _mode;
-
-        if (typeof _get === 'function') {
-          mode.get = _get;
-        } else {
-          ThrowTypeError('args[0].request.mode.get', 'function');
-        }
-      } else {
-        ThrowTypeError('args[0].request.mode', 'plain object');
-      }
 
       if (isPlainObject(_method)) {
         const method = (request.method = {});
