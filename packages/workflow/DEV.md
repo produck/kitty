@@ -674,16 +674,28 @@ net.Server)`。倾向②。
     `httpVersion` / `request` / `response` 五组**全设为必填**（每处 else 都
     `ThrowTypeError`）。②**机制已经允许**：`Adapter/Registry.mjs:44` 用
     `isSubConstructor(_Exchange, Exchange.Abstract)`，adapter 本来就能注册自己的
-    Exchange 子类。③**方向（2026-10-18 已落）**——`Exchange` 留 `identity` /
-    `server` / `protocol` / `workflow` / `toJSON`，外加 **`request`**（两种协议都有
-    握手请求，所以由抽象层持有）与它的转发 `method` / `url`；`HttpExchange` 留
-    `response` / `statusCode` / `statusText` / `setStatus` / `httpVersion` /
-    `[I.START_TIMING]`；`mode` **不来自 adapter**，而是两个子类各自答固定值
-    （`'http'` / `'websocket'`），`Request` 的 `_I.MODE` 与 `ExchangeMode` 已删。
-    ④**未定**：`WebSocketExchange` 代表**握手那一瞬**（与
-    `HttpExchange` 近乎同构，差别只在 101 的承载）还是**整条连接**（需要
-    `messages` 之类双向载体，request 只是开场快照）；这决定分层是"两兄弟"还是
-    "叔侄"。⑤**`Implement` 的位置（2026-10-18 用户倾向：放到更上层，比如
+    Exchange 子类。③**方向（2026-10-18/19 已落）**——`Exchange` 留协议共用的壳：
+    `identity` / `server` / `protocol` / `mode` / `httpVersion` / `workflow` /
+    `toJSON`，加上 `request`（header / method / url）与 `response`（statusCode /
+    statusText / header / isFinished）；`HttpExchange` 只加 `HttpRequest` 与
+    `HttpResponse` 两个薄类，各自补 **body**（槽、构造、`_I.SOURCE.GET` 或
+    `_I.DATA.SET`、`MaxBodySize` 的 metric 监听、读 body 的 gate）以及
+    `[I.START_TIMING]`；`WebSocketExchange` 只有 `mode`。`mode` 不来自 adapter，
+    由两个子类各自答固定值（`'http'` / `'websocket'`），`Request` 的 `_I.MODE`
+    与 `ExchangeMode` 已删。
+    ④**已定（2026-10-19 用户口径）：`WebSocketExchange` 是整条连接**，不是"握手
+    那一瞬"。`request` / `response` 因此只是一次成功握手留下的开场记录（握手之后
+    `response` 不能再写），主体是**一个服务端 WebSocket 控制器**：
+    `_I.CONTROLLER.GET` 由 adapter 提供，kitty 只定形状——参考 `ws`，但核心取
+    **WHATWG `WebSocket`** 的形状（`readyState` / `send(data)` /
+    `close(code?, reason?)`，事件 `open` / `message` / `close` / `error`）；
+    `ping` / `pong` / `terminate` / `bufferedAmount` 不进核心契约。**事件不转发到
+    exchange**，handler 直接用 controller 上的 `addEventListener`。`message` 用
+    WHATWG `Event` 表达，适配责任在 adapter。**校验不能用
+    `instanceof EventTarget`**：`ws` 的 `WebSocket` 继承 `EventEmitter` 并自己实现
+    `addEventListener`，原型链上不是 `EventTarget`，要用结构检查
+    （`addEventListener` / `send` / `close` / `readyState`）。
+    ⑤**`Implement` 的位置（2026-10-18 用户倾向：放到更上层，比如
     `Adapter`）**——支持的理由：它的输入词汇 `identity` / `server` /
     `httpVersion` / `request` / `response` 全是 adapter 侧的 native 概念，本质是
     "native → subject"的翻译层；分层后还要按协议产出不同的类，"用哪套"天然是
