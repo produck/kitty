@@ -6,8 +6,8 @@ import { EXCHANGE } from './_Borrow.mjs';
 import { I } from './_Symbol.mjs';
 
 class HttpExchange extends Exchange.Abstract {
-  constructor(ExchangeKit, internal) {
-    super(ExchangeKit, internal);
+  constructor(...args) {
+    super(...args);
     this[I.START_TIMING]();
   }
 

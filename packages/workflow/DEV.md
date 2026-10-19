@@ -712,3 +712,18 @@ net.Server)`。倾向②。
     `probe-exchange` / `probe-implement` / `probe-ctx` 三支因此全红；2026-10-18
     补上后 `probe-exchange` 转绿，另两支改由 `DataNormalizerRegistry` 缺内建预设
     而红。
+22. **分层后两个协议基类的未定条目（2026-10-19 记，搁置）**：①`HttpExchange` 超时
+    只 `setStatus(503)`，不销毁请求体 distributor（`MaxBodySize` 那条路径是
+    `destroy()` + `setStatus(413)`），超时后消费会继续到源自然结束；②`isFinished`
+    只挡"已完成"，挡不住"handler 已 `setStatus(200)` 但未 finish"，超时会把业务写的
+    状态改成 503——要定得先让 `Response` 记录状态是否被显式写过；③timeout 句柄没有
+    `unref()`，被放弃的 exchange 会让事件循环多活一个 `MaxExchangeTimeout`；④
+    `WebSocketExchange` 的 `webSocket` / `ws` 是 `controller` 的别名，一个东西三个
+    名字；⑤`MaxExchangeTimeout` 对 WS 完全不生效——若"连接期不是交换期"成立就该写明，
+    否则看起来像漏了 `[I.START_TIMING]`；⑥controller 关闭时 exchange 侧无任何动作
+    （`close` 由 `CompoundWorkflow` 的 `finally` 统一派发，事件不转发），是否有意
+    待定；⑦`HttpExchange` 用 `SCP(...)`、`WebSocketExchange` 用
+    `Abstract(..., Abstract.Static({...}))` 的差异是对的（后者要加
+    `CONTROLLER_CTOR`，`Abstract()` 自建一层 proxy），写明以免被"统一"；⑧
+    `'http'` / `'websocket'` 两个字面量在两个基类与 `Exchange/Parser.mjs` 的
+    `ExchangeMode` 三处手写。

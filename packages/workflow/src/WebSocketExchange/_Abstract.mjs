@@ -10,8 +10,8 @@ import { I, _S } from './_Symbol.mjs';
 class WebSocketExchange extends Exchange.Abstract {
   [I.CONTROLLER] = null;
 
-  constructor(ExchangeKit, internal) {
-    super(ExchangeKit, internal);
+  constructor(...args) {
+    super(...args);
 
     const TargetController = this[SYMBOL.CONSTRUCTOR][_S.CONTROLLER_CTOR];
 
@@ -20,14 +20,6 @@ class WebSocketExchange extends Exchange.Abstract {
 
   get controller() {
     return this[I.CONTROLLER];
-  }
-
-  get webSocket() {
-    return this.controller;
-  }
-
-  get ws() {
-    return this.controller;
   }
 
   [EXCHANGE._I.MODE]() {

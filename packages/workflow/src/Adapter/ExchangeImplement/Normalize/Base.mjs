@@ -1,20 +1,20 @@
 import { isPlainObject } from 'is-plain-object';
 import { ThrowTypeError } from '@produck/argot';
 
-export default function normalize(options) {
-  const _options = {};
+export default function normalizeBase(_options) {
+  const options = {};
 
-  if (isPlainObject(options)) {
+  if (isPlainObject(_options)) {
     const {
       identity: _identity,
       server: _server,
       httpVersion: _httpVersion,
       request: _request,
       response: _response,
-    } = options;
+    } = _options;
 
     if (isPlainObject(_identity)) {
-      const identity = (_options.identity = {});
+      const identity = (options.identity = {});
 
       const { get: _get } = _identity;
 
@@ -28,7 +28,7 @@ export default function normalize(options) {
     }
 
     if (isPlainObject(_server)) {
-      const server = (_options.server = {});
+      const server = (options.server = {});
 
       const { get: _get, protocol: _protocol } = _server;
 
@@ -56,7 +56,7 @@ export default function normalize(options) {
     }
 
     if (isPlainObject(_httpVersion)) {
-      const httpVersion = (_options.httpVersion = {});
+      const httpVersion = (options.httpVersion = {});
 
       const { get: _get } = _httpVersion;
 
@@ -70,14 +70,9 @@ export default function normalize(options) {
     }
 
     if (isPlainObject(_request)) {
-      const request = (_options.request = {});
+      const request = (options.request = {});
 
-      const {
-        method: _method,
-        URL: _URL,
-        header: _header,
-        body: _body,
-      } = _request;
+      const { method: _method, URL: _URL, header: _header } = _request;
 
       if (isPlainObject(_method)) {
         const method = (request.method = {});
@@ -126,41 +121,18 @@ export default function normalize(options) {
       } else {
         ThrowTypeError('args[0].request.header', 'plain object');
       }
-
-      if (isPlainObject(_body)) {
-        const body = (request.body = {});
-
-        const { source: _source } = _body;
-
-        if (isPlainObject(_source)) {
-          const source = (body.source = {});
-
-          const { get: _get } = _source;
-
-          if (typeof _get === 'function') {
-            source.get = _get;
-          } else {
-            ThrowTypeError('args[0].request.body.source.get', 'function');
-          }
-        } else {
-          ThrowTypeError('args[0].request.body.source', 'plain object');
-        }
-      } else {
-        ThrowTypeError('args[0].request.body', 'plain object');
-      }
     } else {
       ThrowTypeError('args[0].request', 'plain object');
     }
 
     if (isPlainObject(_response)) {
-      const response = (_options.response = {});
+      const response = (options.response = {});
 
       const {
         status: _status,
         statusText: _statusText,
         finished: _finished,
         header: _header,
-        body: _body,
       } = _response;
 
       if (isPlainObject(_status)) {
@@ -248,28 +220,6 @@ export default function normalize(options) {
       } else {
         ThrowTypeError('args[0].response.header', 'plain object');
       }
-
-      if (isPlainObject(_body)) {
-        const body = (response.body = {});
-
-        const { data: _data } = _body;
-
-        if (isPlainObject(_data)) {
-          const data = (body.data = {});
-
-          const { set: _set } = _data;
-
-          if (typeof _set === 'function') {
-            data.set = _set;
-          } else {
-            ThrowTypeError('args[0].response.body.data.set', 'function');
-          }
-        } else {
-          ThrowTypeError('args[0].response.body.data', 'plain object');
-        }
-      } else {
-        ThrowTypeError('args[0].response.body', 'plain object');
-      }
     } else {
       ThrowTypeError('args[0].response', 'plain object');
     }
@@ -277,5 +227,5 @@ export default function normalize(options) {
     ThrowTypeError('args[0]', 'plain object');
   }
 
-  return _options;
+  return options;
 }
