@@ -1,16 +1,18 @@
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
 import * as Exchange from '../../Exchange/index.mjs';
+import * as HttpExchange from '../../HttpExchange/index.mjs';
 
 import * as EXCHANGE from '../../Exchange/_Symbol.mjs';
 import * as PART from '../../Exchange/Part/_Symbol.mjs';
 import * as REQUEST from '../../Exchange/Request/_Symbol.mjs';
-import * as REQUEST_BODY from '../../Exchange/Request/Body/_Symbol.mjs';
 import * as REQUEST_HEADER from '../../Exchange/Request/Header/_Symbol.mjs';
 import * as RESPONSE from '../../Exchange/Response/_Symbol.mjs';
-import * as RESPONSE_BODY from '../../Exchange/Response/Body/_Symbol.mjs';
 import * as RESPONSE_HEADER from '../../Exchange/Response/Header/_Symbol.mjs';
-import * as HTTP_EXCHANGE from '../../HttpExchange/index.mjs';
+import * as HTTP_REQUEST from '../../HttpExchange/Request/_Symbol.mjs';
+import * as HTTP_REQUEST_BODY from '../../HttpExchange/Request/Body/_Symbol.mjs';
+import * as HTTP_RESPONSE from '../../HttpExchange/Response/_Symbol.mjs';
+import * as HTTP_RESPONSE_BODY from '../../HttpExchange/Response/Body/_Symbol.mjs';
 
 import normalize from './Normalize.mjs';
 
@@ -68,7 +70,7 @@ export function Implement(options) {
     }
   }
 
-  class ImplementedRequestBody extends Exchange.Request.Body.Abstract {
+  class ImplementedRequestBody extends HttpExchange.Request.Body.Abstract {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[PART.$I.INTERNAL],
@@ -79,7 +81,7 @@ export function Implement(options) {
       Object.freeze(this);
     }
 
-    [REQUEST_BODY._I.SOURCE.GET](_internal) {
+    [HTTP_REQUEST_BODY._I.SOURCE.GET](_internal) {
       return getRequestBodySource(this[I_OPTIONS_CONTEXT]);
     }
   }
@@ -112,7 +114,7 @@ export function Implement(options) {
     }
   }
 
-  class ImplementedResponseBody extends Exchange.Response.Body.Abstract {
+  class ImplementedResponseBody extends HttpExchange.Response.Body.Abstract {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[PART.$I.INTERNAL],
@@ -123,12 +125,12 @@ export function Implement(options) {
       Object.freeze(this);
     }
 
-    [RESPONSE_BODY._I.DATA.SET](_internal, value) {
+    [HTTP_RESPONSE_BODY._I.DATA.SET](_internal, value) {
       setResponseBodyData(this[I_OPTIONS_CONTEXT], value);
     }
   }
 
-  class ImplementedRequest extends Exchange.Request.Abstract {
+  class ImplementedRequest extends HttpExchange.Request.Abstract {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[PART.$I.INTERNAL],
@@ -143,7 +145,7 @@ export function Implement(options) {
       return Implemented.RequestHeader;
     }
 
-    static get [REQUEST._S.BODY_CTOR]() {
+    static get [HTTP_REQUEST._S.BODY_CTOR]() {
       return Implemented.RequestBody;
     }
 
@@ -156,7 +158,7 @@ export function Implement(options) {
     }
   }
 
-  class ImplementedResponse extends Exchange.Response.Abstract {
+  class ImplementedResponse extends HttpExchange.Response.Abstract {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[PART.$I.INTERNAL],
@@ -171,7 +173,7 @@ export function Implement(options) {
       return Implemented.ResponseHeader;
     }
 
-    static get [RESPONSE._S.BODY_CTOR]() {
+    static get [HTTP_RESPONSE._S.BODY_CTOR]() {
       return Implemented.ResponseBody;
     }
 
@@ -196,7 +198,7 @@ export function Implement(options) {
     }
   }
 
-  class ImplementedExchange extends HTTP_EXCHANGE.Abstract {
+  class ImplementedExchange extends HttpExchange.Abstract {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[EXCHANGE.I.INTERNAL],

@@ -1,10 +1,10 @@
 import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
 
-import * as Exchange from '../../Exchange/index.mjs';
+import * as HttpExchange from '../../HttpExchange/index.mjs';
 import { DATA_NORMALIZER } from './_Borrow.mjs';
 import { I, $I } from './_Symbol.mjs';
 
-const DataNormalizer = Exchange.Response.Body.DataNormalizer.Abstract;
+const DataNormalizer = HttpExchange.Response.Body.DataNormalizer.Abstract;
 
 export default class DataNormalizerRegistry {
   [I.NORMALIZER_MAP] = new Map();

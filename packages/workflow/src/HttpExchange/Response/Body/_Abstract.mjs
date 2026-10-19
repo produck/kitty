@@ -1,6 +1,6 @@
 import Abstract, { Member as M } from '@produck/es-abstract';
 
-import * as Part from '../../Part/index.mjs';
+import * as Exchange from '../../../Exchange/index.mjs';
 import * as DataNormalizer from './DataNormalizer/index.mjs';
 import { _A, PART, WORKFLOW } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
@@ -8,7 +8,7 @@ import { I, _I } from './_Symbol.mjs';
 const { ReadableStreamResult } = DataNormalizer.Parser;
 const NO_BODY = Object.freeze({ stream: null, length: 0 });
 
-class ResponseBody extends Part.Concrete {
+class HttpResponseBody extends Exchange.Part.Concrete {
   [I.DATA] = NO_BODY;
 
   get data() {
@@ -28,7 +28,7 @@ class ResponseBody extends Part.Concrete {
 }
 
 export default Abstract(
-  ResponseBody,
+  HttpResponseBody,
   Abstract({
     [_I.DATA.SET]: M.Method()
       .args(M.Any, ReadableStreamResult)

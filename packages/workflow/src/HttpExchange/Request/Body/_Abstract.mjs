@@ -5,13 +5,11 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
 import * as Configuration from '../../../Configuration/index.mjs';
-import * as Part from '../../Part/index.mjs';
+import * as Exchange from '../../../Exchange/index.mjs';
 import { PART, WORKFLOW } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
 
-class RequestBody extends Part.Concrete {
-  [I.DISTRIBUTOR] = null;
-
+class HttpRequestBody extends Exchange.Part.Concrete {
   constructor(exchange) {
     super(exchange);
 
@@ -27,7 +25,6 @@ class RequestBody extends Part.Concrete {
     }
 
     this[I.DISTRIBUTOR] = distributor;
-
     this[I.MAX_BODY_SIZE]();
   }
 
@@ -68,7 +65,7 @@ class RequestBody extends Part.Concrete {
 }
 
 export default Abstract(
-  RequestBody,
+  HttpRequestBody,
   Abstract({
     [_I.SOURCE.GET]: M.Method().args(M.Any).returns(M.Instance(Readable)),
   }),

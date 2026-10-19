@@ -1,11 +1,9 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_HEADER = Symbol('.#header');
-const I_BODY = Symbol('.#body');
 
 export const I = deepFreeze({
   HEADER: I_HEADER,
-  BODY: I_BODY,
 });
 
 const _I_STATUS_GET = Symbol('._getStatus()');
@@ -27,9 +25,7 @@ export const _I = deepFreeze({
 });
 
 const _S_HEADER_CTOR = Symbol('._headerCtor');
-const _S_BODY_CTOR = Symbol('._bodyCtor');
 
 export const _S = deepFreeze({
   HEADER_CTOR: _S_HEADER_CTOR,
-  BODY_CTOR: _S_BODY_CTOR,
 });

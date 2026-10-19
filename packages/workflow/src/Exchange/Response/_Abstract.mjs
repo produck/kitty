@@ -3,28 +3,21 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
 import * as Assert from '../Parser.mjs';
-import { I, _I, _S } from './_Symbol.mjs';
-import { PART } from './_Borrow.mjs';
 import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';
-import * as Body from './Body/index.mjs';
+import { PART } from './_Borrow.mjs';
+import { I, _I, _S } from './_Symbol.mjs';
 
 class Response extends Part.Concrete {
   [I.HEADER] = null;
-  [I.BODY] = null;
 
   constructor(exchange) {
     super(exchange);
     this[I.HEADER] = new this[SYMBOL.CONSTRUCTOR][_S.HEADER_CTOR](exchange);
-    this[I.BODY] = new this[SYMBOL.CONSTRUCTOR][_S.BODY_CTOR](exchange);
   }
 
   get header() {
     return this[I.HEADER];
-  }
-
-  get body() {
-    return this[I.BODY];
   }
 
   get statusCode() {
@@ -64,6 +57,5 @@ export default Abstract(
   }),
   Abstract.Static({
     [_S.HEADER_CTOR]: SubConstructorOf(Header.Abstract),
-    [_S.BODY_CTOR]: SubConstructorOf(Body.Abstract),
   }),
 );
