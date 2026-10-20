@@ -13,7 +13,7 @@ assembly surface, used to perform controlled structural effects at the
 workflow boundary.
 
 The pattern is a response to one design pressure: downstream mixins and
-adapters need a way to configure the features they attach to a workflow,
+deployers need a way to configure the features they attach to a workflow,
 but the workflow core should not accept an opaque `options` bag that it
 cannot understand.
 
@@ -39,7 +39,7 @@ attachment abilities.
 
 ## Core Idea
 
-`MixinKit` and `AdapterKit` are attachment ports.
+`MixinKit` and `DeployerKit` are attachment ports.
 
 An attachment port is a scoped kit handed to a capability supplier during
 its installation phase. The supplier may retain the port in its own
@@ -74,7 +74,7 @@ additions to the assembly surface are closed.
 
 ```text
 Capability supplier
-  -> receives MixinKit / AdapterKit
+  -> receives MixinKit / DeployerKit
   -> stores workflow -> port or workflow -> state in a WeakMap
   -> writes through guarded port methods
   -> downstream reads installed dependencies freely from kit scope
@@ -94,11 +94,11 @@ The normal handler path follows the deployment branch:
 WorkflowKit -> DeploymentKit -> ExchangeKit -> Handler child kits
 ```
 
-Mixin and adapter ports live on separate attachment branches:
+Mixin and deployer ports live on separate attachment branches:
 
 ```text
 WorkflowKit -> MixinKit
-WorkflowKit -> DeploymentKit -> AdapterKit
+WorkflowKit -> DeploymentKit -> DeployerKit
 ```
 
 Therefore a handler can read workflow identity through `ExchangeKit`:
@@ -107,7 +107,7 @@ Therefore a handler can read workflow identity through `ExchangeKit`:
 const workflow = useWorkflow(ExchangeKit);
 ```
 
-But it cannot naturally obtain `MixinKit` or `AdapterKit` from the
+But it cannot naturally obtain `MixinKit` or `DeployerKit` from the
 `ExchangeKit` branch. If a supplier wants handler code to adjust a
 feature, it can export an adjustment function that accepts workflow
 identity. The handler combines that exported API with `useWorkflow()`;
@@ -143,20 +143,20 @@ workflow.use((ExchangeKit, next) => {
 });
 ```
 
-This keeps the authority split clear: `MixinKit` and `AdapterKit` remain
+This keeps the authority split clear: `MixinKit` and `DeployerKit` remain
 supplier-managed attachment authorities, while `ExchangeKit` only
 provides runtime scope plus workflow identity.
 
 The model should be explained by role. Handler authors do not need the
 full kit hierarchy; they normally use their current runtime kit and
 supplier-provided `use*()` functions. Mixin suppliers need `MixinKit`
-and the controlled ability to write workflow-level features. Adapter
-suppliers need `AdapterKit`, `DeploymentKit`, and `ExchangeKit` because
+and the controlled ability to write workflow-level features. Deployer
+suppliers need `DeployerKit`, `DeploymentKit`, and `ExchangeKit` because
 they own server protocol attachment. The complete hierarchy is mainly a
 core-level description of how those local views fit together.
 
 This is an intentional complexity tradeoff. It is acceptable for mixin
-and adapter suppliers to face more abstract concepts because they define
+and deployer suppliers to face more abstract concepts because they define
 capabilities that other code will consume. Handler authors should stay
 on the simple side of the boundary: current runtime kit, supplier
 `use*()` helpers, and explicit supplier adjustment APIs when needed.
@@ -177,7 +177,7 @@ Attachment ports move that power to the place that owns the grammar and
 the effect:
 
 - body configuration belongs to the body mixin;
-- protocol configuration belongs to the adapter;
+- protocol configuration belongs to the deployer;
 - workflow core only provides lifecycle and attachment boundaries.
 
 This preserves the minimum-knowledge rule for core while still allowing
@@ -292,30 +292,30 @@ finalization. The downstream user does not need to learn another
 controller concept; they just discover that the workflow can no longer
 be structurally changed.
 
-## Adapter Attachment
+## Deployer Attachment
 
-An adapter supplier receives an `AdapterKit` when its adapter is used to
+An deployer supplier receives an `DeployerKit` when its deployer is used to
 build a deployment artifact.
 
 ```js
 const kitByWorkflow = new WeakMap();
 
-export function install(AdapterKit) {
-  const workflow = useWorkflow(AdapterKit);
+export function install(DeployerKit) {
+  const workflow = useWorkflow(DeployerKit);
 
-  kitByWorkflow.set(workflow, AdapterKit);
-  AdapterKit.attachDeployment(K_PROTOCOL_STATE, createProtocolState());
-  AdapterKit.exportListener('request', createRequestListener());
-  AdapterKit.setServerLinker(linkServer);
+  kitByWorkflow.set(workflow, DeployerKit);
+  DeployerKit.attachDeployment(K_PROTOCOL_STATE, createProtocolState());
+  DeployerKit.exportListener('request', createRequestListener());
+  DeployerKit.setServerLinker(linkServer);
 }
 ```
 
-The adapter does not need a deploy-time options bag. It owns its
+The deployer does not need a deploy-time options bag. It owns its
 protocol grammar and installs protocol state through its port.
 
-The lifecycle differs from `MixinKit`: `AdapterKit` writes to a concrete
+The lifecycle differs from `MixinKit`: `DeployerKit` writes to a concrete
 `DeploymentKit`, so its authority belongs to one deployment artifact
-construction. If an adapter supplier retains this port, its useful write
+construction. If a deployer supplier retains this port, its useful write
 window should be constrained by deployment-artifact construction rather
 than by workflow finalization.
 
@@ -327,7 +327,7 @@ Structural writes are controlled:
 
 ```js
 MixinKit.attachWorkflow(key, value);
-AdapterKit.attachDeployment(key, value);
+DeployerKit.attachDeployment(key, value);
 ```
 
 Those methods are the authority boundary. They can validate keys, check

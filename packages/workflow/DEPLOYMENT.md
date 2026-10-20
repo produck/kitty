@@ -7,33 +7,33 @@ path.
 `KittyWorkflow` is similar to Koa in that both organize request
 handling around a middleware pipeline. Kitty differs at the deployment
 boundary: it treats the connection between a workflow and a server as
-an explicit adapter protocol. That gives downstream code a controlled
+an explicit deployer protocol. That gives downstream code a controlled
 place to customize deployment behavior without turning every concern
 into request middleware.
 
 ## Mental Model
 
-The three deployment paths expose different amounts of the adapter
+The three deployment paths expose different amounts of the deployer
 protocol.
 
-- `workflow.deploy(server)` uses the standard adapter plug. It looks up
-  the registered adapter for the server constructor, compiles a
+- `workflow.deploy(server)` uses the standard deployer plug. It looks up
+  the registered deployer for the server constructor, compiles a
   deployment artifact, and links it to the server.
 - `workflow.compile(server)` removes the standard plug and exposes the
   listener wires. It returns the listener record so callers can attach
   handlers manually.
 - `workflow.adapt(options)` gives the workflow a temporary deployment
-  adapter. Downstream code can provide one custom deployment kit for a
+  deployer. Downstream code can provide one custom deployment kit for a
   single compile or deploy opportunity, without registering anything
   globally.
 
 The third path is intentionally not just another middleware hook. It is
-an adapter-level customization point for cases where request handling is
+a deployer-level customization point for cases where request handling is
 not enough.
 
 ## Deployment Artifact
 
-Adapter compilation produces a deployment artifact:
+Deployer compilation produces a deployment artifact:
 
 ```js
 {
@@ -44,18 +44,18 @@ Adapter compilation produces a deployment artifact:
 
 `listeners` is a record of protocol-specific event handlers. Keys may
 be strings or symbols, and values are functions. It is accumulated by
-the adapter through `exportListener` calls during the install phase,
+the deployer through `exportListener` calls during the install phase,
 and represents the **public interface** that compile-path callers can
 attach manually.
 
-`listeners` is **not consumed by `link`**. The adapter's linkers capture
+`listeners` is **not consumed by `link`**. The deployer's linkers capture
 handler references via closure during install; the listeners record is
 an output for the `compile()` path only.
 
 `link` is a composed function built from linker entries registered via
 `setServerLinker`. It is called with no arguments — the linkers already
 captured the server and all handler references via closure during
-`adapter.install(AdapterKit)`.
+`deployer[$I.INSTALL]()`.
 
 `deploy()` calls `link()` to wire the server. `compile()` returns the
 the listeners and leaves linking to the caller.
@@ -70,18 +70,21 @@ request body instantiates, so deploying without it would fail on the
 first request. `compile(server)` is not gated — producing the listener
 functions may happen before the class is chosen.
 
-1. Look up the adapter entry from `Adapter.Registry` by server
+1. Look up the deployer class from `Deployer.Registry` by server
    constructor.
 2. Create `DeploymentKit` from the workflow kit.
 3. Attach the server reference to `DeploymentKit`.
-4. Create `AdapterKit` from `DeploymentKit`.
-5. Run `adapter.install(AdapterKit)` — the adapter registers listeners
-   (via `exportListener`) and linkers (via `setServerLinker`).
+4. Create `DeployerKit` from `DeploymentKit` and construct the
+   deployer with it.
+5. Attach the workflow-side capabilities (`handleExchange`,
+   `attachDeployment`) and run `deployer[$I.INSTALL]()` — the deployer
+   registers listeners (via `exportListener`) and linkers (via
+   `setServerLinker`).
 6. Call `artifact.link()` — the composed linker chain runs. Linkers
    capture the server and handler references via closure during install,
    so no arguments are needed.
 
-The registry entry stores both a logical adapter name and the adapter
+The registry entry stores both a logical deployer name and the deployer
 function:
 
 ```js
@@ -91,13 +94,13 @@ function:
 }
 ```
 
-The logical adapter name is not the same concept as
+The logical deployer name is not the same concept as
 `server.constructor.name`. The constructor name describes the server
-implementation class; the adapter name describes the protocol bridge.
+implementation class; the deployer name describes the protocol bridge.
 
 ## Compile
 
-`compile(server)` uses the same registered adapter source as
+`compile(server)` uses the same registered deployer source as
 `deploy()`, but stops before the link phase.
 
 It is useful when the caller wants Kitty to produce validated listener
@@ -110,18 +113,18 @@ embedding Kitty listeners into a larger server lifecycle.
 
 ## Ephemeral Adapt
 
-`adapt(options)` is the path for temporary adapter replacement. It is
+`adapt(options)` is the path for temporary deployer replacement. It is
 a stable Composition-layer decision, not part of the Abstract
 workflow lifecycle skeleton. The Abstract layer provides the normal
 `compile()` / `deploy()` lifecycle and deployment-kit initialization;
 `CompoundKittyWorkflow` owns `adapt()` because it is the layer that
-combines Workflow, Mixin, and Adapter domains.
+combines Workflow, Mixin, and Deployer domains.
 
-The temporary adapter should not register anything globally and should
-not occupy the constructor slot in `Adapter.Registry`.
+The temporary deployer should not register anything globally and should
+not occupy the constructor slot in `Deployer.Registry`.
 
-Instead, it creates a one-off deployment adapter scope. Downstream code
-can provide a temporary adapter with core bridge behavior plus extra
+Instead, it creates a one-off deployment deployer scope. Downstream code
+can provide a temporary deployer with core bridge behavior plus extra
 custom deployment capabilities. The returned operations must be
 called synchronously for exactly one outcome: compile once or deploy
 once. The operations themselves follow the normal async deployment API
@@ -135,8 +138,8 @@ source for special cases.
 
 Useful cases include:
 
-- custom server variants not covered by official adapters;
-- tests that need a temporary adapter without global registration;
+- custom server variants not covered by official deployers;
+- tests that need a temporary deployer without global registration;
 - embedded servers with nonstandard event wiring;
 - protocol experiments that should not pollute the global registry;
 - handler downstream code that needs a one-off deployment kit with
@@ -144,7 +147,7 @@ Useful cases include:
 
 ## One-Shot Constraint
 
-The ephemeral adapter path is one-shot and same-tick. A single
+The ephemeral deployer path is one-shot and same-tick. A single
 `adapt()` call creates one temporary deployment opportunity. Exactly
 one of the returned `compile()` or `deploy()` operations must be
 called synchronously at the call site, before the queued microtask
@@ -154,9 +157,9 @@ asynchronously.
 If a caller needs both a manual compile and a deploy, it should call
 `adapt()` twice.
 
-This keeps the deployment state simple: each temporary adapter scope has
+This keeps the deployment state simple: each temporary deployer scope has
 one outcome, and the workflow avoids retaining ambiguous partially used
-adapter state.
+deployer state.
 
 ## Relation To Mixins
 
@@ -164,10 +167,10 @@ Mixins customize workflow and deployment behavior through the Kitty kit
 hierarchy. They are installed before finalization and participate in the
 normal deployment path.
 
-Ephemeral adapters are different. They customize the adapter used for a
+Ephemeral deployers are different. They customize the deployer used for a
 particular deployment opportunity. They are not global registry entries
 and are not long-lived workflow plugins.
 
 A deployment may use both mechanisms: mixins can prepare shared
-deployment capabilities, while an ephemeral adapter can decide how the
+deployment capabilities, while an ephemeral deployer can decide how the
 workflow is connected to a particular server-like object.

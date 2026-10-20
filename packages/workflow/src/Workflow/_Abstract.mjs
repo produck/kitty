@@ -13,7 +13,7 @@ import { assertHandlerByIndex } from './Assert.mjs';
 
 const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
 
-class KittyWorkflow {
+class Workflow {
   [I.HANDLER_LIST] = [];
   [$I.WORKFLOW] = DEFAULT_PASSTHROUGH;
 
@@ -129,7 +129,7 @@ class KittyWorkflow {
 }
 
 export default Abstract(
-  KittyWorkflow,
+  Workflow,
   Abstract({
     [_I.COMPOSE.EXTEND]: M.Method(),
     [_I.COMPILE_ARTIFACT]: M.Method().returns(M.Object),

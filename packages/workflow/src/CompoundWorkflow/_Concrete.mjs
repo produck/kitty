@@ -1,37 +1,24 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
-import * as Kit from '@produck/kit';
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 import { compose } from '@produck/compose';
 
-import * as Adapter from '../Adapter/index.mjs';
+import * as Deployer from '../Deployer/index.mjs';
 import * as Capability from '../Capability.mjs';
 import * as Mixin from '../Mixin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
+import * as Parser from './Parser.mjs';
 import { I } from './_Symbol.mjs';
-import { EXCHANGE, WORKFLOW } from './_Borrow.mjs';
+import { DEPLOYER, EXCHANGE, WORKFLOW } from './_Borrow.mjs';
 
-function assertAttacher(value) {
-  if (typeof value !== 'function') {
-    ThrowTypeError('args[0] as attacher', 'function');
-  }
-}
-
-function assertDependenceName(value) {
-  if (!Kit.isDependenceName(value)) {
-    ThrowTypeError('args[0] as dependency name', 'string | symbol');
-  }
-}
-
-export default class CompoundKittyWorkflow extends Workflow.Abstract {
+export default class CompoundWorkflow extends Workflow.Abstract {
   [I.MIXIN.HANDLER.PREFIX.LIST] = [];
   [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
   [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];
 
   [WORKFLOW._I.COMPOSE.EXTEND]() {
-    const prefixHandlerList = this[I.MIXIN.HANDLER.PREFIX.LIST];
-
-    this[WORKFLOW.$I.COMPOSE.PREPEND](...Object.freeze(prefixHandlerList));
+    Object.freeze(this[I.MIXIN.HANDLER.PREFIX.LIST]);
+    this[WORKFLOW.$I.COMPOSE.PREPEND](...this[I.MIXIN.HANDLER.PREFIX.LIST]);
   }
 
   [WORKFLOW._I.COMPILE_ARTIFACT](DeploymentKit) {
@@ -39,101 +26,65 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       attacher(DeploymentKit);
     }
 
+    const server = Capability.useServer(DeploymentKit);
+    const TargetDeployer = Deployer.Registry.getByServer(server);
+    const DeployerKit = DeploymentKit('Kitty<Deployer>');
+    const deployer = new TargetDeployer(DeployerKit);
+    const handledExchanges = new WeakSet();
     let compiled = false;
 
-    function assertNotCompiled() {
-      if (compiled) {
-        Ow.Error.Common('Artifact has already been compiled.');
-      }
-    }
-
-    const server = Capability.useServer(DeploymentKit);
-    const adapter = Adapter.Registry.getByServer(server);
-    const handledExchanges = new WeakSet();
-    const AdapterKit = DeploymentKit('Kitty<Adapter>');
-    const listeners = {};
-    const linkList = [];
-    const deploymentExchangeAttacherList = [];
-
-    AdapterKit.exportListener = function (eventName, listener) {
-      assertNotCompiled();
-
-      if (typeof eventName !== 'string') {
-        ThrowTypeError('args[0] as eventName', 'string');
-      }
-
-      if (typeof listener !== 'function') {
-        ThrowTypeError('args[1] as listener', 'function');
-      }
-
-      listeners[eventName] = listener;
-    };
-
-    AdapterKit.setServerLinker = function (link) {
-      assertNotCompiled();
-
-      if (typeof link !== 'function') {
-        ThrowTypeError('args[0] as linker', 'function');
-      }
-
-      linkList.unshift(link);
-    };
-
-    AdapterKit.handleExchange = async function handleExchange(internal) {
+    DeployerKit.handleExchange = async (TargetExchange, internal) => {
       const ExchangeKit = DeploymentKit('Kitty<Exchange>');
-      const exchange = new adapter.Exchange(ExchangeKit, internal);
+      const exchange = new TargetExchange(ExchangeKit, internal);
       const identity = exchange[EXCHANGE.$I.IDENTITY];
 
       if (handledExchanges.has(identity)) {
-        Adapter.Throw('Adapter dispatched one Exchange more than once.');
+        Deployer.Throw('Deployer dispatched one Exchange more than once.');
       }
 
       handledExchanges.add(identity);
 
       try {
-        for (const attacher of [
-          ...deploymentExchangeAttacherList,
-          ...this[I.MIXIN.EXCHANGE.ATTACHER.LIST],
-        ]) {
+        deployer[DEPLOYER.$I.ATTACH_EXCHANGE](ExchangeKit);
+
+        for (const attacher of this[I.MIXIN.EXCHANGE.ATTACHER.LIST]) {
           attacher(ExchangeKit);
         }
 
         // IMPORTANT: the only call site of the handler pipeline, where the
-        // business flow defined by downstream handlers runs. Every exchange
-        // reaches this line exactly once, guarded by `handledExchanges` above,
-        // and the `close` event in the `finally` below is paired with it.
+        // business flow defined by downstream handlers runs.
         await this[WORKFLOW.$I.WORKFLOW](ExchangeKit);
       } finally {
         exchange.dispatchEvent(new Event('close'));
       }
     };
 
-    AdapterKit.attachDeployment = (name, value) => {
-      assertNotCompiled();
-      assertDependenceName(name);
+    DeployerKit.attachDeployment = (name, value) => {
+      if (compiled) {
+        Ow.Error.Common('Artifact has already been compiled.');
+      }
+
+      Parser.DependenceName(name);
       DeploymentKit[name] = value;
     };
 
-    AdapterKit.appendExchangeAttacher = (attacher) => {
-      assertNotCompiled();
-      assertAttacher(attacher);
-      deploymentExchangeAttacherList.push(attacher);
-    };
-
-    adapter.install(AdapterKit);
+    deployer[DEPLOYER.$I.INSTALL]();
     compiled = true;
 
     return deepFreeze({
-      listeners,
-      link: compose(...linkList),
+      listeners: deployer[DEPLOYER.$I.LISTENERS],
+      link: compose(...deployer[DEPLOYER.$I.LINK_LIST]),
     });
   }
 
-  adapt(adapter) {
+  adapt(DeployerClass) {
     this[WORKFLOW.$I.ASSERT.FINALIZED]();
 
     const DeploymentKit = this[WORKFLOW.$I.KIT]('Kitty<Deployment:OneTime>');
-    const finalAdapter = Adapter.Registry.normalizeOptions(adapter);
+
+    Deployer.Registry.assertDeployer(DeployerClass);
+
+    const Server = DeployerClass[DEPLOYER._S.SERVER_CTOR];
     let expired = false;
     let consumed = false;
 
@@ -144,22 +95,20 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
         Ow.Error.Common('Must consume through its deployer.');
       }
 
-      if (!(server instanceof finalAdapter.constructor)) {
-        ThrowTypeError('args[0] as server', finalAdapter.constructor.name);
+      if (!(server instanceof Server)) {
+        ThrowTypeError('args[0] as server', Server.name);
       }
 
       if (consumed) {
-        Ow.Error.Common('One-time deployment adapter has already been used.');
+        Ow.Error.Common('One-time deployer has already been used.');
       }
 
       if (expired) {
-        Ow.Error.Common(
-          'One-time deployment adapter MUST be consumed immediately.',
-        );
+        Ow.Error.Common('One-time deployer MUST be consumed immediately.');
       }
 
       consumed = true;
-      Adapter.Registry.associate(server, finalAdapter);
+      Deployer.Registry.associate(server, DeployerClass);
     }
 
     const deployer = Object.freeze({
@@ -175,7 +124,6 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
       },
       deploy: async (server) => {
         consumeBy(deployer, server);
-
         await this[WORKFLOW.$I.DEPLOY](server, DeploymentKit);
       },
     });
@@ -191,19 +139,19 @@ export default class CompoundKittyWorkflow extends Workflow.Abstract {
 
     MixinKit.attachWorkflow = (name, value) => {
       this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      assertDependenceName(name);
+      Parser.DependenceName(name);
       WorkflowKit[name] = value;
     };
 
     MixinKit.appendDeploymentAttacher = (attacher) => {
       this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      assertAttacher(attacher);
+      Parser.Attacher(attacher);
       this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST].push(attacher);
     };
 
     MixinKit.appendExchangeAttacher = (attacher) => {
       this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      assertAttacher(attacher);
+      Parser.Attacher(attacher);
       this[I.MIXIN.EXCHANGE.ATTACHER.LIST].push(attacher);
     };
 

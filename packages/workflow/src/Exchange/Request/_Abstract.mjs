@@ -2,7 +2,7 @@ import { SYMBOL } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
-import { ThrowAdapter } from '../Utils.mjs';
+import { ThrowDeployer } from '../Utils.mjs';
 import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';
 import * as P from './Parser.mjs';
@@ -34,7 +34,7 @@ class Request extends Part.Concrete {
       const host = this.header.get('host');
 
       if (host === undefined) {
-        ThrowAdapter('Host header is required to construct request URL.');
+        ThrowDeployer('Host header is required to construct request URL.');
       }
 
       return new URL(raw, `${this.exchange.protocol}//${host}`);

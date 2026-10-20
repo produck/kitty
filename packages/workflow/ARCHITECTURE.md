@@ -21,15 +21,15 @@ here.
   `compile()`/`deploy()`. Exposes extension point hooks (`_I`
   namespace) for subclasses to fill in: compose extension and artifact
   compilation. Installs the base `useWorkflow` identity capability on
-  `WorkflowKit`. The abstract layer knows nothing about mixin, adapter
-  registry, or temporary adapters — it is purely an extensible
+  `WorkflowKit`. The abstract layer knows nothing about mixin, deployer
+  registry, or temporary deployers — it is purely an extensible
   skeleton.
 
 - **Composition layer** (`Compound.mjs`): Extends the abstract layer
-  and implements two orthogonal domains — **Mixin** and **Adapter** —
+  and implements two orthogonal domains — **Mixin** and **Deployer** —
   each responsible for a distinct kind of capability injection. Owns
   `adapt(options)` for ephemeral deployment. `MixinKit` and
-  `AdapterKit` act as attachment ports: scoped, kit-backed facades
+  `DeployerKit` act as attachment ports: scoped, kit-backed facades
   over the workflow assembly surface.
 
 Extension point hooks (`_I` namespace):
@@ -70,8 +70,8 @@ The full lifecycle in `CompoundKittyWorkflow`:
 ```text
 constructor(kit) → mixin(installer)* → use(handler)* → finalize()
   → deploy(server) / compile(server) / adapt(options)
-  → Adapter.Registry / temporary adapter → DeploymentKit prepared
-  → adapter.install(AdapterKit) → compile phase → link compiled
+  → Deployer.Registry / temporary deployer → DeploymentKit prepared
+  → deployer[$I.INSTALL]() → compile phase → link compiled
   → link() → server wired via linker chain
   → (request) → ExchangeKit → Exchange validated → workflow pipeline
 ```
@@ -105,7 +105,7 @@ classDiagram
     +net.Server ~Server~
     ...
   }
-  class AdapterKit["⚙️AdapterKit"] {
+  class DeployerKit["⚙️DeployerKit"] {
     +attachDeployment(key, any) void
     +appendExchangeAttacher(attacher) void
     +handleExchange(internal) Promise~unknown~
@@ -126,14 +126,14 @@ classDiagram
   WorkflowKit <|-- MixinKit
   WorkflowKit <|-- DeploymentKit
   DeploymentKit <|-- ExchangeKit
-  DeploymentKit <|-- AdapterKit
+  DeploymentKit <|-- DeployerKit
   ExchangeKit .. HandlerKit
 
 ```
 
 This diagram is also an authority boundary. Handler code travels through
 the `ExchangeKit` branch and does not naturally receive `MixinKit` or
-`AdapterKit`. Those kits are attachment ports managed by their suppliers.
+`DeployerKit`. Those kits are attachment ports managed by their suppliers.
 If a supplier wants handler code to adjust a feature, it must explicitly
 export an adjustment function that accepts workflow identity. Handler
 code can read that identity with `useWorkflow(ExchangeKit)` and call the
@@ -142,8 +142,8 @@ supplier API; no additional kit-visible adjuster path is required.
 The full hierarchy is a core-level view, not a required mental model for
 every downstream role. Handler authors normally see only their current
 kit and supplier-provided `use*()` functions. Mixin suppliers work with
-`MixinKit` and guarded writes toward `WorkflowKit`. Adapter suppliers
-work with `AdapterKit`, `DeploymentKit`, and `ExchangeKit` because they
+`MixinKit` and guarded writes toward `WorkflowKit`. Deployer suppliers
+work with `DeployerKit`, `DeploymentKit`, and `ExchangeKit` because they
 own the protocol bridge. Each role only needs the part of the hierarchy
 that it can actually use.
 
@@ -155,7 +155,7 @@ that it can actually use.
   environment.
 - **`KitWorkflow`** (workflow scope): Derived from the external kit via
   `kit('KitWorkflow')`. Holds the workflow object itself (`<$I_WORKFLOW>`)
-  as a capability for mixin and adapter code that needs to reach the
+  as a capability for mixin and deployer code that needs to reach the
   identity without coupling to the implementation class.
 - **`Kitty<Mixin>`** (MixinKit): Derived from `KitWorkflow` per
   `mixin()` call via `kit('Kitty<Mixin>')`. Passed to the installer
@@ -163,8 +163,8 @@ that it can actually use.
   `appendDeploymentAttacher`, and `appendExchangeAttacher` as its mixin
   authoring API.
 - **`Kitty<Deployment>`** (deployment scope): Derived from `KitWorkflow`
-  at deploy time via `kit('Kitty<Deployment>')`. The adapter's recipe
-  is bound to this kit — the adapter never touches the Workflow-level
+  at deploy time via `kit('Kitty<Deployment>')`. The deployer's recipe
+  is bound to this kit — the deployer never touches the Workflow-level
   kit. Also serves as the compose context for the linker chain during
   deploy (`artifact.link()`).
 - **ExchangeKit** (per-exchange scope): Derived from
@@ -192,7 +192,7 @@ that it can actually use.
 
 - Exchange: one HTTP request and its response as one runtime unit.
 - ExchangeKit: the per-exchange kit derived from DeploymentKit.
-- AdapterKit: adapter bridge kit for listener export and server linking.
+- DeployerKit: deployer bridge kit for listener export and server linking.
 - DeploymentKit: per-server deployment scope, parent of ExchangeKit;
   also the compose context for the linker chain during deploy.
 
@@ -214,16 +214,16 @@ that it can actually use.
   `useWorkflow(kit)` port. The value may be replaced at any time,
   including after `finalize()`. `deploy(server)` does not run while the
   class is unset; `compile(server)` is not gated.
-- Adapters map protocol events to ExchangeKit and enter workflow through
+- Deployers map protocol events to ExchangeKit and enter workflow through
   handleExchange.
 - Exchange state access is mediated through the Exchange abstraction.
 - Naming uses Exchange consistently; transaction terminology is retired.
-- **Adapters support decoration**: a decorator chain can have multiple
+- **Deployers support decoration**: a decorator chain can have multiple
   layers registered for the same server constructor. Each layer
-  independently receives an `AdapterKit` and contributes listeners,
+  independently receives a `DeployerKit` and contributes listeners,
   attachers, and a linker. Kitty provides composition for both
   attachers (`appendExchangeAttacher`) and linkers (`setServerLinker`
-  via LIFO stack + `compose`). Downstream adapters control their own
+  via LIFO stack + `compose`). Downstream deployers control their own
   decoration order and policy.
 
 ## Mixin Domain
@@ -249,9 +249,9 @@ post-finalization calls via `this[$I.ASSERT.NOT_FINALIZED]()`.
 
 ```text
 1. Create DeploymentKit from WorkflowKit
-2. Adapter.install(AdapterKit) — installs low-level protocol API,
+2. Deployer.install(DeployerKit) — installs low-level protocol API,
    registers exchange attachers, exports listeners and linker
-3. Adapter exchange attachers execute on DeploymentKit
+3. Deployer exchange attachers execute on DeploymentKit
 4. Mixin deployment attachers execute on DeploymentKit
 5. Artifact is finalized and linked to the server
 ```
@@ -262,10 +262,10 @@ When an exchange arrives via `handleExchange`:
 
 ```text
 1. ExchangeKit derived from DeploymentKit
-2. Exchange constructed from the registered adapter class + `internal`
+2. Exchange constructed from the registered deployer class + `internal`
 3. Exchange installed on the ExchangeKit, under `K_EXCHANGE`
 4. Identity read once: one identity backs at most one dispatch
-5. Adapter exchange attachers  → abstract Exchange foundation
+5. Deployer exchange attachers  → abstract Exchange foundation
 6. Mixin exchange attachers    → concrete per-exchange extensions
 7. Workflow handler pipeline
 ```
@@ -280,79 +280,88 @@ install infrastructure capabilities that must reside outside the
 business pipeline, and restricting to `appendPrefixHandler` makes the
 wrapping order explicit.
 
-## Adapter Domain
+## Deployer Domain
 
-The Adapter domain is responsible for **server-type-specific protocol
+The Deployer domain is responsible for **server-type-specific protocol
 bridging** — translating raw events of a particular server
 implementation into the uniform `Exchange` abstraction.
 
-### Adapter Registration
+### Deployer Registration
 
-Adapters are registered globally via
-`Adapter.Registry.register(options)`:
+A deployer is a **class**, registered once per server type through
+`Deployer.Registry.registerDeployer(DeployerClass)`. The class declares
+what the deployment needs; the instance owns the deployment state.
 
-| Option        | Description                                                       |
-| ------------- | ----------------------------------------------------------------- |
-| `Exchange`    | Concrete `Exchange` subclass paired with this adapter; required   |
-| `constructor` | Subclass of `net.Server` that this adapter targets                |
-| `name`        | Logical adapter identifier (string)                               |
-| `install`     | Function `(AdapterKit) => void` that installs deployment behavior |
+| Member                       | Level              | Meaning                                                  |
+| ---------------------------- | ------------------ | -------------------------------------------------------- |
+| `_S.NAME`                    | static, abstract   | Logical deployer name                                    |
+| `_S.SERVER_CTOR`             | static, abstract   | Targeted `net.Server` subclass; also the registry key    |
+| `_S.EXCHANGE_CTOR.HTTP`      | static, abstract   | HTTP exchange class; optional                            |
+| `_S.EXCHANGE_CTOR.WEBSOCKET` | static, abstract   | WebSocket exchange class; optional                       |
+| `_I.INSTALL(DeployerKit)`    | instance, abstract | The one entry point where deployment behavior is defined |
+
+Both exchange slots are optional — a deployer may serve only one
+protocol — but at least one is expected in practice. Because
+`Deployer.Abstract` declares static members, every derivation must be
+wrapped in `SubConstructorProxy`.
+
+The symbols cross the package boundary as
+`SYMBOL.Deployer.{NAME, SERVER_CTOR, EXCHANGE_CTOR.{HTTP, WEBSOCKET},
+INSTALL}`.
 
 ### Lookup
 
-Adapter resolution follows a two-level lookup:
+Deployer resolution follows a two-level lookup:
 
 1. **Instance-level** (via `associate`): Check if the server instance
-   has an explicitly associated adapter. Set by the `adapt()` path
-   for one-off deployments.
-2. **Constructor-level** (via `register`): Fall back to matching
-   `server.constructor` (via `instanceof`) against globally registered
-   adapters.
+   has an explicitly associated deployer class. Set by the `adapt()`
+   path for one-off deployments.
+2. **Constructor-level** (via `registerDeployer`): Fall back to the
+   class registered for the server constructor.
 
-`getByServer(server)` checks instance map first, then walks the
+`getByServer(server)` checks the instance map first, then the
 registry. This covers two usage patterns:
 
-- **Framework-level distribution**: Library authors register adapters
+- **Framework-level distribution**: Library authors register deployers
   for standard server constructors (e.g. `http.Server`). Downstream
-  code uses `deploy(server)` and gets the right adapter automatically.
+  code uses `deploy(server)` and gets the right deployer
+  automatically.
 - **Per-instance override**: Advanced users with custom server
-  subclasses or temporary setups use `adapt()` to bind an adapter
+  subclasses or temporary setups use `adapt()` to bind a deployer
   directly to a specific instance, bypassing global registration.
 
-The registry entry stores `{ Exchange, name, install }`:
+The registry stores the **class** itself, keyed by
+`DeployerClass[_S.SERVER_CTOR]`. `registerDeployer` asserts only that
+the class is a `Deployer` subclass; the static slots validate
+themselves when read (unimplemented member, or not a `net.Server`
+subclass). The deployment instance is created later, in
+`COMPILE_ARTIFACT`, once a `DeployerKit` exists.
 
-- `Exchange`: the concrete `Exchange` subclass paired with this
-  adapter, validated with `SubConstructorOf(Exchange.Abstract)` at
-  registration time. It is the only class `handleExchange` will
-  instantiate.
-- `name`: human-readable label; may carry variant/modifier markers for
-  adapter composition scenarios.
-- `install`: the function that populates listeners and linkers.
+### DeployerKit API
 
-### AdapterKit API
+The `DeployerKit` is derived from `DeploymentKit` and handed to the
+deployer at construction; the abstract install entry receives the same
+kit. It is the deployer's whole capability surface — deployer authors
+cannot mutate `DeploymentKit` directly.
 
-When `adapter.install(AdapterKit)` is invoked, it receives an
-`AdapterKit` derived from `DeploymentKit`. It is a one-time isolation
-port — adapter authors cannot mutate `DeploymentKit` directly.
-
-| Method                                           | Behavior                                                                                                                                                                     |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `adapterKit.exportListener(eventName, listener)` | Registers a named event listener for the output listeners record                                                                                                             |
-| `adapterKit.setServerLinker(link)`               | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install                                                                   |
-| `adapterKit.handleExchange(internal)`            | Derives the ExchangeKit, constructs the registered `Exchange` class with `internal`, rejects a repeated identity, installs it, then runs attachers and the workflow pipeline |
-| `adapterKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use                                                                                                                       |
-| `adapterKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit` at runtime                                                                                                                      |
+| Method                                                 | Behavior                                                                                                                                                                                  |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deployerKit.exportListener(eventName, listener)`      | Registers a named event listener for the output listeners record                                                                                                                          |
+| `deployerKit.setServerLinker(link)`                    | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install                                                                                |
+| `deployerKit.handleExchange(TargetExchange, internal)` | Derives the ExchangeKit, constructs `TargetExchange` with `internal`, rejects a repeated identity, applies the deployer attachers and the workflow mixins, then runs the handler pipeline |
+| `deployerKit.attachDeployment(key, value)`             | Attaches a value to `DeploymentKit` for downstream use                                                                                                                                    |
+| `deployerKit.appendExchangeAttacher(fn)`               | Registers an attacher for each `ExchangeKit` at runtime                                                                                                                                   |
 
 All methods guard against post-compilation calls via an internal
 `compiled` flag.
 
-### Adapter format in registry
+### Deployer format in registry
 
 ```js
 registry.set(Constructor, {
   Exchange: Http1Exchange,
   name: 'http',
-  install(AdapterKit) {
+  install(DeployerKit) {
     /* ... */
   },
 });
@@ -360,12 +369,12 @@ registry.set(Constructor, {
 
 `Exchange`, `install`, and `name` are stored. `listeners` and `link`
 are produced at compile time by executing the `install` function
-against an `AdapterKit`.
+against a `DeployerKit`.
 
 ## Exchange Template
 
 The Exchange abstraction (`Exchange/_Abstract.mjs`) is part of the
-`workflow` core package, not an independent sub-package. Every adapter
+`workflow` core package, not an independent sub-package. Every deployer
 registers a concrete `Exchange` subclass alongside its server
 constructor; `handleExchange` constructs it, installs it on the derived
 `ExchangeKit`, and hands `internal` in as a constructor argument.
@@ -419,9 +428,9 @@ Response concepts    → KittyExchangeResponse
 
 1. **Abstract proxy**: Parser guards (e.g. `P.HTTPStatusCode`) validate
    types at construction time via `es-abstract`.
-2. **Adapter error guard**: `Guard` delegates wrap every `_I` delegation
-   through `AdapterGuard({ message, member })`. Adapter-origin exceptions
-   are rethrown with `[AdapterImplementationError]` prefix.
+2. **Deployer error guard**: `Guard` delegates wrap every `_I` delegation
+   through `DeployerGuard({ message, member })`. Deployer-origin exceptions
+   are rethrown with `[DeployerImplementationError]` prefix.
 3. **Public method self-check**: Runtime type assertions
    (`Assert.HeaderName`, `Assert.HeaderValue`, `Assert.HTTPStatusCode`)
    on method arguments independent of the Abstract proxy.
@@ -446,11 +455,11 @@ getters/setters for all abstract members:
 This factory uses `SubConstructorProxy` from `@produck/es-abstract` to
 generate a functional Exchange subclass.
 
-## Adapter/Workflow Bridge Protocol
+## Deployer/Workflow Bridge Protocol
 
 ## Supplier Configuration (`tune` Pattern)
 
-Suppliers (Mixin, Adapter, Exchange) own their configuration grammar.
+Suppliers (Mixin, Deployer, Exchange) own their configuration grammar.
 No central options bag, no `configure(workflow, patch)` protocol. Each
 supplier exposes named `tune*` functions keyed by workflow identity:
 core's own `Configuration` keys into a private `WeakMap`, a supplier keys
@@ -516,26 +525,26 @@ export function tuneFoo(workflow, value) {
 - **Core ignorance**: `KittyWorkflow` core never inspects or validates
   supplier options.
 
-The `handleExchange` function is the sole bridge between the Adapter
+The `handleExchange` function is the sole bridge between the Deployer
 layer (protocol-specific) and the Workflow layer (application logic,
 server-agnostic).
 
 ### Contract
 
-- **Adapter recipe** receives an `AdapterKit`. It must:
+- **Deployer recipe** receives a `DeployerKit`. It must:
   1. Attach protocol-specific listeners to the server via
      `exportListener`.
   2. On each incoming exchange, build the per-exchange `internal`
      record its own Exchange class needs, and call
-     `adapterKit.handleExchange(internal)`.
+     `deployerKit.handleExchange(internal)`.
 - **handle** derives the ExchangeKit, constructs the Exchange from the
   registered class and `internal`, rejects a repeated identity, runs
-  exchange attachers (adapter then mixin), then executes the composed
+  exchange attachers (deployer then mixin), then executes the composed
   workflow pipeline.
 
 ### Protocol invariant
 
-- Adapter does not know what handlers are registered via `use()` or
+- Deployer does not know what handlers are registered via `use()` or
   what plugins are installed. It interacts only with `DeploymentKit`
   and `ExchangeKit`.
 - Workflow does not know the server type, event model, or transport
@@ -548,9 +557,9 @@ deploy(server) / adapt(options).deploy(server)
   │
   ├─ 1. Create DeploymentKit from WorkflowKit
   ├─ 2. Store server on DeploymentKit (Symbol-keyed)
-  ├─ 3. Look up adapter (registry or per-instance)
-  ├─ 4. Create AdapterKit from DeploymentKit
-  ├─ 5. adapter.install(AdapterKit)
+  ├─ 3. Look up deployer (registry or per-instance)
+  ├─ 4. Create DeployerKit from DeploymentKit
+  ├─ 5. deployer[$I.INSTALL]()
   │      └─ Produces deployment artifact { listeners, link }
   ├─ 6. link(server, listeners)
   └─ 7. Run mixin deployment attachers on DeploymentKit
@@ -563,12 +572,12 @@ continues through step 7.
 
 Three deployment paths serve different scenarios:
 
-| Property       | `deploy(server)`                        | `compile(server)`                       | `adapt(options)`                                       |
-| -------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
-| Adapter source | Global registry (by server constructor) | Global registry (by server constructor) | Inline `options` (per-instance override)               |
-| Links server   | Yes (`link` called)                     | No (returns raw listeners)              | `compile` or `deploy`                                  |
-| Reusability    | Unlimited calls                         | Unlimited calls                         | Single-use; exactly one of `compile`/`deploy` per call |
-| Timing         | No constraint                           | No constraint                           | Must be consumed synchronously (microtask-guarded)     |
+| Property        | `deploy(server)`                        | `compile(server)`                       | `adapt(options)`                                       |
+| --------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| Deployer source | Global registry (by server constructor) | Global registry (by server constructor) | Inline `options` (per-instance override)               |
+| Links server    | Yes (`link` called)                     | No (returns raw listeners)              | `compile` or `deploy`                                  |
+| Reusability     | Unlimited calls                         | Unlimited calls                         | Single-use; exactly one of `compile`/`deploy` per call |
+| Timing          | No constraint                           | No constraint                           | Must be consumed synchronously (microtask-guarded)     |
 
 ### `adapt()` single-use contract
 
@@ -581,9 +590,9 @@ The scope returned by `adapt()` enforces:
 - `compile` and `deploy` share a single execution lock — only one
   may be called per `adapt()` invocation.
 
-## Adapter Artifact Split
+## Deployer Artifact Split
 
-Adapter compilation produces an artifact with two fields:
+Deployer compilation produces an artifact with two fields:
 
 ```js
 {
@@ -603,17 +612,17 @@ Adapter compilation produces an artifact with two fields:
 
 ## handleExchange Guardrails
 
-handleExchange is the adapter-to-workflow bridge, and the only place an
-Exchange is constructed. It must reject bad adapter input before any
+handleExchange is the deployer-to-workflow bridge, and the only place an
+Exchange is constructed. It must reject bad deployer input before any
 workflow handler runs.
 
-- The adapter must be registered with an `Exchange` class; that pairing
+- The deployer must be registered with an `Exchange` class; that pairing
   is checked at registration time with
   `SubConstructorOf(Exchange.Abstract)`.
 - `internal` is passed straight to the Exchange constructor and stored
   by the Exchange; the core never inspects its shape.
 - The Exchange is constructed here, from the registered class and the
-  ExchangeKit derived here — not installed by the adapter beforehand — and
+  ExchangeKit derived here — not installed by the deployer beforehand — and
   installed on that kit here, under `K_EXCHANGE`, after construction. The
   slot itself is declared by the Workflow layer
   (`Capability.mjs`, at the package root), so "an ExchangeKit carries an
@@ -624,10 +633,10 @@ workflow handler runs.
 
 Responsibility boundary:
 
-- Violations at this boundary are adapter errors, not handler errors.
+- Violations at this boundary are deployer errors, not handler errors.
 - `.use()` handlers may assume a validated ExchangeKit once workflow
   execution begins.
-- The adapter's own listener still decides whether an incoming event
+- The deployer's own listener still decides whether an incoming event
   produces an exchange at all; `handleExchange` owns only construction,
   installation, and the dispatch guard.
 
@@ -635,7 +644,7 @@ Responsibility boundary:
 
 Kitty uses one binding check to prevent accidental duplicate
 processing. It lives in `handleExchange`, because that is where an
-Exchange is constructed and where the adapter's identity object first
+Exchange is constructed and where the deployer's identity object first
 becomes readable:
 
 - `handleExchange` reads `Exchange[$I.IDENTITY]` once and records it in
@@ -647,9 +656,9 @@ model layer exposes identity; the bridge layer owns consumption. That is
 not two guards but two responsibilities — the model answers, the bridge
 decides.
 
-## Adapter Identity Quick Rules
+## Deployer Identity Quick Rules
 
-Kitty cannot fully prevent malicious adapter implementations, but it
+Kitty cannot fully prevent malicious deployer implementations, but it
 can make correct implementations easy and incorrect ones fail fast.
 
 Use the following low-cognitive-load identity rules:
@@ -663,7 +672,7 @@ Use the following low-cognitive-load identity rules:
 
 Operational expectation:
 
-- Adapter authors choose identity by selection, not by invention.
+- Deployer authors choose identity by selection, not by invention.
 - If identity is implemented poorly, failures should surface early at
   the bridge dispatch boundary.
 
@@ -734,22 +743,22 @@ The caller owns `server.listen()` and `server.close()`.
 - The `COMPOSE` namespace is retained — both `$I.COMPOSE.PREPEND` and
   `_I.COMPOSE.EXTEND` share the `@produck/compose` origin.
 
-### `AdapterKit.appendExchangeAttacher` (not `setExchangeAttacher`)
+### `DeployerKit.appendExchangeAttacher` (not `setExchangeAttacher`)
 
-This decision applies to the **AdapterKit control surface only**.
+This decision applies to the **DeployerKit control surface only**.
 On `MixinKit`, `appendExchangeAttacher` is natural — Mixin is
 designed for multiple installers, each registering its own attachers.
 
-The discussion arose because `AdapterKit` is typically used by one
-adapter, raising the question of whether `set` would be more
+The discussion arose because `DeployerKit` is typically used by one
+deployer, raising the question of whether `set` would be more
 appropriate. `append` was confirmed for the following reasons:
 
-- Adapters may be **decorated** — a decorator chain can have multiple
+- Deployers may be **decorated** — a decorator chain can have multiple
   layers, each potentially registering exchange attachers.
 - `append` signals "add to a collection" (multiple callers coexist).
 - `set` would imply single-value replacement, which breaks under
   decoration.
-- The kitty layer does not define or know about specific adapter
+- The kitty layer does not define or know about specific deployer
   decoration relationships; it only provides the append-collection
   mechanism.
 

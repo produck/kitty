@@ -1,20 +1,20 @@
 import { Ow } from '@produck/argot';
 
-const ADAPTER_ERROR_PREFIX = '[AdapterImplementationError]';
+const DEPLOYER_ERROR_PREFIX = '[DeployerImplementationError]';
 
-export function ThrowAdapter(message, options) {
-  Ow.Error.Common(`${ADAPTER_ERROR_PREFIX} ${message}`, options);
+export function ThrowDeployer(message, options) {
+  Ow.Error.Common(`${DEPLOYER_ERROR_PREFIX} ${message}`, options);
 }
 
-export function AdapterGuard({ message, member }) {
-  const finalName = `adapter$${member.description}`;
+export function DeployerGuard({ message, member }) {
+  const finalName = `deployer$${member.description}`;
 
   return {
     [finalName](target, ...args) {
       try {
         return target[member](...args);
       } catch (cause) {
-        ThrowAdapter(message, { cause });
+        ThrowDeployer(message, { cause });
       }
     },
   }[finalName];

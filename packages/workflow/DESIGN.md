@@ -32,7 +32,7 @@ to attach dependencies into another kit scope.
 The important property in workflow assembly is control. Attachment is
 not arbitrary mutation of `WorkflowKit`; it is a lifecycle-guarded
 structural write performed through an authorized surface. In this
-vocabulary, `MixinKit` and `AdapterKit` are attachment ports:
+vocabulary, `MixinKit` and `DeployerKit` are attachment ports:
 supplier-facing facades that expose specific attachment abilities
 without exposing the full workflow authority behind them.
 
@@ -90,7 +90,7 @@ guarded attachment-port methods.
 
 Kitty is a concrete use of this mechanism. It does not try to model all
 program effects as typed computations. Instead, it uses kit inheritance
-to assemble workflow, deployment, adapter, exchange, and handler
+to assemble workflow, deployment, deployer, exchange, and handler
 capabilities at the layers where they belong.
 
 ## Core As Authority Boundary
@@ -104,10 +104,10 @@ which structural writes are allowed, and when those writes expire.
 
 In engineering terms, core is responsible for:
 
-- dividing the kit hierarchy into workflow, deployment, adapter,
+- dividing the kit hierarchy into workflow, deployment, deployer,
   exchange, and handler scopes;
 - owning the workflow assembly surface and granting attachment ports
-  such as `MixinKit` and `AdapterKit` as facades to that surface;
+  such as `MixinKit` and `DeployerKit` as facades to that surface;
 - keeping structural writes behind guarded methods;
 - defining lifecycle windows such as finalization, deployment artifact
   construction, and per-exchange runtime scope;
@@ -133,14 +133,14 @@ phase:
   Exposed through `MixinKit` as a facade.
 - **Deployment attachers**: functions recorded during the installation
   phase and run during compile-time `DeploymentKit` preparation. Exposed
-  through `MixinKit` only — AdapterKit provides direct `DeploymentKit`
+  through `MixinKit` only — DeployerKit provides direct `DeploymentKit`
   writes via `attachDeployment(key, value)`.
 - **Exchange attachers**: functions recorded during the installation or
   compile phase and run when an `ExchangeKit` is prepared. Exposed
-  through both `MixinKit` and `AdapterKit`, each with its own lifecycle
+  through both `MixinKit` and `DeployerKit`, each with its own lifecycle
   window.
 
-`MixinKit` and `AdapterKit` are supplier-facing facades over subsets of
+`MixinKit` and `DeployerKit` are supplier-facing facades over subsets of
 the workflow assembly surface. Each port exposes only the abilities
 relevant to its role and lifecycle phase. After `finalize()`, structural
 additions to the assembly surface are closed.
@@ -173,9 +173,9 @@ additions to the assembly surface are closed.
    sufficient to use it (`kit[key]`). No dynamic discovery or
    runtime injection is needed.
 
-## Adapter Domain
+## Deployer Domain
 
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#adapter-domain).
+> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#deployer-domain).
 
 ## Typed Capability Accessors
 
@@ -191,7 +191,7 @@ const { use, touch } = Getter('body');
 
 ### Recommended export pattern
 
-Each plugin or adapter package exports its Getter with a semantic
+Each plugin or deployer package exports its Getter with a semantic
 name, controlling the strictness its consumers experience:
 
 ```js
@@ -438,10 +438,10 @@ workflow.mixin((mixinKit) => {
 });
 ```
 
-## Adapter/Workflow Bridge Protocol
+## Deployer/Workflow Bridge Protocol
 
 > Stable contract, protocol invariant, guardrails, and deployment flow
-> moved to [ARCHITECTURE.md](ARCHITECTURE.md#adapterworkflow-bridge-protocol).
+> moved to [ARCHITECTURE.md](ARCHITECTURE.md#deployerworkflow-bridge-protocol).
 
 ### Motivation
 
@@ -457,39 +457,39 @@ A unified lifecycle management object at the Workflow level would
 either need to abstract all these into a lowest-common-denominator
 interface (losing type-specific capabilities) or leak server-type
 knowledge into Workflow. The Bridge Protocol avoids both by keeping
-the Adapter as the sole owner of protocol semantics.
+the Deployer as the sole owner of protocol semantics.
 
-### Protocol correctness is the Adapter author's responsibility
+### Protocol correctness is the Deployer author's responsibility
 
 The Bridge Protocol is a **documented contract**, not a machine-enforced
-constraint. Workflow cannot verify at definition time that an Adapter
+constraint. Workflow cannot verify at definition time that an Deployer
 recipe calls `handle` in the right place, or calls it at all — that is
 a runtime behaviour that only emerges when the server processes actual
 requests.
 
 Workflow does not provide test helpers for this verification. The
-Adapter author chooses their own method to prove correctness (unit
+Deployer author chooses their own method to prove correctness (unit
 tests, integration tests, manual verification, etc.). This is
 consistent with the project's MIT licensing philosophy — the framework
-defines the protocol; adapter authors are responsible for their own
+defines the protocol; deployer authors are responsible for their own
 implementations.
 
-Downstream consumers (application developers) select an Adapter based
-on trust or demonstrated quality. If an Adapter fails to call `handle`,
+Downstream consumers (application developers) select an Deployer based
+on trust or demonstrated quality. If an Deployer fails to call `handle`,
 the symptom is clear at runtime (requests hang or error), and the
-consumer can switch to a different Adapter.
+consumer can switch to a different Deployer.
 
 ### Logical exchange identity getter
 
-Implemented as an adapter contract extension, and still an adapter
+Implemented as a deployer contract extension, and still a deployer
 responsibility boundary.
 
-- `I.INTERNAL` holds the per-exchange record the adapter hands in as the
+- `I.INTERNAL` holds the per-exchange record the deployer hands in as the
   Exchange constructor's second argument. It never leaves the package.
 - That record is readable through the protected `$I.INTERNAL` getter on
   `ExchangePart`, so every subject inherits it and a part implementation
   can reach the record as `this[$I.INTERNAL]`.
-- Adapter implementations answer identity through the protected
+- Deployer implementations answer identity through the protected
   `$I.IDENTITY` getter, which receives that record as its argument and
   returns one native object per logical exchange (for example a req/res
   pair, or a stream).
@@ -520,7 +520,7 @@ tx.response.body.data; // the handler sets it — see the sink contract below
 #### Response body data: the sink contract (draft, 2026-10-15)
 
 The request side is a source; the response side is a **sink**. The
-handler hands a value to `response.body.data` and the adapter writes it
+handler hands a value to `response.body.data` and the deployer writes it
 out. This package normalizes that value into one record shape:
 
 ```js
@@ -564,17 +564,17 @@ Responsibility split:
 
 - **This package**: the record shape, the built-in presets, the
   normalization at the setter, and the declared set.
-- **The adapter, downstream**: everything protocol-specific. That
+- **The deployer, downstream**: everything protocol-specific. That
   includes `Content-Length` versus `Transfer-Encoding` — and the
   h1/h2 difference in particular: HTTP/1.1 may chunk, HTTP/2 has no
   `Transfer-Encoding` at all. The framework never sets either header; it
   only says what is known about the body.
 
 `get data` answers a copy of the record: the body keeps the record in a
-private slot of its own, so reading never calls back into the adapter, and
+private slot of its own, so reading never calls back into the deployer, and
 a body nobody set reads the no-body record, `{ stream: null, length: 0 }`.
 The setter picks the two contract fields, so a preset that returns extra
-ones never gets them into the body nor to the adapter.
+ones never gets them into the body nor to the deployer.
 
 Still open: the programming names (the reader of the declared set; the
 concept name `ResponseBodyDataValue` is for prose only) and whether
@@ -625,8 +625,8 @@ Goal:
 After `exchange.isFinished` is true, any further writes through
 `response.body.data` setter or `setStatus()` must be rejected.
 This guard is enforced at the Exchange layer via `Guard` delegates
-— Adapter-origin errors are unified under `[AdapterImplementationError]`
-with `AdapterGuard`.
+— Deployer-origin errors are unified under `[DeployerImplementationError]`
+with `DeployerGuard`.
 
 Handler execution timeout is configurable via `Configuration.Tune.MaxExchangeTimeout(workflow, milliseconds)`.
 The timeout is armed at Exchange construction against the `close` event
@@ -652,7 +652,7 @@ dispatched by `handleExchange` finally block.
    has keep-alive). A Workflow-level abstraction would either be too
    thin to be useful or too leaky to be clean.
 
-3. **Separation of concerns**: "How to close a server" is an Adapter
+3. **Separation of concerns**: "How to close a server" is an Deployer
    concern; "what to do with each request" is a Workflow concern.
    Mixing them in a single return value conflates the two layers.
 
@@ -683,18 +683,18 @@ server.close(async () => {
 ```
 
 For more sophisticated draining (e.g., waiting for in-flight
-ExchangeKit promises), the Adapter recipe can expose a drain
+ExchangeKit promises), the Deployer recipe can expose a drain
 capability on `DeploymentKit`:
 
 ```js
-// Adapter recipe:
+// Deployer recipe:
 kit['drain'] = async () => {
   // Wait for all tracked ExchangeKit promises
   await Promise.all(activeExchanges);
 });
 ```
 
-This stays at the Adapter level — Workflow never needs to know about
+This stays at the Deployer level — Workflow never needs to know about
 it.
 
 ## Event & Cross-Cutting Concerns
@@ -759,7 +759,7 @@ cross-cutting concerns** placed in the ExternalKit.
 
 The `handleExchange` bridge does not need to wire up events.
 Events flow through the kit chain automatically: anything installed
-on ExternalKit is reachable from ExchangeKit. The Adapter recipe
+on ExternalKit is reachable from ExchangeKit. The Deployer recipe
 does not need to propagate events — it only creates the
 ExchangeKit, and kit inheritance does the rest.
 
@@ -772,13 +772,13 @@ ExchangeKit, and kit inheritance does the rest.
 > This was incorrect — freezing happens at `finalize()`, not
 > construction. ARCHITECTURE.md records the correct behavior.
 
-## Adapter Artifact Split
+## Deployer Artifact Split
 
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#adapter-artifact-split).
+> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#deployer-artifact-split).
 
 ### Protocol resources on ExchangeKit
 
-The adapter owns the `stream` / `request` event and is responsible
+The deployer owns the `stream` / `request` event and is responsible
 for creating `ExchangeKit` inside it. At that point it can install
 protocol-specific resources directly onto `ExchangeKit`:
 
@@ -795,11 +795,11 @@ protocol-specific resources directly onto `ExchangeKit`:
 });
 ```
 
-> **Affected by the construction move**: the adapter no longer derives
+> **Affected by the construction move**: the deployer no longer derives
 > `ExchangeKit` — `handleExchange` does, from its own `DeploymentKit`. So
-> protocol resources cannot be installed on the kit from the adapter's
+> protocol resources cannot be installed on the kit from the deployer's
 > listener any more; they would travel in the `internal` record instead
-> (readable by the adapter's own Exchange and parts), or be installed by
+> (readable by the deployer's own Exchange and parts), or be installed by
 > an exchange attacher that runs before the handler pipeline. Which of
 > the two is the intended route is still open.
 
@@ -810,7 +810,7 @@ protocol-specific resources directly onto `ExchangeKit`:
 - Handlers import typed accessors (`useStream`, `useSession`) to
   consume these resources.
 
-These protocol resources are **adapter-specific** and not part of the
+These protocol resources are **deployer-specific** and not part of the
 core Exchange Template. They follow the same
 "not installed, not available" contract as any other kit capability.
 
@@ -845,9 +845,9 @@ protocol a first-class routing dimension.
 > without conflating them. The core layer intentionally stays out of
 > this decision.
 
-## Adapter Compliance Baseline (Draft)
+## Deployer Compliance Baseline (Draft)
 
-This section captures a practical compliance baseline for adapter
+This section captures a practical compliance baseline for deployer
 authors. It is intentionally split into current requirements and
 planned requirements that are still under design.
 
@@ -862,14 +862,14 @@ planned requirements that are still under design.
 - Answer each `_I` member from the first argument it receives: every
   `_I` member — a part's and the Exchange's alike — is called with the
   connection-time record as its first argument.
-- Treat bridge errors as adapter implementation errors and fail fast.
+- Treat bridge errors as deployer implementation errors and fail fast.
 
 > Superseded behaviors: building `ExchangeKit`, installing the `Exchange`
 > instance on it, and linking the Exchange to the deployment's server are
-> no longer adapter duties. `handleExchange` derives the kit and
+> no longer deployer duties. `handleExchange` derives the kit and
 > constructs the Exchange from the registered class.
 
-### Planned adapter contract extensions
+### Planned deployer contract extensions
 
 The following are directionally agreed but not finalized as complete
 member-level API requirements:
@@ -887,26 +887,26 @@ member-level API requirements:
 
 ### Non-goal at this layer
 
-- Business-level idempotency is not an adapter responsibility.
-- Adapter compliance focuses on protocol mapping correctness and bridge
+- Business-level idempotency is not a deployer responsibility.
+- Deployer compliance focuses on protocol mapping correctness and bridge
   invariants only.
 
 ## Glossary
 
 - **Workflow**: The composed handler pipeline, produced by
   `Composer.compose()`.
-- **Adapter**: A mapping between a server constructor and its
-  adapter entry `{ name, install }`. Works only on the deployment-level
+- **Deployer**: A mapping between a server constructor and its
+  deployer entry `{ name, install }`. Works only on the deployment-level
   kit (`Kitty<Deployment>`); has no effect on the Workflow-level kit.
 - **Kit Recipe**: Describes dependencies to install into a kit.
-  Adapter functions may still use recipes, but registry adapters are
-  currently plain `install(AdapterKit)` functions.
+  Deployer functions may still use recipes, but registry deployers are
+  currently plain `install(DeployerKit)` functions.
 - **listeners**: A protocol-specific record of event handlers, for
   example `{ request: (req, res) => {} }`.
 - **link**: A plain function `(server, listeners) => unknown` that
   attaches artifact listeners to a server instance.
-- **deploy**: Auto-discovery deployment — looks up an adapter from
-  global Adapter registry by prototype chain.
+- **deploy**: Auto-discovery deployment — looks up a deployer from
+  global Deployer registry by prototype chain.
 - **adapt**: Ephemeral custom deployment — no global registration,
   one-off use with immediate invocation guard.
 - **tune**: Adjust a supplier-owned runtime parameter on a workflow.
@@ -916,7 +916,7 @@ member-level API requirements:
 - **EventTarget**: Platform primitive. `KittyExchange` extends it to
   dispatch lifecycle events (`close`, `timeout`, etc.).
 - **Guard**: Module-level delegate Record that wraps `_I` abstraction
-  access through `AdapterGuard` for error-domain unification.
+  access through `DeployerGuard` for error-domain unification.
 
 ## Open Design Questions
 

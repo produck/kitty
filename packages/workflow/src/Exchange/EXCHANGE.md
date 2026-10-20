@@ -4,10 +4,10 @@
 
 An Exchange has two independent termination signals:
 
-| Signal                | Source                                  | Meaning                                |
-| --------------------- | --------------------------------------- | -------------------------------------- |
-| `close` event         | `handleExchange` finally block          | workflow pipeline has returned (sync)  |
-| `isFinished` (getter) | `_I.RESPONSE.IS_FINISHED()` via Adapter | response stream has been fully written |
+| Signal                | Source                                   | Meaning                                |
+| --------------------- | ---------------------------------------- | -------------------------------------- |
+| `close` event         | `handleExchange` finally block           | workflow pipeline has returned (sync)  |
+| `isFinished` (getter) | `_I.RESPONSE.IS_FINISHED()` via Deployer | response stream has been fully written |
 
 They can arrive in either order:
 
