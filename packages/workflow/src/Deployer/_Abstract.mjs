@@ -3,6 +3,7 @@ import * as net from 'node:net';
 import { Ow, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
+import { isSubConstructor } from '@produck/is-sub-constructor';
 
 import * as HttpExchange from '../HttpExchange/index.mjs';
 import * as WebSocketExchange from '../WebSocketExchange/index.mjs';
@@ -14,6 +15,17 @@ function assertAttacher(value) {
   }
 }
 
+function M_SubWebSocketExchangeOrUndefined(value) {
+  if (
+    value === undefined ||
+    isSubConstructor(value, WebSocketExchange.Abstract)
+  ) {
+    return value;
+  }
+
+  ThrowTypeError('member', 'sub-constructor of WebSocketExchange');
+}
+
 class Deployer {
   [$I.LISTENERS] = {};
   [$I.LINK_LIST] = [];
@@ -22,6 +34,10 @@ class Deployer {
 
   static get name() {
     return this[_S.NAME];
+  }
+
+  static get [_S.EXCHANGE_CTOR.WEB_SOCKET]() {
+    return undefined;
   }
 
   constructor(DeployerKit) {
@@ -94,6 +110,6 @@ export default Abstract(
     [_S.NAME]: M.String,
     [_S.SERVER_CTOR]: M_Sub(net.Server),
     [_S.EXCHANGE_CTOR.HTTP]: M_Sub(HttpExchange.Abstract),
-    [_S.EXCHANGE_CTOR.WEBSOCKET]: M_Sub(WebSocketExchange.Abstract),
+    [_S.EXCHANGE_CTOR.WEB_SOCKET]: M_SubWebSocketExchangeOrUndefined,
   }),
 );

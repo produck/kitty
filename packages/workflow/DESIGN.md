@@ -493,10 +493,10 @@ responsibility boundary.
   `$I.IDENTITY` getter, which receives that record as its argument and
   returns one native object per logical exchange (for example a req/res
   pair, or a stream).
-- Identity consumption is enforced in `handleExchange`, not in Exchange
-  construction: the bridge reads `Exchange[$I.IDENTITY]` once and records
-  it in `handledExchanges`.
-- `handleExchange` therefore enforces both identity-exchange binding and
+- Identity consumption is enforced in the dispatch, not in Exchange
+  construction: the dispatch reads `Exchange[$I.IDENTITY]` once and
+  records it in the workflow's own set.
+- The dispatch therefore enforces both identity-exchange binding and
   exchange-workflow execution binding, in one place and one read.
 
 ### Exchange Template
@@ -630,7 +630,7 @@ with `DeployerGuard`.
 
 Handler execution timeout is configurable via `Configuration.Tune.MaxExchangeTimeout(workflow, milliseconds)`.
 The timeout is armed at Exchange construction against the `close` event
-dispatched by `handleExchange` finally block.
+dispatched by the dispatch `finally` block.
 
 ## Supplier Configuration (`tune` Pattern)
 
@@ -755,9 +755,9 @@ cross-cutting concerns** placed in the ExternalKit.
   follow the same "not installed, not available" contract as
   everything else — no special treatment.
 
-### What this means for handleExchange
+### What this means for the dispatch
 
-The `handleExchange` bridge does not need to wire up events.
+The dispatch does not need to wire up events.
 Events flow through the kit chain automatically: anything installed
 on ExternalKit is reachable from ExchangeKit. The Deployer recipe
 does not need to propagate events — it only creates the
@@ -796,7 +796,7 @@ protocol-specific resources directly onto `ExchangeKit`:
 ```
 
 > **Affected by the construction move**: the deployer no longer derives
-> `ExchangeKit` — `handleExchange` does, from its own `DeploymentKit`. So
+> `ExchangeKit` — the dispatch does, from its own `DeploymentKit`. So
 > protocol resources cannot be installed on the kit from the deployer's
 > listener any more; they would travel in the `internal` record instead
 > (readable by the deployer's own Exchange and parts), or be installed by
@@ -856,7 +856,8 @@ planned requirements that are still under design.
 - Register a concrete `Exchange` subclass alongside the server
   constructor; the pairing is validated at registration time.
 - Build the per-exchange `internal` record and call
-  `handleExchange(internal)` for each incoming logical exchange.
+  `handleHttpExchange(internal)` / `handleWebSocketExchange(internal)`
+  for each incoming logical exchange.
 - Answer `$I.IDENTITY` with one native object per logical exchange, and
   never let two exchanges answer the same identity.
 - Answer each `_I` member from the first argument it receives: every
@@ -866,8 +867,8 @@ planned requirements that are still under design.
 
 > Superseded behaviors: building `ExchangeKit`, installing the `Exchange`
 > instance on it, and linking the Exchange to the deployment's server are
-> no longer deployer duties. `handleExchange` derives the kit and
-> constructs the Exchange from the registered class.
+> no longer deployer duties. The dispatch derives the kit and constructs
+> the Exchange from the class the kit entry picked.
 
 ### Planned deployer contract extensions
 

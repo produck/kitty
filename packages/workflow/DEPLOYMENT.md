@@ -76,10 +76,10 @@ functions may happen before the class is chosen.
 3. Attach the server reference to `DeploymentKit`.
 4. Create `DeployerKit` from `DeploymentKit` and construct the
    deployer with it.
-5. Attach the workflow-side capabilities (`handleExchange`,
-   `attachDeployment`) and run `deployer[$I.INSTALL]()` — the deployer
-   registers listeners (via `exportListener`) and linkers (via
-   `setServerLinker`).
+5. Attach the workflow-side capabilities (`handleHttpExchange` /
+   `handleWebSocketExchange`, `attachDeployment`) and run
+   `deployer[$I.INSTALL]()` — the deployer registers listeners (via
+   `exportListener`) and linkers (via `setServerLinker`).
 6. Call `artifact.link()` — the composed linker chain runs. Linkers
    capture the server and handler references via closure during install,
    so no arguments are needed.

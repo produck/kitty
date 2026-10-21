@@ -108,7 +108,8 @@ classDiagram
   class DeployerKit["⚙️DeployerKit"] {
     +attachDeployment(key, any) void
     +appendExchangeAttacher(attacher) void
-    +handleExchange(internal) Promise~unknown~
+    +handleHttpExchange(internal) Promise~unknown~
+    +handleWebSocketExchange(internal) Promise~unknown~
     +exportListener(name, listener) void
     +setServerLinker(link) void
   }
@@ -215,7 +216,7 @@ that it can actually use.
   including after `finalize()`. `deploy(server)` does not run while the
   class is unset; `compile(server)` is not gated.
 - Deployers map protocol events to ExchangeKit and enter workflow through
-  handleExchange.
+  the kit's per-protocol dispatch entry.
 - Exchange state access is mediated through the Exchange abstraction.
 - Naming uses Exchange consistently; transaction terminology is retired.
 - **Deployers support decoration**: a decorator chain can have multiple
@@ -258,7 +259,8 @@ post-finalization calls via `this[$I.ASSERT.NOT_FINALIZED]()`.
 
 ### Runtime exchange attacher execution order
 
-When an exchange arrives via `handleExchange`:
+When an exchange arrives via `handleHttpExchange` or
+`handleWebSocketExchange`:
 
 ```text
 1. ExchangeKit derived from DeploymentKit
@@ -292,21 +294,26 @@ A deployer is a **class**, registered once per server type through
 `Deployer.Registry.registerDeployer(DeployerClass)`. The class declares
 what the deployment needs; the instance owns the deployment state.
 
-| Member                       | Level              | Meaning                                                  |
-| ---------------------------- | ------------------ | -------------------------------------------------------- |
-| `_S.NAME`                    | static, abstract   | Logical deployer name                                    |
-| `_S.SERVER_CTOR`             | static, abstract   | Targeted `net.Server` subclass; also the registry key    |
-| `_S.EXCHANGE_CTOR.HTTP`      | static, abstract   | HTTP exchange class; optional                            |
-| `_S.EXCHANGE_CTOR.WEBSOCKET` | static, abstract   | WebSocket exchange class; optional                       |
-| `_I.INSTALL(DeployerKit)`    | instance, abstract | The one entry point where deployment behavior is defined |
+| Member                        | Level              | Meaning                                                  |
+| ----------------------------- | ------------------ | -------------------------------------------------------- |
+| `_S.NAME`                     | static, abstract   | Logical deployer name                                    |
+| `_S.SERVER_CTOR`              | static, abstract   | Targeted `net.Server` subclass; also the registry key    |
+| `_S.EXCHANGE_CTOR.HTTP`       | static, abstract   | HTTP exchange class; required                            |
+| `_S.EXCHANGE_CTOR.WEB_SOCKET` | static, abstract   | WebSocket exchange class, or `undefined`; optional       |
+| `_I.INSTALL(DeployerKit)`     | instance, abstract | The one entry point where deployment behavior is defined |
 
-Both exchange slots are optional — a deployer may serve only one
-protocol — but at least one is expected in practice. Because
+Both exchange slots stay declared, so both keep their type: a value
+that is not a derivation of the expected `Exchange` is rejected on
+read. They differ in whether absence is legal. The base answers
+`undefined` for the WebSocket slot and the member parser accepts it,
+so a deployer that serves no WebSocket is valid; the kit entry reports
+that absence as a deployer error. The HTTP slot has no such default,
+so the abstract layer itself answers for its absence. Because
 `Deployer.Abstract` declares static members, every derivation must be
 wrapped in `SubConstructorProxy`.
 
 The symbols cross the package boundary as
-`SYMBOL.Deployer.{NAME, SERVER_CTOR, EXCHANGE_CTOR.{HTTP, WEBSOCKET},
+`SYMBOL.Deployer.{NAME, SERVER_CTOR, EXCHANGE_CTOR.{HTTP, WEB_SOCKET},
 INSTALL}`.
 
 ### Lookup
@@ -344,13 +351,14 @@ deployer at construction; the abstract install entry receives the same
 kit. It is the deployer's whole capability surface — deployer authors
 cannot mutate `DeploymentKit` directly.
 
-| Method                                                 | Behavior                                                                                                                                                                                  |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deployerKit.exportListener(eventName, listener)`      | Registers a named event listener for the output listeners record                                                                                                                          |
-| `deployerKit.setServerLinker(link)`                    | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install                                                                                |
-| `deployerKit.handleExchange(TargetExchange, internal)` | Derives the ExchangeKit, constructs `TargetExchange` with `internal`, rejects a repeated identity, applies the deployer attachers and the workflow mixins, then runs the handler pipeline |
-| `deployerKit.attachDeployment(key, value)`             | Attaches a value to `DeploymentKit` for downstream use                                                                                                                                    |
-| `deployerKit.appendExchangeAttacher(fn)`               | Registers an attacher for each `ExchangeKit` at runtime                                                                                                                                   |
+| Method                                            | Behavior                                                                                                   |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `deployerKit.exportListener(eventName, listener)` | Registers a named event listener for the output listeners record                                           |
+| `deployerKit.setServerLinker(link)`               | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install |
+| `deployerKit.handleHttpExchange(internal)`        | Reads `[_S.EXCHANGE_CTOR.HTTP]` from the deployer class, then hands the dispatch that class and `internal` |
+| `deployerKit.handleWebSocketExchange(internal)`   | Same, reading `[_S.EXCHANGE_CTOR.WEB_SOCKET]`; throws when the deployer declares no WebSocket slot         |
+| `deployerKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use                                                     |
+| `deployerKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit` at runtime                                                    |
 
 All methods guard against post-compilation calls via an internal
 `compiled` flag.
@@ -376,7 +384,7 @@ against a `DeployerKit`.
 The Exchange abstraction (`Exchange/_Abstract.mjs`) is part of the
 `workflow` core package, not an independent sub-package. Every deployer
 registers a concrete `Exchange` subclass alongside its server
-constructor; `handleExchange` constructs it, installs it on the derived
+constructor; the dispatch constructs it, installs it on the derived
 `ExchangeKit`, and hands `internal` in as a constructor argument.
 
 Every `_I` member — a part's and the Exchange's alike — is called with
@@ -403,9 +411,9 @@ exchange.response         → KittyExchangeResponse (read/write)
 
 KittyExchange extends `EventTarget`. Lifecycle events:
 
-| Event   | Dispatcher                     | Meaning                 |
-| ------- | ------------------------------ | ----------------------- |
-| `close` | `handleExchange` finally block | workflow pipeline ended |
+| Event   | Dispatcher               | Meaning                 |
+| ------- | ------------------------ | ----------------------- |
+| `close` | dispatch `finally` block | workflow pipeline ended |
 
 ### Member ownership
 
@@ -437,10 +445,11 @@ Response concepts    → KittyExchangeResponse
 
 ### Exchange identity
 
-`handleExchange` reads `Exchange[$I.IDENTITY]` once, right after
-construction, and records it in `handledExchanges`. One identity object
-may therefore back at most one dispatch; a second Exchange answering
-the same identity is rejected before any workflow handler runs.
+The dispatch reads `Exchange[$I.IDENTITY]` once, right after
+construction, and records it in the workflow's own handled-identity set.
+One identity object may therefore back at most one dispatch; a second
+Exchange answering the same identity is rejected before any workflow
+handler runs.
 
 ### Exchange Implement
 
@@ -525,9 +534,9 @@ export function tuneFoo(workflow, value) {
 - **Core ignorance**: `KittyWorkflow` core never inspects or validates
   supplier options.
 
-The `handleExchange` function is the sole bridge between the Deployer
-layer (protocol-specific) and the Workflow layer (application logic,
-server-agnostic).
+The dispatch — `[I.HANDLE_EXCHANGE]` on `CompoundWorkflow` — is the sole
+bridge between the Deployer layer (protocol-specific) and the Workflow
+layer (application logic, server-agnostic).
 
 ### Contract
 
@@ -536,11 +545,13 @@ server-agnostic).
      `exportListener`.
   2. On each incoming exchange, build the per-exchange `internal`
      record its own Exchange class needs, and call
-     `deployerKit.handleExchange(internal)`.
-- **handle** derives the ExchangeKit, constructs the Exchange from the
-  registered class and `internal`, rejects a repeated identity, runs
-  exchange attachers (deployer then mixin), then executes the composed
-  workflow pipeline.
+     `deployerKit.handleHttpExchange(internal)` or
+     `deployerKit.handleWebSocketExchange(internal)`.
+- **The kit entry** picks the exchange class from the deployer class,
+  then hands it to the dispatch with `internal`. The **dispatch**
+  derives the ExchangeKit, constructs the Exchange, rejects a repeated
+  identity, runs exchange attachers (deployer then mixin), then executes
+  the composed workflow pipeline.
 
 ### Protocol invariant
 
@@ -610,14 +621,14 @@ Deployer compilation produces an artifact with two fields:
 - The linker stack is LIFO: each `setServerLinker` call unshifts,
   and final `link` is `compose(...linkList)`.
 
-## handleExchange Guardrails
+## Dispatch Guardrails
 
-handleExchange is the deployer-to-workflow bridge, and the only place an
+The dispatch is the deployer-to-workflow bridge, and the only place an
 Exchange is constructed. It must reject bad deployer input before any
 workflow handler runs.
 
-- The deployer must be registered with an `Exchange` class; that pairing
-  is checked at registration time with
+- The deployer must be registered with an `Exchange` class per protocol;
+  that pairing is checked at registration time with
   `SubConstructorOf(Exchange.Abstract)`.
 - `internal` is passed straight to the Exchange constructor and stored
   by the Exchange; the core never inspects its shape.
@@ -637,19 +648,19 @@ Responsibility boundary:
 - `.use()` handlers may assume a validated ExchangeKit once workflow
   execution begins.
 - The deployer's own listener still decides whether an incoming event
-  produces an exchange at all; `handleExchange` owns only construction,
-  installation, and the dispatch guard.
+  produces an exchange at all; the dispatch owns only construction,
+  installation, and the guard.
 
 ## Duplicate-Consumption Principle
 
 Kitty uses one binding check to prevent accidental duplicate
-processing. It lives in `handleExchange`, because that is where an
-Exchange is constructed and where the deployer's identity object first
-becomes readable:
+processing. It lives in the dispatch, because that is where an Exchange
+is constructed and where the deployer's identity object first becomes
+readable:
 
-- `handleExchange` reads `Exchange[$I.IDENTITY]` once and records it in
-  `handledExchanges`. A second Exchange answering the same identity is
-  rejected before workflow execution.
+- The dispatch reads `Exchange[$I.IDENTITY]` once and records it in a
+  `WeakSet` held by the workflow instance. A second Exchange answering
+  the same identity is rejected before workflow execution.
 
 The Exchange constructor no longer validates identity consumption. The
 model layer exposes identity; the bridge layer owns consumption. That is

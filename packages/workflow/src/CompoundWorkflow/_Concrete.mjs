@@ -2,8 +2,8 @@ import { Ow, ThrowTypeError } from '@produck/argot';
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 import { compose } from '@produck/compose';
 
+import { useServer } from '../Capability.mjs';
 import * as Deployer from '../Deployer/index.mjs';
-import * as Capability from '../Capability.mjs';
 import * as Mixin from '../Mixin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
@@ -15,6 +15,33 @@ export default class CompoundWorkflow extends Workflow.Abstract {
   [I.MIXIN.HANDLER.PREFIX.LIST] = [];
   [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
   [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];
+  [I.HANDLED_EXCHANGE_SET] = new WeakSet();
+
+  async [I.HANDLE_EXCHANGE](Exchange, internal, DeploymentKit, deployer) {
+    const ExchangeKit = DeploymentKit('Kitty<Exchange>');
+    const exchange = new Exchange(ExchangeKit, internal);
+    const identity = exchange[EXCHANGE.$I.IDENTITY];
+
+    if (this[I.HANDLED_EXCHANGE_SET].has(identity)) {
+      Deployer.Throw('Deployer dispatched one Exchange more than once.');
+    }
+
+    this[I.HANDLED_EXCHANGE_SET].add(identity);
+
+    try {
+      deployer[DEPLOYER.$I.ATTACH_EXCHANGE](ExchangeKit);
+
+      for (const attacher of this[I.MIXIN.EXCHANGE.ATTACHER.LIST]) {
+        attacher(ExchangeKit);
+      }
+
+      // IMPORTANT: the only call site of the handler pipeline, where the
+      // business flow defined by downstream handlers runs.
+      await this[WORKFLOW.$I.WORKFLOW](ExchangeKit);
+    } finally {
+      exchange.dispatchEvent(new Event('close'));
+    }
+  }
 
   [WORKFLOW._I.COMPOSE.EXTEND]() {
     Object.freeze(this[I.MIXIN.HANDLER.PREFIX.LIST]);
@@ -26,38 +53,29 @@ export default class CompoundWorkflow extends Workflow.Abstract {
       attacher(DeploymentKit);
     }
 
-    const server = Capability.useServer(DeploymentKit);
-    const TargetDeployer = Deployer.Registry.getByServer(server);
+    const server = useServer(DeploymentKit);
+    const DeployerClass = Deployer.Registry.getByServer(server);
     const DeployerKit = DeploymentKit('Kitty<Deployer>');
-    const deployer = new TargetDeployer(DeployerKit);
-    const handledExchanges = new WeakSet();
-    let compiled = false;
+    const deployer = new DeployerClass(DeployerKit);
+    const handlerArgs = [DeploymentKit, deployer];
 
-    DeployerKit.handleExchange = async (TargetExchange, internal) => {
-      const ExchangeKit = DeploymentKit('Kitty<Exchange>');
-      const exchange = new TargetExchange(ExchangeKit, internal);
-      const identity = exchange[EXCHANGE.$I.IDENTITY];
+    DeployerKit.handleHttpExchange = async (internal) => {
+      const Exchange = DeployerClass[DEPLOYER._S.EXCHANGE_CTOR.HTTP];
 
-      if (handledExchanges.has(identity)) {
-        Deployer.Throw('Deployer dispatched one Exchange more than once.');
-      }
-
-      handledExchanges.add(identity);
-
-      try {
-        deployer[DEPLOYER.$I.ATTACH_EXCHANGE](ExchangeKit);
-
-        for (const attacher of this[I.MIXIN.EXCHANGE.ATTACHER.LIST]) {
-          attacher(ExchangeKit);
-        }
-
-        // IMPORTANT: the only call site of the handler pipeline, where the
-        // business flow defined by downstream handlers runs.
-        await this[WORKFLOW.$I.WORKFLOW](ExchangeKit);
-      } finally {
-        exchange.dispatchEvent(new Event('close'));
-      }
+      await this[I.HANDLE_EXCHANGE](Exchange, internal, ...handlerArgs);
     };
+
+    DeployerKit.handleWebSocketExchange = async (internal) => {
+      const Exchange = DeployerClass[DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET];
+
+      if (Exchange === undefined) {
+        Deployer.Throw('It MUST implement a WebSocket exchange.');
+      }
+
+      await this[I.HANDLE_EXCHANGE](Exchange, internal, ...handlerArgs);
+    };
+
+    let compiled = false;
 
     DeployerKit.attachDeployment = (name, value) => {
       if (compiled) {

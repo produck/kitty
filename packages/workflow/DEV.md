@@ -118,9 +118,12 @@
 - 静态抽象（派生用 `static get`）：
   - `_S.NAME`（`M.String`）：部署器名字。
   - `_S.SERVER_CTOR`（`SubConstructorOf(net.Server)`）：注册表的键。
-  - `_S.EXCHANGE_CTOR.HTTP` / `.WEBSOCKET`：分别收紧到 `HttpExchange.Abstract` /
-    `WebSocketExchange.Abstract`。两个槽都可用 `in` 探测，**未提供不报错**——只供单
-    一协议的部署器合法。
+  - `_S.EXCHANGE_CTOR.HTTP`：**必选**，`M_Sub(HttpExchange.Abstract)`。基类不给默认
+    值，所以缺了就是抽象层的 `must be implemented`，核心不另做存在性检查。
+  - `_S.EXCHANGE_CTOR.WEB_SOCKET`：**可选**，成员类型是“子类或 `undefined`”：基类给
+    一个返回 `undefined` 的默认 getter（避开抽象层的“未实现”判定），解析器放行
+    `undefined`，其余值照样收紧到 `WebSocketExchange.Abstract`。入口只在读不到时抛
+    `Deployer.Throw`。
 - 实例抽象：`_I.INSTALL(DeployerKit)`——下游唯一的部署定义入口。
 - 保护级：`$I.INSTALL()`（安装并置位）、`$I.LISTENERS` / `$I.LINK_LIST`（产物素
   材）、`$I.ATTACH_EXCHANGE(ExchangeKit)`（应用自己的附着器）。
@@ -130,9 +133,22 @@
 - **能力长在 kit 上，状态待在实例里**：公开成员下游可覆盖（不安全），保护成员包外
   拿不到（不可用）；kit 不是类成员，两头都不犯。构造器把三个附着过程挂上去：
   `exportListener` / `setServerLinker` / `appendExchangeAttacher`。
-- `handleExchange` 与 `attachDeployment` 由**框架**挂在同一个 kit 上：它们要
-  workflow 管道、workflow 的 mixin 列表、以及 `DeploymentKit` 的写权限，而部署器只
-  该看见 `DeployerKit`。
+- `handleHttpExchange` / `handleWebSocketExchange` 与 `attachDeployment` 由**框架**挂
+  在同一个 kit 上：它们要 workflow 管道、workflow 的 mixin 列表、以及
+  `DeploymentKit` 的写权限，而部署器只该看见 `DeployerKit`。
+- **两个 exchange 的 `internal` 形状不同，协议因此必须在构造前决定**：HTTP 是连接期
+  req/res 记录，WebSocket 是整条连接的控制侧记录，二者没有公共形状；而 `internal`
+  的形状由部署器定、核心不解释，框架无从校验。单入口
+  `handleExchange(TargetExchange, internal)` 把配对交给了调用方，配错也要等某个 part
+  去读 `internal` 时才炸。按协议分叉后，配对变成一个具名事实写在端口上——这是唯一不
+  需要框架理解形状就能表达它的办法。
+- 反过来也不能退化成“构造完 exchange 再看 `mode`”再分派：`mode` 只有构造后才有，
+  而构造必须先拿到对应形状的 `internal`。协议不能被“发现”，只能在入口分叉。
+- **kit 上的入口按协议分叉，派发本身留在 workflow 实例上**（`I.HANDLE_EXCHANGE`）：
+  入口只从部署器类取 `_S.EXCHANGE_CTOR.*`，派发统一构造 exchange、查重、跑附着器与
+  管道。这样换一个协议只多一个两行的入口，不必把派发逻辑再写一遍。
+- 去重集合是 workflow 实例的字段（`I.HANDLED_EXCHANGE_SET`），不是一次 compile 的
+  局部变量：同一个 workflow 先后多次部署，identity 仍然只许派发一次。
 - 安装后定义面关闭：再写会抛 `Deployer has already been installed.`。
 
 ### Deployer 注册
@@ -171,7 +187,8 @@
 
 - **subject**：partial-constructor 规范里的一节一类一目录单位。
 - **part**：`ExchangePart` 家族的实例（Request / Response / Header / Body）。
-- **slot**：`_S` 里一个键，值为类引用，语义是"下游必须在这里挂具体实现"。
+- **slot**：`_S` 里一个键，值为类引用，语义是“下游在这里挂具体实现”；必选还是可选，
+  由成员解析器是否接受 `undefined` 决定。
 - **fork**：从 distributor 取一份从第 0 字节起的完整拷贝。
 - **done / closed / destroyed**：数据到头 / 读取器被生命周期关闭 / 分发器销毁。
 - **internal**：部署器提供的连接期业务对象记录；形状由部署器定，核心不解释。
@@ -186,7 +203,8 @@
    （`K_*`）该不该进 subject 的 `_Symbol.mjs`。
 2. **`Workflow` 的抽象成员符号尚未按 PUB-2 开出去**（`Deployer` 已开）。
 3. **`data` 是否缓存首次 fork 未定**：现在每次访问新 fork。
-4. **`handleExchange` 对 `internal` 完全不校验**（连“必须是对象”都没有）。
+4. **两个 kit 入口对 `internal` 完全不校验**（连“必须是对象”都没有）；可选槽缺失也只
+   能等调用入口才发现。
 5. **`'close'` 事件没有文档化**：它只是 `Exchange` 清超时定时器的事实契约。
 6. **`HttpExchange` 的超时只改状态**：不销毁请求体、没 `unref()`、也挡不住 handler
    已写入的状态被 503 覆盖。

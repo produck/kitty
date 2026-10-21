@@ -43,13 +43,13 @@ export const _I = deepFreeze({
 const _S_NAME = Symbol('._name');
 const _S_SERVER_CTOR = Symbol('._serverCtor');
 const _S_HTTP_EXCHANGE_CTOR = Symbol('._httpExchangeCtor');
-const _S_WEBSOCKET_EXCHANGE_CTOR = Symbol('._webSocketExchangeCtor');
+const _S_WEB_SOCKET_EXCHANGE_CTOR = Symbol('._webSocketExchangeCtor');
 
 export const _S = deepFreeze({
   NAME: _S_NAME,
   SERVER_CTOR: _S_SERVER_CTOR,
   EXCHANGE_CTOR: {
     HTTP: _S_HTTP_EXCHANGE_CTOR,
-    WEBSOCKET: _S_WEBSOCKET_EXCHANGE_CTOR,
+    WEB_SOCKET: _S_WEB_SOCKET_EXCHANGE_CTOR,
   },
 });
