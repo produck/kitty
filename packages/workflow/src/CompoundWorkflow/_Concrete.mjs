@@ -1,18 +1,33 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
+import { isSubConstructor } from '@produck/is-sub-constructor';
+import * as Fugue from '@produck/fugue';
 
-import * as Deployer from '../Deployer/index.mjs';
-import * as Mixin from '../Mixin/index.mjs';
+import * as Deployer from './Deployer/index.mjs';
+import * as DataNormalizerRegistry from './DataNormalizerRegistry/index.mjs';
+import * as Configuration from './Configuration/index.mjs';
+import * as Mixin from './Mixin.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
 import * as Parser from './Parser.mjs';
 import { DependenceName } from '../Parser.mjs';
-import { I } from './_Symbol.mjs';
+import { useWorkflow } from '../Capability.mjs';
+import { I, $I } from './_Symbol.mjs';
 import { DEPLOYER, DEPLOYMENT, WORKFLOW } from './_Borrow.mjs';
 
 export default class CompoundWorkflow extends Workflow.Abstract {
   [I.MIXIN.HANDLER.PREFIX.LIST] = [];
   [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
   [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];
+
+  [$I.STATE] = {
+    RequestBodyDistributor: null,
+    responseBodyNormalizerRegistry: new DataNormalizerRegistry.Concrete(),
+  };
+
+  constructor(...args) {
+    super(...args);
+    Configuration.install(useWorkflow(this[WORKFLOW.$I.KIT]));
+  }
 
   [WORKFLOW._I.COMPOSE.EXTEND]() {
     Object.freeze(this[I.MIXIN.HANDLER.PREFIX.LIST]);
@@ -38,6 +53,14 @@ export default class CompoundWorkflow extends Workflow.Abstract {
     }
 
     deployment[DEPLOYMENT.$I.COMMIT]();
+  }
+
+  async [WORKFLOW.$I.DEPLOY](server, DeploymentKit) {
+    if (this[$I.STATE].RequestBodyDistributor === null) {
+      Ow.Error.Common('It MUST set a request body distributor.');
+    }
+
+    return super[WORKFLOW.$I.DEPLOY](server, DeploymentKit);
   }
 
   adapt(DeployerClass) {
@@ -131,5 +154,21 @@ export default class CompoundWorkflow extends Workflow.Abstract {
     };
 
     installer(MixinKit);
+  }
+
+  setRequestBodyDistributorConstructor(Constructor) {
+    if (!isSubConstructor(Constructor, Fugue.Distributor)) {
+      ThrowTypeError('args[0]', 'sub class of Fugue.Distributor');
+    }
+
+    this[$I.STATE].RequestBodyDistributor = Constructor;
+
+    return this;
+  }
+
+  registerResponseBodyNormalizer(Normalizer) {
+    this[$I.STATE].responseBodyNormalizerRegistry.register(Normalizer);
+
+    return this;
   }
 }

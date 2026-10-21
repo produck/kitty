@@ -1,13 +1,9 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
 import * as Kit from '@produck/kit';
-import { isSubConstructor } from '@produck/is-sub-constructor';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import * as Composer from '@produck/compose';
-import * as Fugue from '@produck/fugue';
 
 import { I, $I, _I } from './_Symbol.mjs';
-import * as Configuration from '../Configuration/index.mjs';
-import * as DataNormalizerRegistry from './DataNormalizerRegistry/index.mjs';
 import * as Deployment from './Deployment/index.mjs';
 import { K_WORKFLOW } from '../Capability.mjs';
 import { assertHandlerByIndex } from './Assert.mjs';
@@ -18,11 +14,6 @@ class Workflow {
   [I.HANDLER_LIST] = [];
   [$I.PIPELINE] = DEFAULT_PASSTHROUGH;
 
-  [$I.STATE] = {
-    RequestBodyDistributor: null,
-    responseBodyNormalizerRegistry: null,
-  };
-
   constructor(kit) {
     if (!Kit.isKit(kit)) {
       ThrowTypeError('args[0] as kit', 'Kit');
@@ -32,10 +23,6 @@ class Workflow {
 
     this[$I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = $(this);
-    Configuration.install($(this));
-
-    this[$I.STATE].responseBodyNormalizerRegistry =
-      new DataNormalizerRegistry.Concrete();
   }
 
   [$I.COMPOSE.PREPEND](...handler) {
@@ -91,10 +78,6 @@ class Workflow {
   }
 
   async [$I.DEPLOY](server, DeploymentKit) {
-    if (this[$I.STATE].RequestBodyDistributor === null) {
-      Ow.Error.Common('It MUST set a request body distributor.');
-    }
-
     const deployment = await this[$I.COMPILE](server, DeploymentKit);
 
     deployment.link();
@@ -112,22 +95,6 @@ class Workflow {
     this[$I.ASSERT.FINALIZED]();
 
     return this[$I.DEPLOY](server);
-  }
-
-  setRequestBodyDistributorConstructor(Constructor) {
-    if (!isSubConstructor(Constructor, Fugue.Distributor)) {
-      ThrowTypeError('args[0]', 'sub class of Fugue.Distributor');
-    }
-
-    this[$I.STATE].RequestBodyDistributor = Constructor;
-
-    return this;
-  }
-
-  registerResponseBodyNormalizer(Normalizer) {
-    this[$I.STATE].responseBodyNormalizerRegistry.register(Normalizer);
-
-    return this;
   }
 }
 

@@ -45,11 +45,34 @@
 - `new.target` 捕获的局部一律叫 `TargetConstructor`；`ctor` 只用于符号键。
 - 具体基类不带 `Abstract` 前缀（`ExchangePart`）；`_Abstract.mjs` 里的类名带。
 
+### 布局判据
+
+判一个 subject 该放哪一层，只看四条，不靠"它算不算一种 X"。
+
+- **构造点归属**：谁 `new` 它，它就在谁下面。判据是 `grep new`。
+- **依赖朝根单调**：子目录只依赖同层或更靠根的一侧，父层不得反向依赖子层；
+  全图必须无环。
+- **类走 barrel，符号走 `_Borrow`**：跨 subject 取类走对方 `index.mjs` 的命名
+  空间，取符号走 `_Borrow.mjs` 指向对方 `_Symbol.mjs`；子文件不直接写对方深路径。
+- **barrel 形状**：subject 的 `index.mjs` 导出"实现类 + 全部子命名空间 + 叶子
+  工具模块"，不导出 `_Symbol` / `_Borrow` / `_Concrete`。
+
+例外：`DataNormalizer` 没有构造点（它是插件契约），按 is-a 跟
+`HttpExchange/Response/Body`。"跟形状走"与"跟消费者走"之间有多解，这里选前者。
+
 ## 观点 / 决策
 
 ### Exchange 家族
 
 三层，各自只回答自己那一层：
+
+- 位置：`Workflow/Exchange/`（壳）、`CompoundWorkflow/HttpExchange/`、
+  `CompoundWorkflow/WebSocketExchange/`（两个协议族）。
+- 壳不认识任何工作流类型：`get workflow()` 走 `useWorkflow(this[$I.KIT])` 的
+  capability 查找。往哪边分只是因为谁 dispatch 谁——壳归 `Workflow`（它的
+  `Deployment` 要读 identity），协议族归 `CompoundWorkflow`（`Deployer` 按协议
+  选构造器，且协议族要读复合工作流的 `STATE`）。
+- `ExchangeImplement/` 仍在包根，是集成层用的打包入口，不是 subject。
 
 - `Exchange`：协议共用壳——`identity` / `server` / `protocol` / `mode` /
   `httpVersion` / `workflow` / `toJSON`，加 `request`（header / method / url）与
@@ -71,7 +94,7 @@
 ### Request / Response / Body
 
 - Header 读松写紧：`_I.GET` 答 `HeaderValueOrUndefined`，写入预检用严格
-  `HeaderValue`（两份 parser 都在 `Exchange/Parser.mjs`）。
+  `HeaderValue`（两份 parser 都在 `Workflow/Exchange/Parser.mjs`）。
 - `Request.get url()`：绝对 URL 直接用；相对 URL 用 `header.get('host')` +
   `exchange.protocol` 拼，缺 host 抛 `ThrowDeployer`。
 - `Request.get body()` 按 `Configuration.Get.AllowedBodyMethods(workflow)` 设卡，逐次
@@ -81,8 +104,9 @@
   加，超限 `destroy()` + `setStatus(413)`。
 - 响应体是 sink：归一形状 `{ stream: ReadableStream | null, length: number | null }`
   （stream 为 `null` 时 length 必须为 `0`）；`DataNormalizer` 是 subject，注册表挂在
-  `Workflow` 的私有 `STATE` 里。
-- fugue 的 12 项选项由本包代理（PascalCase，`Configuration/items/distributor.mjs`），
+  `CompoundWorkflow` 的私有 `STATE` 里。
+- fugue 的 12 项选项由本包代理（PascalCase，
+  `CompoundWorkflow/Configuration/items/distributor.mjs`），
   初始值抄自 fugue。**Workflow 上维护的不是"随便可以被覆盖的默认值"，而是这一层对
   下游给出的基本期待**：workflow 级的下游（mixin、prefix handler 等）可以按它来写，
   不必各自 `Tune`；它在 Body 建 distributor 时应用一次。
@@ -97,12 +121,20 @@
 
 ### Workflow / CompoundWorkflow
 
+- `Workflow` 只管管线：`use()` / `finalize()` / `PIPELINE`，加 `compile` / `deploy`
+  两个骨架入口。它不装配置、不认识 `Configuration`。
 - 抽象面只有 `_I.COMPOSE.EXTEND` 与 `_I.COMPILE_DEPLOYMENT`。
-- 构造器把面登记进 kit（`K_WORKFLOW = $(this)`），Configuration 装在
-  `WeakMap<workflow, record>` 上；外部读值只走 `Get.<键>`。
-- 私有 `STATE` 记录可变资源（`RequestBodyDistributor`、
+- 构造器只做一件事：把自己登记进 kit（`K_WORKFLOW = $(this)`）。
+- `CompoundWorkflow` 的构造器在自己身上装配置：
+  `Configuration.install(useWorkflow(kit))`——键取自 kit 里存的同一份 shadow，
+  与 `Get.<键>(workflow)` 的查询键严格一致。非复合的派生类没有记录，读值直接抛。
+  外部读值只走 `Get.<键>`，写入只走 `Tune.<键>`。
+- `CompoundWorkflow` 的私有 `STATE` 记录可变资源（`RequestBodyDistributor`、
   `responseBodyNormalizerRegistry`），键用字符串；`finalize()` 之后仍可用
-  `setRequestBodyDistributorConstructor()` 更换。
+  `setRequestBodyDistributorConstructor()` 更换。这两个 setter 是复合工作流的公开
+  面，基座没有。
+- “必须有请求体分发器”的卡点在 `CompoundWorkflow` 的 `$I.DEPLOY` 覆写上，所以
+  `compile()` 不受影响，`deploy()` 与 `adapt().deploy()` 两路都会过它。
 - `[COMPILE_DEPLOYMENT]` 只做四件事：跑 mixin 的部署 attacher → 取部署器类 → 注册
   workflow 侧的 handler → `new` 部署器、`$I.INSTALL()`、`$I.COMPILE()` 封口。它不写
   任何 kit 端口，也不碰产物形状。
@@ -111,8 +143,8 @@
 
 编译的产物是一个 subject（`Workflow/Deployment/`），不是一条记录。“缺一层抽象”的三条
 证据：旧的 `{ listeners, link }` 让 `_I.COMPILE_DEPLOYMENT` 只能声明
-`returns(M.Object)`；`Deployer/Artifact.mjs` 只能写一个没人调用的鸭子类型谓词；生命周期
-散成一个局部布尔（`compiled`）加一个安装标记。
+`returns(M.Object)`；`Deployer/Artifact.mjs`（已删）只能写一个没人调用的鸭子类型
+谓词；生命周期散成一个局部布尔（`compiled`）加一个安装标记。
 
 - 它拥有：`KIT`、`SERVER`、`LISTENERS`、`LINK_LIST`、附着器列表、去重集合、handler、
   `COMMITTED`、`LINKED`。
@@ -139,7 +171,9 @@
 近 workflow 实例的实例级上下文。旧写法把 `install` 做成记录上的一个函数，根本没有实
 例可言——这是整次重构最根本的变动。
 
-- `Registry` / `ExchangeImplement` 与部署器目录同级，都是非 subject 元素。
+- `Deployer/Registry.mjs` / `Deployer/Assert.mjs` 与部署器目录同级，都是非 subject 元素。
+  `ExchangeImplement` 已提到包根（与 `Workflow` 平级），因为它不依赖 Deployer、只依赖
+  协议族。
 - 静态抽象（派生用 `static get`）：
   - `_S.NAME`（`M.String`）：部署器名字。
   - `_S.SERVER_CTOR`（`SubConstructorOf(net.Server)`）：注册表的键。
@@ -240,6 +274,6 @@
 6. **`HttpExchange` 的超时只改状态**：不销毁请求体、没 `unref()`、也挡不住 handler
    已写入的状态被 503 覆盖。
 7. **文档仍有旧形状**：`ARCHITECTURE.md` 的公开 API 表、`DESIGN.md` 若干表、
-   `Exchange/EXCHANGE.md`。
+   `Workflow/Exchange/EXCHANGE.md`。
 8. **`test/*.mjs` 是重构前的骨架**：import 已不存在的路径与 API。
 9. **handler / kitty 两域尚无代码**：占位 workspace 只有 `package.json`。

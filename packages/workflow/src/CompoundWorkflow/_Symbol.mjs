@@ -23,3 +23,9 @@ export const I = deepFreeze({
     },
   },
 });
+
+const $I_STATE = Symbol('.$state');
+
+export const $I = deepFreeze({
+  STATE: $I_STATE,
+});
