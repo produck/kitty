@@ -1,39 +1,39 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_KIT = Symbol('.#kit');
-const I_EXCHANGE_ATTACHER_LIST = Symbol('.#exchangeAttacherList');
-const I_INSTALLED = Symbol('.#installed');
+const I_DEPLOYMENT = Symbol('.#deployment');
 const I_ATTACH_LISTENER = Symbol('.#attachListener()');
 const I_ATTACH_SERVER_LINKER = Symbol('.#attachServerLinker()');
 const I_ATTACH_EXCHANGE_ATTACHER = Symbol('.#attachExchangeAttacher()');
-const I_ASSERT_NOT_INSTALLED = Symbol('.#assertNotInstalled()');
+const I_ATTACH_DEPLOYMENT = Symbol('.#attachDeployment()');
+const I_ATTACH_HANDLER_HTTP = Symbol('.#attachHttpHandler()');
+const I_ATTACH_HANDLER_WEB_SOCKET = Symbol('.#attachWebSocketHandler()');
+const I_ASSERT_NOT_COMMITTED = Symbol('.#assertNotCommitted()');
 
 const $I_INSTALL = Symbol('.$install()');
-const $I_LISTENERS = Symbol('.$listeners');
-const $I_LINK_LIST = Symbol('.$linkList');
-const $I_ATTACH_EXCHANGE = Symbol('.$attachExchange()');
 
 const _I_INSTALL = Symbol('._install()');
 
 export const I = deepFreeze({
   KIT: I_KIT,
-  EXCHANGE_ATTACHER_LIST: I_EXCHANGE_ATTACHER_LIST,
-  INSTALLED: I_INSTALLED,
+  DEPLOYMENT: I_DEPLOYMENT,
   ATTACH: {
     LISTENER: I_ATTACH_LISTENER,
     SERVER_LINKER: I_ATTACH_SERVER_LINKER,
     EXCHANGE_ATTACHER: I_ATTACH_EXCHANGE_ATTACHER,
+    DEPLOYMENT: I_ATTACH_DEPLOYMENT,
+    HANDLER: {
+      HTTP: I_ATTACH_HANDLER_HTTP,
+      WEB_SOCKET: I_ATTACH_HANDLER_WEB_SOCKET,
+    },
   },
   ASSERT: {
-    NOT_INSTALLED: I_ASSERT_NOT_INSTALLED,
+    NOT_COMMITTED: I_ASSERT_NOT_COMMITTED,
   },
 });
 
 export const $I = deepFreeze({
   INSTALL: $I_INSTALL,
-  LISTENERS: $I_LISTENERS,
-  LINK_LIST: $I_LINK_LIST,
-  ATTACH_EXCHANGE: $I_ATTACH_EXCHANGE,
 });
 
 export const _I = deepFreeze({

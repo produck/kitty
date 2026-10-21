@@ -1,12 +1,15 @@
 import * as net from 'node:net';
 
-import { Ow, ThrowTypeError } from '@produck/argot';
+import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 
+import { DependenceName } from '../Parser.mjs';
 import * as HttpExchange from '../HttpExchange/index.mjs';
 import * as WebSocketExchange from '../WebSocketExchange/index.mjs';
+import { Throw } from './Assert.mjs';
+import { DEPLOYMENT } from './_Borrow.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 
 function assertAttacher(value) {
@@ -27,11 +30,6 @@ function M_SubWebSocketExchangeOrUndefined(value) {
 }
 
 class Deployer {
-  [$I.LISTENERS] = {};
-  [$I.LINK_LIST] = [];
-  [I.EXCHANGE_ATTACHER_LIST] = [];
-  [I.INSTALLED] = false;
-
   static get name() {
     return this[_S.NAME];
   }
@@ -40,16 +38,21 @@ class Deployer {
     return undefined;
   }
 
-  constructor(DeployerKit) {
+  constructor(DeployerKit, deployment) {
     this[I.KIT] = DeployerKit;
+    this[I.DEPLOYMENT] = deployment;
+    this[SYMBOL.CONSTRUCTOR] = new.target;
     this[I.ATTACH.LISTENER]();
     this[I.ATTACH.SERVER_LINKER]();
     this[I.ATTACH.EXCHANGE_ATTACHER]();
+    this[I.ATTACH.DEPLOYMENT]();
+    this[I.ATTACH.HANDLER.HTTP]();
+    this[I.ATTACH.HANDLER.WEB_SOCKET]();
   }
 
   [I.ATTACH.LISTENER]() {
     this[I.KIT].exportListener = (eventName, listener) => {
-      this[I.ASSERT.NOT_INSTALLED]();
+      this[I.ASSERT.NOT_COMMITTED]();
 
       if (typeof eventName !== 'string') {
         ThrowTypeError('args[0] as eventName', 'string');
@@ -59,45 +62,75 @@ class Deployer {
         ThrowTypeError('args[1] as listener', 'function');
       }
 
-      this[$I.LISTENERS][eventName] = listener;
+      this[I.DEPLOYMENT][DEPLOYMENT.$I.SET_LISTENER](eventName, listener);
     };
   }
 
   [I.ATTACH.SERVER_LINKER]() {
     this[I.KIT].setServerLinker = (link) => {
-      this[I.ASSERT.NOT_INSTALLED]();
+      this[I.ASSERT.NOT_COMMITTED]();
 
       if (typeof link !== 'function') {
         ThrowTypeError('args[0] as linker', 'function');
       }
 
-      this[$I.LINK_LIST].unshift(link);
+      this[I.DEPLOYMENT][DEPLOYMENT.$I.SET_LINKER](link);
     };
   }
 
   [I.ATTACH.EXCHANGE_ATTACHER]() {
     this[I.KIT].appendExchangeAttacher = (attacher) => {
-      this[I.ASSERT.NOT_INSTALLED]();
+      this[I.ASSERT.NOT_COMMITTED]();
       assertAttacher(attacher);
-      this[I.EXCHANGE_ATTACHER_LIST].push(attacher);
+      this[I.DEPLOYMENT][DEPLOYMENT.$I.ADD_EXCHANGE_ATTACHER](attacher);
     };
   }
 
-  [$I.ATTACH_EXCHANGE](ExchangeKit) {
-    for (const attacher of this[I.EXCHANGE_ATTACHER_LIST]) {
-      attacher(ExchangeKit);
-    }
+  [I.ATTACH.DEPLOYMENT]() {
+    this[I.KIT].attachDeployment = (name, value) => {
+      const deployment = this[I.DEPLOYMENT];
+
+      this[I.ASSERT.NOT_COMMITTED]();
+      DependenceName(name);
+      deployment[DEPLOYMENT.$I.KIT][name] = value;
+    };
   }
 
-  [I.ASSERT.NOT_INSTALLED]() {
-    if (this[I.INSTALLED]) {
-      Ow.Error.Common('Deployer has already been installed.');
+  [I.ATTACH.HANDLER.HTTP]() {
+    this[I.KIT].handleHttpExchange = async (internal) => {
+      const Exchange = this[SYMBOL.CONSTRUCTOR][_S.EXCHANGE_CTOR.HTTP];
+
+      await this[I.DEPLOYMENT][DEPLOYMENT.$I.HANDLE_EXCHANGE](
+        Exchange,
+        internal,
+      );
+    };
+  }
+
+  [I.ATTACH.HANDLER.WEB_SOCKET]() {
+    this[I.KIT].handleWebSocketExchange = async (internal) => {
+      const Exchange = this[SYMBOL.CONSTRUCTOR][_S.EXCHANGE_CTOR.WEB_SOCKET];
+
+      if (Exchange === undefined) {
+        Throw('It MUST implement a WebSocket exchange.');
+      }
+
+      await this[I.DEPLOYMENT][DEPLOYMENT.$I.HANDLE_EXCHANGE](
+        Exchange,
+        internal,
+      );
+    };
+  }
+
+  [I.ASSERT.NOT_COMMITTED]() {
+    if (this[I.DEPLOYMENT][DEPLOYMENT.$I.COMMITTED]) {
+      Ow.Error.Common('Deployment has already been committed.');
     }
   }
 
   [$I.INSTALL]() {
+    this[I.ASSERT.NOT_COMMITTED]();
     this[_I.INSTALL](this[I.KIT]);
-    this[I.INSTALLED] = true;
   }
 }
 

@@ -295,7 +295,7 @@ be structurally changed.
 ## Deployer Attachment
 
 An deployer supplier receives an `DeployerKit` when its deployer is used to
-build a deployment artifact.
+build a deployment.
 
 ```js
 const kitByWorkflow = new WeakMap();
@@ -314,10 +314,10 @@ The deployer does not need a deploy-time options bag. It owns its
 protocol grammar and installs protocol state through its port.
 
 The lifecycle differs from `MixinKit`: `DeployerKit` writes to a concrete
-`DeploymentKit`, so its authority belongs to one deployment artifact
-construction. If a deployer supplier retains this port, its useful write
-window should be constrained by deployment-artifact construction rather
-than by workflow finalization.
+deployment, so its authority belongs to one deployment construction. If a
+deployer supplier retains this port, its useful write window should be
+constrained by deployment construction rather than by workflow
+finalization.
 
 ## Controlled Writes, Free Reads
 

@@ -19,7 +19,7 @@ here.
 - **Abstract layer** (`Abstract.mjs`): Defines the lifecycle template
   — `constructor(kit)` → `use(handler)` → `finalize()` →
   `compile()`/`deploy()`. Exposes extension point hooks (`_I`
-  namespace) for subclasses to fill in: compose extension and artifact
+  namespace) for subclasses to fill in: compose extension and deployment
   compilation. Installs the base `useWorkflow` identity capability on
   `WorkflowKit`. The abstract layer knows nothing about mixin, deployer
   registry, or temporary deployers — it is purely an extensible
@@ -34,10 +34,10 @@ here.
 
 Extension point hooks (`_I` namespace):
 
-| Hook                  | Implemented by    | Called at                                             |
-| --------------------- | ----------------- | ----------------------------------------------------- |
-| `_I.COMPOSE.EXTEND`   | Composition layer | `finalize()` — prepends prefix handlers               |
-| `_I.COMPILE_ARTIFACT` | Composition layer | `compile()` / `deploy()` — builds deployment artifact |
+| Hook                    | Implemented by    | Called at                                        |
+| ----------------------- | ----------------- | ------------------------------------------------ |
+| `_I.COMPOSE.EXTEND`     | Composition layer | `finalize()` — prepends prefix handlers          |
+| `_I.COMPILE_DEPLOYMENT` | Composition layer | `compile()` / `deploy()` — builds the deployment |
 
 ## Lifecycle
 
@@ -58,10 +58,10 @@ constructor(kit) → use(handler)* → finalize()
 - **Finalization**: `finalize()` freezes the handler list, composes
   prefix + main handlers into a single workflow, then freezes the
   instance. After this, `use()` and `mixin()` are rejected.
-- **Compile**: `compile(server)` produces the deployment artifact's
+- **Compile**: `compile(server)` builds a `Deployment` and returns its
   `listeners` record without linking to the server.
-- **Deploy**: `deploy(server)` compiles the artifact, then calls
-  `link()` to wire the server via the composed linker chain.
+- **Deploy**: `deploy(server)` builds the deployment, then calls
+  `deployment.link()` to wire the server via the composed linker chain.
 
 ### Composition layer extensions
 
@@ -167,7 +167,7 @@ that it can actually use.
   at deploy time via `kit('Kitty<Deployment>')`. The deployer's recipe
   is bound to this kit — the deployer never touches the Workflow-level
   kit. Also serves as the compose context for the linker chain during
-  deploy (`artifact.link()`).
+  deploy (`deployment.link()`).
 - **ExchangeKit** (per-exchange scope): Derived from
   `Kitty<Deployment>` per-request when a request arrives. Provides
   exchange-scoped context including request/response APIs (`Method`,
@@ -249,12 +249,13 @@ post-finalization calls via `this[$I.ASSERT.NOT_FINALIZED]()`.
 ### Execution order at deploy
 
 ```text
-1. Create DeploymentKit from WorkflowKit
-2. Deployer.install(DeployerKit) — installs low-level protocol API,
+1. Create the Deployment from WorkflowKit and the server
+2. Mixin deployment attachers run on DeploymentKit
+3. Deployer.install(DeployerKit) — installs low-level protocol API,
    registers exchange attachers, exports listeners and linker
-3. Deployer exchange attachers execute on DeploymentKit
-4. Mixin deployment attachers execute on DeploymentKit
-5. Artifact is finalized and linked to the server
+4. The Deployer attaches the workflow-side ports: attachDeployment and
+   the per-protocol dispatch entries
+5. Deployment is sealed; deploy() links it to the server
 ```
 
 ### Runtime exchange attacher execution order
@@ -342,7 +343,7 @@ The registry stores the **class** itself, keyed by
 the class is a `Deployer` subclass; the static slots validate
 themselves when read (unimplemented member, or not a `net.Server`
 subclass). The deployment instance is created later, in
-`COMPILE_ARTIFACT`, once a `DeployerKit` exists.
+`COMPILE_DEPLOYMENT`, once a `DeployerKit` exists.
 
 ### DeployerKit API
 
@@ -566,18 +567,21 @@ layer (application logic, server-agnostic).
 ```text
 deploy(server) / adapt(options).deploy(server)
   │
-  ├─ 1. Create DeploymentKit from WorkflowKit
-  ├─ 2. Store server on DeploymentKit (Symbol-keyed)
+  ├─ 1. Create the Deployment (DeploymentKit + server)
+  ├─ 2. Run mixin deployment attachers on DeploymentKit
   ├─ 3. Look up deployer (registry or per-instance)
   ├─ 4. Create DeployerKit from DeploymentKit
-  ├─ 5. deployer[$I.INSTALL]()
-  │      └─ Produces deployment artifact { listeners, link }
-  ├─ 6. link(server, listeners)
-  └─ 7. Run mixin deployment attachers on DeploymentKit
+  ├─ 5. Construct the deployer with DeployerKit and the deployment
+  ├─ 6. Register the workflow handler on the deployment
+  ├─ 7. deployer[$I.INSTALL]()
+  │      └─ The deployer fills the deployment: listeners, linkers,
+  │         exchange attachers, deployment content
+  ├─ 8. deployment[$I.COMMIT]() — the definition surface closes
+  └─ 9. deployment.link() — the linker chain runs (deploy only)
 ```
 
-`compile()` stops after step 5 and returns `listeners`. `deploy()`
-continues through step 7.
+`compile()` stops after step 8 and returns `listeners`. `deploy()`
+continues through step 9.
 
 ## Deployment Paths
 
@@ -601,25 +605,40 @@ The scope returned by `adapt()` enforces:
 - `compile` and `deploy` share a single execution lock — only one
   may be called per `adapt()` invocation.
 
-## Deployer Artifact Split
+## Deployment
 
-Deployer compilation produces an artifact with two fields:
+A deployment is the result of compiling a workflow against one server.
+It is a concrete subject (`Workflow/Deployment/`), created by
+`Workflow[$I.COMPILE]` and then filled in by the deployer before it is
+sealed:
 
-```js
-{
-  listeners,  // Record<string | symbol, Function>
-  link,       // (server, listeners) => unknown
-}
-```
+| State       | Written by                 | Read by              |
+| ----------- | -------------------------- | -------------------- |
+| `KIT`       | constructor                | package siblings     |
+| `SERVER`    | constructor                | package siblings     |
+| `WORKFLOW`  | constructor                | `$I.HANDLE_EXCHANGE` |
+| `LISTENERS` | `$I.SET_LISTENER`          | `get listeners`      |
+| `LINK_LIST` | `$I.SET_LINKER`            | `link()`             |
+| attachers   | `$I.ADD_EXCHANGE_ATTACHER` | `$I.ATTACH_EXCHANGE` |
+| handled set | `$I.REGISTER_EXCHANGE`     | `$I.HAS_EXCHANGE`    |
+| `COMMITTED` | `$I.COMMIT`                | `$I.COMMITTED`       |
+| `LINKED`    | `link()`                   | `$I.LINKED`          |
 
-- **`listeners`**: Protocol event handlers, e.g.
-  `{ request: (req, res) => {}, upgrade: (req, socket, head) => {} }`.
-  Returned by `compile()` for manual wiring.
-- **`link`**: Binds listeners to a concrete server instance via
-  `server.on(event, listener)`. Called by `deploy()`. Not a Kit recipe
-  — receives server and listeners directly.
-- The linker stack is LIFO: each `setServerLinker` call unshifts,
-  and final `link` is `compose(...linkList)`.
+Every piece of state is a private slot; the package reads it through
+protected getters or protected methods. Only two members are public:
+`listeners` and `link()`.
+
+`$I.HANDLE_EXCHANGE(Exchange, internal)` is the whole dispatch: it
+derives the ExchangeKit, constructs the exchange, rejects a repeated
+identity, applies the exchange attachers, runs the workflow pipeline, and
+dispatches `close` in a `finally` block. The deployment holds the
+workflow it was compiled from and calls `workflow[$I.PIPELINE]` — the
+composed pipeline is the only workflow member it reads.
+
+The deployment is also what `deploy()` links: `link()` runs the composed
+linker chain exactly once and rejects a second call. The linker stack is
+LIFO — every `setServerLinker` unshifts, and `link()` composes the
+result.
 
 ## Dispatch Guardrails
 

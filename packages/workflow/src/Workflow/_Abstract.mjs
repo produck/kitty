@@ -8,14 +8,15 @@ import * as Fugue from '@produck/fugue';
 import { I, $I, _I } from './_Symbol.mjs';
 import * as Configuration from '../Configuration/index.mjs';
 import * as DataNormalizerRegistry from './DataNormalizerRegistry/index.mjs';
-import { K_WORKFLOW, K_DEPLOYMENT_SERVER } from '../Capability.mjs';
+import * as Deployment from './Deployment/index.mjs';
+import { K_WORKFLOW } from '../Capability.mjs';
 import { assertHandlerByIndex } from './Assert.mjs';
 
 const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
 
 class Workflow {
   [I.HANDLER_LIST] = [];
-  [$I.WORKFLOW] = DEFAULT_PASSTHROUGH;
+  [$I.PIPELINE] = DEFAULT_PASSTHROUGH;
 
   [$I.STATE] = {
     RequestBodyDistributor: null,
@@ -38,7 +39,7 @@ class Workflow {
   }
 
   [$I.COMPOSE.PREPEND](...handler) {
-    this[$I.WORKFLOW] = Composer.compose(...handler, this[$I.WORKFLOW]);
+    this[$I.PIPELINE] = Composer.compose(...handler, this[$I.PIPELINE]);
   }
 
   use(...handlerList) {
@@ -82,9 +83,11 @@ class Workflow {
     server,
     DeploymentKit = this[$I.KIT]('Kitty<Deployment>'),
   ) {
-    DeploymentKit[K_DEPLOYMENT_SERVER] = server;
+    const deployment = new Deployment.Concrete(DeploymentKit, server, this);
 
-    return this[_I.COMPILE_ARTIFACT](DeploymentKit);
+    await this[_I.COMPILE_DEPLOYMENT](deployment);
+
+    return deployment;
   }
 
   async [$I.DEPLOY](server, DeploymentKit) {
@@ -92,17 +95,17 @@ class Workflow {
       Ow.Error.Common('It MUST set a request body distributor.');
     }
 
-    const { link } = await this[$I.COMPILE](server, DeploymentKit);
+    const deployment = await this[$I.COMPILE](server, DeploymentKit);
 
-    link();
+    deployment.link();
   }
 
   async compile(server) {
     this[$I.ASSERT.FINALIZED]();
 
-    const { listeners } = await this[$I.COMPILE](server);
+    const deployment = await this[$I.COMPILE](server);
 
-    return listeners;
+    return deployment.listeners;
   }
 
   async deploy(server) {
@@ -132,6 +135,6 @@ export default Abstract(
   Workflow,
   Abstract({
     [_I.COMPOSE.EXTEND]: M.Method(),
-    [_I.COMPILE_ARTIFACT]: M.Method().returns(M.Object),
+    [_I.COMPILE_DEPLOYMENT]: M.Method(),
   }),
 );

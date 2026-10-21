@@ -17,8 +17,8 @@ The three deployment paths expose different amounts of the deployer
 protocol.
 
 - `workflow.deploy(server)` uses the standard deployer plug. It looks up
-  the registered deployer for the server constructor, compiles a
-  deployment artifact, and links it to the server.
+  the registered deployer for the server constructor, builds a
+  deployment, and links it to the server.
 - `workflow.compile(server)` removes the standard plug and exposes the
   listener wires. It returns the listener record so callers can attach
   handlers manually.
@@ -31,34 +31,28 @@ The third path is intentionally not just another middleware hook. It is
 a deployer-level customization point for cases where request handling is
 not enough.
 
-## Deployment Artifact
+## Deployment
 
-Deployer compilation produces a deployment artifact:
+Compiling a workflow against a server produces a `Deployment`
+(`Workflow/Deployment/`). It is the object the deployer fills in and the
+object `deploy()` links.
 
-```js
-{
-  listeners,
-  link,
-}
-```
-
-`listeners` is a record of protocol-specific event handlers. Keys may
-be strings or symbols, and values are functions. It is accumulated by
-the deployer through `exportListener` calls during the install phase,
-and represents the **public interface** that compile-path callers can
+`deployment.listeners` is a record of protocol-specific event handlers.
+Keys may be strings or symbols, and values are functions. The deployer
+accumulates it through `exportListener` calls during the install phase,
+and it represents the **public interface** that compile-path callers can
 attach manually.
 
-`listeners` is **not consumed by `link`**. The deployer's linkers capture
-handler references via closure during install; the listeners record is
-an output for the `compile()` path only.
+The listener record is **not consumed by `link`**. The deployer's linkers
+capture handler references via closure during install; the record is an
+output for the `compile()` path only.
 
-`link` is a composed function built from linker entries registered via
-`setServerLinker`. It is called with no arguments — the linkers already
-captured the server and all handler references via closure during
-`deployer[$I.INSTALL]()`.
+`deployment.link()` runs the composed linker chain. Linkers are registered
+via `setServerLinker` and keep a LIFO order; each captured the server and
+all handler references via closure during `deployer[$I.INSTALL]()`.
 
-`deploy()` calls `link()` to wire the server. `compile()` returns the
-the listeners and leaves linking to the caller.
+`deploy()` calls `deployment.link()` to wire the server. `compile()`
+returns `deployment.listeners` and leaves linking to the caller.
 
 ## Standard Deploy
 
@@ -72,15 +66,19 @@ functions may happen before the class is chosen.
 
 1. Look up the deployer class from `Deployer.Registry` by server
    constructor.
-2. Create `DeploymentKit` from the workflow kit.
-3. Attach the server reference to `DeploymentKit`.
-4. Create `DeployerKit` from `DeploymentKit` and construct the
-   deployer with it.
-5. Attach the workflow-side capabilities (`handleHttpExchange` /
-   `handleWebSocketExchange`, `attachDeployment`) and run
-   `deployer[$I.INSTALL]()` — the deployer registers listeners (via
-   `exportListener`) and linkers (via `setServerLinker`).
-6. Call `artifact.link()` — the composed linker chain runs. Linkers
+2. Create the `Deployment` — `DeploymentKit` derived from the workflow
+   kit, plus the server, which is also attached to the kit as a
+   capability.
+3. Run the mixin deployment attachers on the deployment kit.
+4. Create `DeployerKit` from the deployment kit and construct the
+   deployer with it and the deployment.
+5. Run `deployer[$I.INSTALL]()` — the deployer fills the deployment
+   through its kit ports: listeners (`exportListener`), linkers
+   (`setServerLinker`), exchange attachers (`appendExchangeAttacher`),
+   deployment content (`attachDeployment`), and the per-protocol dispatch
+   entries. The workflow then registers its mixin exchange attachers on
+   the deployment and seals it.
+6. Call `deployment.link()` — the composed linker chain runs. Linkers
    capture the server and handler references via closure during install,
    so no arguments are needed.
 

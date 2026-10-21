@@ -97,15 +97,41 @@
 
 ### Workflow / CompoundWorkflow
 
-- 抽象面只有 `_I.COMPOSE.EXTEND` 与 `_I.COMPILE_ARTIFACT`。
+- 抽象面只有 `_I.COMPOSE.EXTEND` 与 `_I.COMPILE_DEPLOYMENT`。
 - 构造器把面登记进 kit（`K_WORKFLOW = $(this)`），Configuration 装在
   `WeakMap<workflow, record>` 上；外部读值只走 `Get.<键>`。
 - 私有 `STATE` 记录可变资源（`RequestBodyDistributor`、
   `responseBodyNormalizerRegistry`），键用字符串；`finalize()` 之后仍可用
   `setRequestBodyDistributorConstructor()` 更换。
-- `[COMPILE_ARTIFACT]` 的流程：跑部署 attacher → 取部署器类 → 建 `DeployerKit` →
-  `new` 部署器 → 挂两个框架侧 kit 能力 → `$I.INSTALL()` → 在这一侧 pick 产物形状
-  （`{ listeners, link: compose(...) }` + `deepFreeze`）。
+- `[COMPILE_DEPLOYMENT]` 只做四件事：跑 mixin 的部署 attacher → 取部署器类 → 注册
+  workflow 侧的 handler → `new` 部署器、`$I.INSTALL()`、`$I.COMPILE()` 封口。它不写
+  任何 kit 端口，也不碰产物形状。
+
+### Deployment
+
+编译的产物是一个 subject（`Workflow/Deployment/`），不是一条记录。“缺一层抽象”的三条
+证据：旧的 `{ listeners, link }` 让 `_I.COMPILE_DEPLOYMENT` 只能声明
+`returns(M.Object)`；`Deployer/Artifact.mjs` 只能写一个没人调用的鸭子类型谓词；生命周期
+散成一个局部布尔（`compiled`）加一个安装标记。
+
+- 它拥有：`KIT`、`SERVER`、`LISTENERS`、`LINK_LIST`、附着器列表、去重集合、handler、
+  `COMMITTED`、`LINKED`。
+- 全部是私有槽；包内只通过保护级 getter 或方法读写，公开面只有 `listeners` 与
+  `link()`。
+- `link()` 自带一次性守卫（`LINKED`），并自己组合 linker 链；`COMMITTED` 只能由
+  `$I.COMMIT()` 翻转。
+- 收口叫 **commit** 不叫 compile：编译一次就是这个对象完成了定义，之后的写入一律拒绝；
+  “compile” 在整个体系里已经指 workflow → deployment 这个动作。
+- **派发属于它**：`$I.HANDLE_EXCHANGE(Exchange, internal)` 负责派生 ExchangeKit、构造、
+  查重、exchange 附着器、跑 pipeline、`finally` 里发 `close`。它持有构造它的 workflow
+  实例，但只读一个成员：`workflow[$I.PIPELINE]`（组合好的管道）。
+- Workflow 上那个成员从 `$I.WORKFLOW` 改名为 `$I.PIPELINE`：它就是一个管道函数，
+  `WORKFLOW` 这个名字只是在重复所属的 subject。
+- 因为派发在里面，部署器不需要第三个构造参数：`handle*Exchange` 直接
+  `deployment[$I.HANDLE_EXCHANGE](ExchangeClass, internal)`。
+- 查重失败报中性错（`The Exchange has already been dispatched.`），不带
+  `Bad deployer:` 前缀——Deployment 不能 import Deployer（会成环），归因信息是这条约
+  束的代价。
 
 ### Deployer
 
@@ -113,8 +139,7 @@
 近 workflow 实例的实例级上下文。旧写法把 `install` 做成记录上的一个函数，根本没有实
 例可言——这是整次重构最根本的变动。
 
-- `Registry` / `Artifact` / `ExchangeImplement` 与部署器目录同级，都是非 subject 元
-  素。
+- `Registry` / `ExchangeImplement` 与部署器目录同级，都是非 subject 元素。
 - 静态抽象（派生用 `static get`）：
   - `_S.NAME`（`M.String`）：部署器名字。
   - `_S.SERVER_CTOR`（`SubConstructorOf(net.Server)`）：注册表的键。
@@ -125,17 +150,22 @@
     `undefined`，其余值照样收紧到 `WebSocketExchange.Abstract`。入口只在读不到时抛
     `Deployer.Throw`。
 - 实例抽象：`_I.INSTALL(DeployerKit)`——下游唯一的部署定义入口。
-- 保护级：`$I.INSTALL()`（安装并置位）、`$I.LISTENERS` / `$I.LINK_LIST`（产物素
-  材）、`$I.ATTACH_EXCHANGE(ExchangeKit)`（应用自己的附着器）。
-- 私有级：`I.KIT`、`I.EXCHANGE_ATTACHER_LIST`、`I.INSTALLED`、
-  `I.ATTACH.{LISTENER,SERVER_LINKER,EXCHANGE_ATTACHER}`、
-  `I.ASSERT.NOT_INSTALLED`。
-- **能力长在 kit 上，状态待在实例里**：公开成员下游可覆盖（不安全），保护成员包外
-  拿不到（不可用）；kit 不是类成员，两头都不犯。构造器把三个附着过程挂上去：
-  `exportListener` / `setServerLinker` / `appendExchangeAttacher`。
-- `handleHttpExchange` / `handleWebSocketExchange` 与 `attachDeployment` 由**框架**挂
-  在同一个 kit 上：它们要 workflow 管道、workflow 的 mixin 列表、以及
-  `DeploymentKit` 的写权限，而部署器只该看见 `DeployerKit`。
+- 构造器收 `(DeployerKit, deployment)`：部署器**直接往 deployment 写**，自己不留产物
+  状态。`SYMBOL.CONSTRUCTOR = new.target` 是本类读静态槽的唯一途径。
+- 保护级：`$I.INSTALL()`（安装并置位）。
+- 私有级：`I.KIT`、`I.DEPLOYMENT`、`I.ASSERT.NOT_COMMITTED`，以及 `I.ATTACH.*` 六个
+  附着过程（`LISTENER` / `SERVER_LINKER` / `EXCHANGE_ATTACHER` / `DEPLOYMENT` /
+  `HANDLER.HTTP` / `HANDLER.WEB_SOCKET`）。
+- **能力长在 kit 上，状态待在 deployment 里**：公开成员下游可覆盖（不安全），保护成
+  员包外拿不到（不可用）；kit 不是类成员，两头都不犯。构造器把六个附着过程全挂上：
+  `exportListener` / `setServerLinker` / `appendExchangeAttacher` /
+  `attachDeployment` / `handleHttpExchange` / `handleWebSocketExchange`。
+- **`DeployerKit` 的六个端口全部由部署器自己写**：其中三个（两个协议入口、
+  `attachDeployment`）曾经由框架代挂，只因为它们当时需要 workflow 上下文；现在派发与
+  内容存储都在 deployment 里，部署器手里已经有足够的东西。
+- `attachDeployment` 写的是 `deployment[$I.KIT]`（部署端口本身），并用
+  `deployment[$I.COMMITTED]` 卡窗口；`DependenceName` 来自包级 `src/Parser.mjs`，因
+  为它不再是 CompoundWorkflow 专有。
 - **两个 exchange 的 `internal` 形状不同，协议因此必须在构造前决定**：HTTP 是连接期
   req/res 记录，WebSocket 是整条连接的控制侧记录，二者没有公共形状；而 `internal`
   的形状由部署器定、核心不解释，框架无从校验。单入口
@@ -144,12 +174,13 @@
   需要框架理解形状就能表达它的办法。
 - 反过来也不能退化成“构造完 exchange 再看 `mode`”再分派：`mode` 只有构造后才有，
   而构造必须先拿到对应形状的 `internal`。协议不能被“发现”，只能在入口分叉。
-- **kit 上的入口按协议分叉，派发本身留在 workflow 实例上**（`I.HANDLE_EXCHANGE`）：
-  入口只从部署器类取 `_S.EXCHANGE_CTOR.*`，派发统一构造 exchange、查重、跑附着器与
-  管道。这样换一个协议只多一个两行的入口，不必把派发逻辑再写一遍。
-- 去重集合是 workflow 实例的字段（`I.HANDLED_EXCHANGE_SET`），不是一次 compile 的
-  局部变量：同一个 workflow 先后多次部署，identity 仍然只许派发一次。
-- 安装后定义面关闭：再写会抛 `Deployer has already been installed.`。
+- **入口按协议分叉，派发归 Deployment**（`$I.HANDLE_EXCHANGE`）：入口只从部署器类取
+  `_S.EXCHANGE_CTOR.*` 然后交给 deployment，换一个协议只多一个两行的入口。
+- 去重集合是 Deployment 的字段：一次部署一个作用域。曾经挂在 workflow 实例上，会让同
+  一 workflow 的两次部署共用一个集合——那是错的。
+- 部署器**不维护自己的安装标记**：六个端口统一用 `I.ASSERT.NOT_COMMITTED`，读的是
+  `deployment[$I.COMMITTED]`。这个状态本来就只有一个，两处各存一份只会出现
+  “装了但未 commit”“commit 了但未装”这两种没人定义过的中间态。
 
 ### Deployer 注册
 

@@ -1,98 +1,43 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
-import { deepFreeze } from '@produck/deep-freeze-enumerable';
-import { compose } from '@produck/compose';
 
-import { useServer } from '../Capability.mjs';
 import * as Deployer from '../Deployer/index.mjs';
 import * as Mixin from '../Mixin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
 import * as Parser from './Parser.mjs';
+import { DependenceName } from '../Parser.mjs';
 import { I } from './_Symbol.mjs';
-import { DEPLOYER, EXCHANGE, WORKFLOW } from './_Borrow.mjs';
+import { DEPLOYER, DEPLOYMENT, WORKFLOW } from './_Borrow.mjs';
 
 export default class CompoundWorkflow extends Workflow.Abstract {
   [I.MIXIN.HANDLER.PREFIX.LIST] = [];
   [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
   [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];
-  [I.HANDLED_EXCHANGE_SET] = new WeakSet();
-
-  async [I.HANDLE_EXCHANGE](Exchange, internal, DeploymentKit, deployer) {
-    const ExchangeKit = DeploymentKit('Kitty<Exchange>');
-    const exchange = new Exchange(ExchangeKit, internal);
-    const identity = exchange[EXCHANGE.$I.IDENTITY];
-
-    if (this[I.HANDLED_EXCHANGE_SET].has(identity)) {
-      Deployer.Throw('Deployer dispatched one Exchange more than once.');
-    }
-
-    this[I.HANDLED_EXCHANGE_SET].add(identity);
-
-    try {
-      deployer[DEPLOYER.$I.ATTACH_EXCHANGE](ExchangeKit);
-
-      for (const attacher of this[I.MIXIN.EXCHANGE.ATTACHER.LIST]) {
-        attacher(ExchangeKit);
-      }
-
-      // IMPORTANT: the only call site of the handler pipeline, where the
-      // business flow defined by downstream handlers runs.
-      await this[WORKFLOW.$I.WORKFLOW](ExchangeKit);
-    } finally {
-      exchange.dispatchEvent(new Event('close'));
-    }
-  }
 
   [WORKFLOW._I.COMPOSE.EXTEND]() {
     Object.freeze(this[I.MIXIN.HANDLER.PREFIX.LIST]);
     this[WORKFLOW.$I.COMPOSE.PREPEND](...this[I.MIXIN.HANDLER.PREFIX.LIST]);
   }
 
-  [WORKFLOW._I.COMPILE_ARTIFACT](DeploymentKit) {
+  [WORKFLOW._I.COMPILE_DEPLOYMENT](deployment) {
+    const DeploymentKit = deployment[DEPLOYMENT.$I.KIT];
+
     for (const attacher of this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST]) {
       attacher(DeploymentKit);
     }
 
-    const server = useServer(DeploymentKit);
+    const server = deployment[DEPLOYMENT.$I.SERVER];
     const DeployerClass = Deployer.Registry.getByServer(server);
     const DeployerKit = DeploymentKit('Kitty<Deployer>');
-    const deployer = new DeployerClass(DeployerKit);
-    const handlerArgs = [DeploymentKit, deployer];
-
-    DeployerKit.handleHttpExchange = async (internal) => {
-      const Exchange = DeployerClass[DEPLOYER._S.EXCHANGE_CTOR.HTTP];
-
-      await this[I.HANDLE_EXCHANGE](Exchange, internal, ...handlerArgs);
-    };
-
-    DeployerKit.handleWebSocketExchange = async (internal) => {
-      const Exchange = DeployerClass[DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET];
-
-      if (Exchange === undefined) {
-        Deployer.Throw('It MUST implement a WebSocket exchange.');
-      }
-
-      await this[I.HANDLE_EXCHANGE](Exchange, internal, ...handlerArgs);
-    };
-
-    let compiled = false;
-
-    DeployerKit.attachDeployment = (name, value) => {
-      if (compiled) {
-        Ow.Error.Common('Artifact has already been compiled.');
-      }
-
-      Parser.DependenceName(name);
-      DeploymentKit[name] = value;
-    };
+    const deployer = new DeployerClass(DeployerKit, deployment);
 
     deployer[DEPLOYER.$I.INSTALL]();
-    compiled = true;
 
-    return deepFreeze({
-      listeners: deployer[DEPLOYER.$I.LISTENERS],
-      link: compose(...deployer[DEPLOYER.$I.LINK_LIST]),
-    });
+    for (const attacher of this[I.MIXIN.EXCHANGE.ATTACHER.LIST]) {
+      deployment[DEPLOYMENT.$I.ADD_EXCHANGE_ATTACHER](attacher);
+    }
+
+    deployment[DEPLOYMENT.$I.COMMIT]();
   }
 
   adapt(DeployerClass) {
@@ -133,12 +78,12 @@ export default class CompoundWorkflow extends Workflow.Abstract {
       compile: async (server) => {
         consumeBy(deployer, server);
 
-        const { listeners } = await this[WORKFLOW.$I.COMPILE](
+        const deployment = await this[WORKFLOW.$I.COMPILE](
           server,
           DeploymentKit,
         );
 
-        return listeners;
+        return deployment.listeners;
       },
       deploy: async (server) => {
         consumeBy(deployer, server);
@@ -157,7 +102,7 @@ export default class CompoundWorkflow extends Workflow.Abstract {
 
     MixinKit.attachWorkflow = (name, value) => {
       this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      Parser.DependenceName(name);
+      DependenceName(name);
       WorkflowKit[name] = value;
     };
 
