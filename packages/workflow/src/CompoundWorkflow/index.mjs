@@ -1,6 +1,5 @@
-export { default as Concrete } from './_Concrete.mjs';
+export { default as Abstract } from './_Abstract.mjs';
 export * as Configuration from './Configuration/index.mjs';
-export * as DataNormalizerRegistry from './DataNormalizerRegistry/index.mjs';
 export * as Deployer from './Deployer/index.mjs';
 export * as HttpExchange from './HttpExchange/index.mjs';
 export * as WebSocketExchange from './WebSocketExchange/index.mjs';

@@ -1,11 +1,10 @@
 import Abstract, { Member as M } from '@produck/es-abstract';
 
 import * as Workflow from '../../../../Workflow/index.mjs';
-import * as DataNormalizer from './DataNormalizer/index.mjs';
-import { _A, COMPOUND_WORKFLOW, PART } from './_Borrow.mjs';
+import { _A, PART } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
+import { ReadableStreamResult } from './Parser.mjs';
 
-const { ReadableStreamResult } = DataNormalizer.Parser;
 const NO_BODY = Object.freeze({ stream: null, length: 0 });
 
 class HttpResponseBody extends Workflow.Exchange.Part.Concrete {
@@ -18,12 +17,10 @@ class HttpResponseBody extends Workflow.Exchange.Part.Concrete {
   }
 
   set data(value) {
-    const registry =
-      this.workflow[COMPOUND_WORKFLOW.$I.STATE].responseBodyNormalizerRegistry;
-    const { stream, length } = registry[_A.REGISTRY.$I.NORMALIZE](value);
+    const result = this.workflow[_A.COMPOUND.A.$I.NORMALIZE_DATA](value);
 
-    this[I.DATA] = { stream, length };
-    this[_I.DATA.SET](this[PART.$I.INTERNAL], { stream, length });
+    this[I.DATA] = { stream: result.stream, length: result.length };
+    this[_I.DATA.SET](this[PART.$I.INTERNAL], { ...this[I.DATA] });
   }
 }
 

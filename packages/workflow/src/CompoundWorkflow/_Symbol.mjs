@@ -25,7 +25,25 @@ export const I = deepFreeze({
 });
 
 const $I_STATE = Symbol('.$state');
+const $I_NORMALIZE_HTTP_RESPONSE_BODY_DATA = Symbol(
+  '.$normalizeHttpResponseBodyData()',
+);
 
 export const $I = deepFreeze({
   STATE: $I_STATE,
+  NORMALIZE_HTTP_RESPONSE_BODY_DATA: $I_NORMALIZE_HTTP_RESPONSE_BODY_DATA,
+});
+
+const _I_NORMALIZE_HTTP_RESPONSE_BODY_DATA = Symbol(
+  '._normalizeHttpResponseBodyData()',
+);
+
+export const _I = deepFreeze({
+  NORMALIZE_HTTP_RESPONSE_BODY_DATA: _I_NORMALIZE_HTTP_RESPONSE_BODY_DATA,
+});
+
+export const A = deepFreeze({
+  $I: {
+    NORMALIZE_DATA: $I_NORMALIZE_HTTP_RESPONSE_BODY_DATA,
+  },
 });

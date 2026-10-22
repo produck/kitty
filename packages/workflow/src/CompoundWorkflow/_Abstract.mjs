@@ -1,9 +1,9 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
+import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
 import * as Deployer from './Deployer/index.mjs';
-import * as DataNormalizerRegistry from './DataNormalizerRegistry/index.mjs';
 import * as Configuration from './Configuration/index.mjs';
 import * as Mixin from './Mixin.mjs';
 import * as Workflow from '../Workflow/index.mjs';
@@ -11,22 +11,26 @@ import * as Workflow from '../Workflow/index.mjs';
 import * as Parser from './Parser.mjs';
 import { DependenceName } from '../Parser.mjs';
 import { useWorkflow } from '../Capability.mjs';
-import { I, $I } from './_Symbol.mjs';
+import { ReadableStreamResult } from './HttpExchange/Response/Body/Parser.mjs';
+import { I, $I, _I } from './_Symbol.mjs';
 import { DEPLOYER, DEPLOYMENT, WORKFLOW } from './_Borrow.mjs';
 
-export default class CompoundWorkflow extends Workflow.Abstract {
+class CompoundWorkflow extends Workflow.Abstract {
   [I.MIXIN.HANDLER.PREFIX.LIST] = [];
   [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
   [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];
 
   [$I.STATE] = {
     RequestBodyDistributor: null,
-    responseBodyNormalizerRegistry: new DataNormalizerRegistry.Concrete(),
   };
 
   constructor(...args) {
     super(...args);
     Configuration.install(useWorkflow(this[WORKFLOW.$I.KIT]));
+  }
+
+  [$I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value) {
+    return this[_I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value);
   }
 
   [WORKFLOW._I.COMPOSE.EXTEND]() {
@@ -165,10 +169,13 @@ export default class CompoundWorkflow extends Workflow.Abstract {
 
     return this;
   }
-
-  registerResponseBodyNormalizer(Normalizer) {
-    this[$I.STATE].responseBodyNormalizerRegistry.register(Normalizer);
-
-    return this;
-  }
 }
+
+export default Abstract(
+  CompoundWorkflow,
+  Abstract({
+    [_I.NORMALIZE_HTTP_RESPONSE_BODY_DATA]: M.Method()
+      .args(M.Any)
+      .returns(ReadableStreamResult),
+  }),
+);

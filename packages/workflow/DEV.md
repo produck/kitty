@@ -50,15 +50,17 @@
 判一个 subject 该放哪一层，只看四条，不靠"它算不算一种 X"。
 
 - **构造点归属**：谁 `new` 它，它就在谁下面。判据是 `grep new`。
-- **依赖朝根单调**：子目录只依赖同层或更靠根的一侧，父层不得反向依赖子层；
-  全图必须无环。
+- **子树方向单调**：顶层子树之间的边只朝根（`CompoundWorkflow → Workflow`），
+  反向不行；子树内部父子互指是正常的，父本来就要 `new` 子。全图必须无环。
 - **类走 barrel，符号走 `_Borrow`**：跨 subject 取类走对方 `index.mjs` 的命名
   空间，取符号走 `_Borrow.mjs` 指向对方 `_Symbol.mjs`；子文件不直接写对方深路径。
 - **barrel 形状**：subject 的 `index.mjs` 导出"实现类 + 全部子命名空间 + 叶子
   工具模块"，不导出 `_Symbol` / `_Borrow` / `_Concrete`。
 
-例外：`DataNormalizer` 没有构造点（它是插件契约），按 is-a 跟
-`HttpExchange/Response/Body`。"跟形状走"与"跟消费者走"之间有多解，这里选前者。
+判据沉默的情形：`DataNormalizer` 曾按 is-a 归在 `HttpExchange/Response/Body/`，
+现在连同 `DataNormalizerRegistry` 一起停在 `legacy.ign/`——它们描述的是**一种**
+归一化策略（插件协议 + 注册表 + first-match-wins），不是框架的契约。契约收敛成
+`CompoundWorkflow` 的一个抽象成员，策略留给下游。
 
 ## 观点 / 决策
 
@@ -103,8 +105,11 @@
   每次访问 fork 一份新的 WHATWG `ReadableStream`。`MaxBodySize` 走 `metric` 事件累
   加，超限 `destroy()` + `setStatus(413)`。
 - 响应体是 sink：归一形状 `{ stream: ReadableStream | null, length: number | null }`
-  （stream 为 `null` 时 length 必须为 `0`）；`DataNormalizer` 是 subject，注册表挂在
-  `CompoundWorkflow` 的私有 `STATE` 里。
+  （stream 为 `null` 时 length 必须为 `0`）。**归一化本身是工作流的抽象成员**，
+  不是框架内置的插件体系：`_I.NORMALIZE_HTTP_RESPONSE_BODY_DATA` 由实现者填，
+  `$I.NORMALIZE_HTTP_RESPONSE_BODY_DATA` 是对内的调用面，body 的 `data` setter
+  只调 `workflow[_A.$I.NORMALIZE_DATA]`。注册表、`test`/`normalize` 插件协议
+  已整体停到 `legacy.ign/`，作为下游可以自己实现的一种方案。
 - fugue 的 12 项选项由本包代理（PascalCase，
   `CompoundWorkflow/Configuration/items/distributor.mjs`），
   初始值抄自 fugue。**Workflow 上维护的不是"随便可以被覆盖的默认值"，而是这一层对
@@ -129,10 +134,11 @@
   `Configuration.install(useWorkflow(kit))`——键取自 kit 里存的同一份 shadow，
   与 `Get.<键>(workflow)` 的查询键严格一致。非复合的派生类没有记录，读值直接抛。
   外部读值只走 `Get.<键>`，写入只走 `Tune.<键>`。
-- `CompoundWorkflow` 的私有 `STATE` 记录可变资源（`RequestBodyDistributor`、
-  `responseBodyNormalizerRegistry`），键用字符串；`finalize()` 之后仍可用
-  `setRequestBodyDistributorConstructor()` 更换。这两个 setter 是复合工作流的公开
-  面，基座没有。
+- `CompoundWorkflow` 是个**抽象类**，不是现成产品：它声明
+  `_I.NORMALIZE_HTTP_RESPONSE_BODY_DATA`，未实现就不能用；所以本包只导出
+  `CompoundWorkflow.Abstract`，不导出任何可直接 `new` 的复合工作流。
+- 它的私有 `STATE` 只记一个可变资源（`RequestBodyDistributor`），`finalize()` 之后
+  仍可用 `setRequestBodyDistributorConstructor()` 更换。
 - “必须有请求体分发器”的卡点在 `CompoundWorkflow` 的 `$I.DEPLOY` 覆写上，所以
   `compile()` 不受影响，`deploy()` 与 `adapt().deploy()` 两路都会过它。
 - `[COMPILE_DEPLOYMENT]` 只做四件事：跑 mixin 的部署 attacher → 取部署器类 → 注册
