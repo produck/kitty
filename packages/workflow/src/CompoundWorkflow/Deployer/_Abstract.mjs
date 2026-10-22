@@ -4,6 +4,7 @@ import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import { isSubConstructor } from '@produck/is-sub-constructor';
+import * as Kit from '@produck/kit';
 
 import * as P from './_Parser.mjs';
 import * as HttpExchange from '../HttpExchange/index.mjs';
@@ -38,6 +39,10 @@ class Deployer {
   }
 
   constructor(DeployerKit, deployment) {
+    if (!Kit.isKit(DeployerKit)) {
+      ThrowTypeError('args[0] as DeployerKit', 'Kit');
+    }
+
     this[I.KIT] = DeployerKit;
     this[I.DEPLOYMENT] = deployment;
     this[SYMBOL.CONSTRUCTOR] = new.target;
@@ -47,6 +52,10 @@ class Deployer {
     this[I.ATTACH.DEPLOYMENT]();
     this[I.ATTACH.HANDLER.HTTP]();
     this[I.ATTACH.HANDLER.WEB_SOCKET]();
+  }
+
+  get [$I.KIT]() {
+    return this[I.KIT];
   }
 
   [I.ATTACH.LISTENER]() {
@@ -136,7 +145,7 @@ class Deployer {
 export default Abstract(
   Deployer,
   Abstract({
-    [_I.INSTALL]: M.Method().args(M.Any).returns(M.Any),
+    [_I.INSTALL]: M.Method().args(P.Kit),
   }),
   Abstract.Static({
     [_S.NAME]: M.String,

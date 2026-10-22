@@ -1,8 +1,9 @@
 import * as net from 'node:net';
 
-import { Ow, SYMBOL } from '@produck/argot';
+import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
+import * as Kit from '@produck/kit';
 
 import { K_EXCHANGE, useWorkflow } from '../../Capability.mjs';
 import * as P from './_Parser.mjs';
@@ -18,12 +19,20 @@ class Exchange extends EventTarget {
   constructor(ExchangeKit, internal) {
     super();
 
+    if (!Kit.isKit(ExchangeKit)) {
+      ThrowTypeError('args[0] as ExchangeKit', 'Kit');
+    }
+
     ExchangeKit[K_EXCHANGE] = $(this);
-    this[$I.KIT] = ExchangeKit;
+    this[I.KIT] = ExchangeKit;
     this[I.INTERNAL] = internal;
     this[SYMBOL.CONSTRUCTOR] = new.target;
     this[I.REQUEST] = new this[SYMBOL.CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
     this[I.RESPONSE] = new this[SYMBOL.CONSTRUCTOR][_S.RESPONSE_CTOR]($(this));
+  }
+
+  get [$I.KIT]() {
+    return this[I.KIT];
   }
 
   get [$I.IDENTITY]() {

@@ -1,8 +1,10 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
+const I_KIT = Symbol('.#kit');
 const I_HANDLER_LIST = Symbol('.#handlerList');
 
 export const I = deepFreeze({
+  KIT: I_KIT,
   HANDLER_LIST: I_HANDLER_LIST,
 });
 

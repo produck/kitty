@@ -1,4 +1,6 @@
+import { ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
+import * as Kit from '@produck/kit';
 
 import * as P from '../_Parser.mjs';
 import { _A, WORKFLOW } from './_Borrow.mjs';
@@ -6,6 +8,10 @@ import { I, $I, _I } from './_Symbol.mjs';
 
 class Plugin {
   constructor(kit, workflow) {
+    if (!Kit.isKit(kit)) {
+      ThrowTypeError('args[0] as kit', 'Kit');
+    }
+
     this[I.KIT] = kit;
     this[I.WORKFLOW] = workflow;
     this[I.ATTACH.WORKFLOW]();
@@ -64,6 +70,6 @@ class Plugin {
 export default Abstract(
   Plugin,
   Abstract({
-    [_I.INSTALL]: M.Method(),
+    [_I.INSTALL]: M.Method().args(P.Kit),
   }),
 );

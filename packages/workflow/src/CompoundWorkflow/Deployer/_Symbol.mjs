@@ -10,6 +10,7 @@ const I_ATTACH_HANDLER_HTTP = Symbol('.#attachHttpHandler()');
 const I_ATTACH_HANDLER_WEB_SOCKET = Symbol('.#attachWebSocketHandler()');
 const I_ASSERT_NOT_COMMITTED = Symbol('.#assertNotCommitted()');
 
+const $I_KIT = Symbol('.$kit');
 const $I_INSTALL = Symbol('.$install()');
 
 const _I_INSTALL = Symbol('._install()');
@@ -33,6 +34,7 @@ export const I = deepFreeze({
 });
 
 export const $I = deepFreeze({
+  KIT: $I_KIT,
   INSTALL: $I_INSTALL,
 });
 

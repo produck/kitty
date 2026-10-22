@@ -1,10 +1,18 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
-import * as Kit from '@produck/kit';
+import { isKit, isDependenceName } from '@produck/kit';
 
 export * from '../_Parser.mjs';
 
+export function Kit(value) {
+  if (!isKit(value)) {
+    ThrowTypeError('args[0] as kit', 'Kit');
+  }
+
+  return value;
+}
+
 export function DependenceName(value) {
-  if (!Kit.isDependenceName(value)) {
+  if (!isDependenceName(value)) {
     ThrowTypeError('args[0] as dependency name', 'string | symbol');
   }
 

@@ -21,10 +21,12 @@ class Workflow {
 
     const WorkflowKit = kit('Kitty<Workflow>');
 
-    this[$I.KIT] = WorkflowKit;
+    this[I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = $(this);
   }
-
+  get [$I.KIT]() {
+    return this[I.KIT];
+  }
   [$I.COMPOSE.PREPEND](...handler) {
     this[$I.PIPELINE] = Composer.compose(...handler, this[$I.PIPELINE]);
   }
