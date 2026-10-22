@@ -3,7 +3,7 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Workflow from '../../../../Workflow/index.mjs';
 import { _A, PART } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
-import { ReadableStreamResult } from './Parser.mjs';
+import * as P from './_Parser.mjs';
 
 const NO_BODY = Object.freeze({ stream: null, length: 0 });
 
@@ -28,7 +28,7 @@ export default Abstract(
   HttpResponseBody,
   Abstract({
     [_I.DATA.SET]: M.Method()
-      .args(M.Any, ReadableStreamResult)
+      .args(M.Any, P.ReadableStreamResult)
       .returns(M.Undefined),
   }),
 );

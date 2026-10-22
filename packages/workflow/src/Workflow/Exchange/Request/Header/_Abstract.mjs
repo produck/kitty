@@ -3,15 +3,15 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import { _I } from './_Symbol.mjs';
 import { PART } from './_Borrow.mjs';
 import * as Part from '../../Part/index.mjs';
-import * as Parser from '../../Parser.mjs';
+import * as P from './_Parser.mjs';
 
 class RequestHeader extends Part.Concrete {
   get(key) {
-    return this[_I.GET](this[PART.$I.INTERNAL], Parser.HeaderName(key));
+    return this[_I.GET](this[PART.$I.INTERNAL], P.HeaderName(key));
   }
 
   has(key) {
-    return this.get(Parser.HeaderName(key)) !== undefined;
+    return this.get(P.HeaderName(key)) !== undefined;
   }
 
   keys() {
@@ -30,7 +30,7 @@ export default Abstract(
   Abstract({
     [_I.GET]: M.Method()
       .args(M.Any, M.String)
-      .returns(Parser.HeaderValueOrUndefined),
-    [_I.KEYS]: M.Method().args(M.Any).returns(Parser.Iterable),
+      .returns(P.HeaderValueOrUndefined),
+    [_I.KEYS]: M.Method().args(M.Any).returns(P.Iterable),
   }),
 );

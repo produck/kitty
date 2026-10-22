@@ -3,11 +3,11 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import { _I } from './_Symbol.mjs';
 import { PART } from './_Borrow.mjs';
 import * as Part from '../../Part/index.mjs';
-import * as Parser from '../../Parser.mjs';
+import * as P from './_Parser.mjs';
 
 class ResponseHeader extends Part.Concrete {
   get(key) {
-    Parser.HeaderName(key);
+    P.HeaderName(key);
 
     return this[_I.GET](this[PART.$I.INTERNAL], key);
   }
@@ -27,13 +27,13 @@ class ResponseHeader extends Part.Concrete {
   }
 
   set(key, value) {
-    Parser.HeaderName(key);
-    Parser.HeaderValue(value);
+    P.HeaderName(key);
+    P.HeaderValue(value);
     this[_I.SET](this[PART.$I.INTERNAL], key, value);
   }
 
   delete(key) {
-    Parser.HeaderName(key);
+    P.HeaderName(key);
     this[_I.DELETE](this[PART.$I.INTERNAL], key);
   }
 
@@ -49,8 +49,8 @@ export default Abstract(
   Abstract({
     [_I.GET]: M.Method()
       .args(M.Any, M.String)
-      .returns(Parser.HeaderValueOrUndefined),
-    [_I.KEYS]: M.Method().args(M.Any).returns(Parser.Iterable),
+      .returns(P.HeaderValueOrUndefined),
+    [_I.KEYS]: M.Method().args(M.Any).returns(P.Iterable),
     [_I.SET]: M.Method().args(M.Any, M.String, M.String).returns(M.Undefined),
     [_I.DELETE]: M.Method().args(M.Any, M.String).returns(M.Undefined),
   }),

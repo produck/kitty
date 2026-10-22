@@ -8,10 +8,8 @@ import * as Configuration from './Configuration/index.mjs';
 import * as Mixin from './Mixin.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
-import * as Parser from './Parser.mjs';
-import { DependenceName } from '../Parser.mjs';
+import * as P from './_Parser.mjs';
 import { useWorkflow } from '../Capability.mjs';
-import { ReadableStreamResult } from './HttpExchange/Response/Body/Parser.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
 import { DEPLOYER, DEPLOYMENT, WORKFLOW } from './_Borrow.mjs';
 
@@ -129,19 +127,19 @@ class CompoundWorkflow extends Workflow.Abstract {
 
     MixinKit.attachWorkflow = (name, value) => {
       this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      DependenceName(name);
+      P.DependenceName(name);
       WorkflowKit[name] = value;
     };
 
     MixinKit.appendDeploymentAttacher = (attacher) => {
       this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      Parser.Attacher(attacher);
+      P.Attacher(attacher);
       this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST].push(attacher);
     };
 
     MixinKit.appendExchangeAttacher = (attacher) => {
       this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      Parser.Attacher(attacher);
+      P.Attacher(attacher);
       this[I.MIXIN.EXCHANGE.ATTACHER.LIST].push(attacher);
     };
 
@@ -151,7 +149,7 @@ class CompoundWorkflow extends Workflow.Abstract {
       for (const index in handlerList) {
         const handler = handlerList[index];
 
-        Workflow.Assert.assertHandlerByIndex(handler, index);
+        P.Handler(handler, index);
       }
 
       this[I.MIXIN.HANDLER.PREFIX.LIST].push(...handlerList);
@@ -176,6 +174,6 @@ export default Abstract(
   Abstract({
     [_I.NORMALIZE_HTTP_RESPONSE_BODY_DATA]: M.Method()
       .args(M.Any)
-      .returns(ReadableStreamResult),
+      .returns(P.ReadableStreamResult),
   }),
 );

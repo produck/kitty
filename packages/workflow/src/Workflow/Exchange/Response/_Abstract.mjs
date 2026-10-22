@@ -2,7 +2,7 @@ import { SYMBOL } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
-import * as Assert from '../Parser.mjs';
+import * as P from './_Parser.mjs';
 import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';
 import { PART } from './_Borrow.mjs';
@@ -29,12 +29,12 @@ class Response extends Part.Concrete {
   }
 
   setStatus(code, text) {
-    Assert.HTTPStatusCode(code);
+    P.HTTPStatusCode(code);
 
     this[_I.STATUS.SET](this[PART.$I.INTERNAL], code);
 
     if (text !== undefined) {
-      Assert.HeaderValue(text);
+      P.HeaderValue(text);
       this[_I.STATUS_TEXT.SET](this[PART.$I.INTERNAL], text);
     }
   }
@@ -47,9 +47,9 @@ class Response extends Part.Concrete {
 export default Abstract(
   Response,
   Abstract({
-    [_I.STATUS.GET]: M.Method().args(M.Any).returns(Assert.HTTPStatusCode),
+    [_I.STATUS.GET]: M.Method().args(M.Any).returns(P.HTTPStatusCode),
     [_I.STATUS.SET]: M.Method()
-      .args(M.Any, Assert.HTTPStatusCode)
+      .args(M.Any, P.HTTPStatusCode)
       .returns(M.Undefined),
     [_I.STATUS_TEXT.GET]: M.Method().args(M.Any).returns(M.String),
     [_I.STATUS_TEXT.SET]: M.Method().args(M.Any, M.String).returns(M.Undefined),

@@ -5,7 +5,7 @@ import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 import { ThrowDeployer } from '../Utils.mjs';
 import * as Part from '../Part/index.mjs';
 import * as Header from './Header/index.mjs';
-import * as P from './Parser.mjs';
+import * as P from './_Parser.mjs';
 import { PART } from './_Borrow.mjs';
 import { I, _I, _S } from './_Symbol.mjs';
 

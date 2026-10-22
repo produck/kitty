@@ -5,7 +5,7 @@ import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 
 import { K_EXCHANGE, useWorkflow } from '../../Capability.mjs';
-import * as P from './Parser.mjs';
+import * as P from './_Parser.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';

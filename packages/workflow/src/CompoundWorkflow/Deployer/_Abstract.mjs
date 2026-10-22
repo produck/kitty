@@ -5,10 +5,9 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 
-import { DependenceName } from '../../Parser.mjs';
+import * as P from './_Parser.mjs';
 import * as HttpExchange from '../HttpExchange/index.mjs';
 import * as WebSocketExchange from '../WebSocketExchange/index.mjs';
-import { Throw } from './Assert.mjs';
 import { DEPLOYMENT } from './_Borrow.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 
@@ -91,7 +90,7 @@ class Deployer {
       const deployment = this[I.DEPLOYMENT];
 
       this[I.ASSERT.NOT_COMMITTED]();
-      DependenceName(name);
+      P.DependenceName(name);
       deployment[DEPLOYMENT.$I.KIT][name] = value;
     };
   }
@@ -112,7 +111,7 @@ class Deployer {
       const Exchange = this[SYMBOL.CONSTRUCTOR][_S.EXCHANGE_CTOR.WEB_SOCKET];
 
       if (Exchange === undefined) {
-        Throw('It MUST implement a WebSocket exchange.');
+        P.Throw('It MUST implement a WebSocket exchange.');
       }
 
       await this[I.DEPLOYMENT][DEPLOYMENT.$I.HANDLE_EXCHANGE](

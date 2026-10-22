@@ -3,7 +3,7 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Workflow from '../../../Workflow/index.mjs';
 import { PART } from './_Borrow.mjs';
 import { _I } from './_Symbol.mjs';
-import * as P from './Parser.mjs';
+import * as P from './_Parser.mjs';
 
 class WebSocketController extends Workflow.Exchange.Part.Concrete {
   get readyState() {

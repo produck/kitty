@@ -9,3 +9,11 @@ export function HttpMethod(value) {
 
   return value;
 }
+
+export function Handler(value, index) {
+  if (typeof value !== 'function' || value.length > 2) {
+    ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
+  }
+
+  return value;
+}

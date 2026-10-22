@@ -1,4 +1,23 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
+import * as Kit from '@produck/kit';
+
+export * from '../_Parser.mjs';
+
+export function DependenceName(value) {
+  if (!Kit.isDependenceName(value)) {
+    ThrowTypeError('args[0] as dependency name', 'string | symbol');
+  }
+
+  return value;
+}
+
+export function Attacher(value) {
+  if (typeof value !== 'function') {
+    ThrowTypeError('args[0] as attacher', 'function');
+  }
+
+  return value;
+}
 
 export function ReadableStreamResult(value) {
   if (value === null || typeof value !== 'object') {

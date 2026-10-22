@@ -1,66 +1,66 @@
 import { Unit } from '@produck/argot';
 
-import * as Assert from '../../../Workflow/Exchange/Parser.mjs';
+import * as P from './_Parser.mjs';
 
 export default [
   {
     key: 'MaxChunkStashByteLength',
     default: Unit.Byte.GB,
-    assert: Assert.NonNegativeInteger,
+    assert: P.NonNegativeInteger,
   },
   {
     key: 'MaxTransferrerBacklogWarningByteLength',
     default: Unit.Byte.GB,
-    assert: Assert.NonNegativeInteger,
+    assert: P.NonNegativeInteger,
   },
   {
     key: 'DegradeOnChunkStashFullAndDone',
     default: false,
-    assert: Assert.Boolean,
+    assert: P.Boolean,
   },
   {
     key: 'ForkedReadableStreamHighWaterMark',
     default: 1,
-    assert: Assert.HighWaterMark,
+    assert: P.HighWaterMark,
   },
   {
     key: 'MaxChunkReaderInitializeRetryCount',
     default: Infinity,
-    assert: Assert.NonNegativeIntegerOrInfinity,
+    assert: P.NonNegativeIntegerOrInfinity,
   },
   {
     key: 'ChunkReaderInitializeRetryInterval',
     default: Unit.Time.SEC,
-    assert: Assert.NonNegativeInteger,
+    assert: P.NonNegativeInteger,
   },
   {
     key: 'MaxTransferrerInitializeRetryCount',
     default: Infinity,
-    assert: Assert.NonNegativeIntegerOrInfinity,
+    assert: P.NonNegativeIntegerOrInfinity,
   },
   {
     key: 'TransferrerInitializeRetryInterval',
     default: Unit.Time.SEC,
-    assert: Assert.NonNegativeInteger,
+    assert: P.NonNegativeInteger,
   },
   {
     key: 'MaxTransferrerDumpRetryCount',
     default: Infinity,
-    assert: Assert.NonNegativeIntegerOrInfinity,
+    assert: P.NonNegativeIntegerOrInfinity,
   },
   {
     key: 'TransferrerDumpRetryInterval',
     default: Unit.Time.SEC,
-    assert: Assert.NonNegativeInteger,
+    assert: P.NonNegativeInteger,
   },
   {
     key: 'MaxTransferrerDrainRetryCount',
     default: Infinity,
-    assert: Assert.NonNegativeIntegerOrInfinity,
+    assert: P.NonNegativeIntegerOrInfinity,
   },
   {
     key: 'TransferrerDrainRetryInterval',
     default: Unit.Time.SEC,
-    assert: Assert.NonNegativeInteger,
+    assert: P.NonNegativeInteger,
   },
 ];

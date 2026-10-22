@@ -1,5 +1,7 @@
 import { ThrowTypeError } from '@produck/argot';
 
+export * from '../_Parser.mjs';
+
 const READY_STATES = Object.freeze([0, 1, 2, 3]);
 const READY_STATES_TAG = READY_STATES.join(' | ');
 

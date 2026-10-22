@@ -56,6 +56,11 @@
   空间，取符号走 `_Borrow.mjs` 指向对方 `_Symbol.mjs`；子文件不直接写对方深路径。
 - **barrel 形状**：subject 的 `index.mjs` 导出"实现类 + 全部子命名空间 + 叶子
   工具模块"，不导出 `_Symbol` / `_Borrow` / `_Concrete`。
+- **parser 层层下发，消费方只看自己这层**：每个目录一个 `_Parser.mjs`，首行
+  `export * from '../_Parser.mjs'`，再补本层自己的。需要 parser 的文件一律
+  `import ... from './_Parser.mjs'`，不写 `../`。定义点取所有消费方与定义方的最近
+  共同祖先，跨顶层子树就落到包根。`assert*` 与 parser 同住一个文件，区别只在是否
+  把值返回。
 
 判据沉默的情形：`DataNormalizer` 曾按 is-a 归在 `HttpExchange/Response/Body/`，
 现在连同 `DataNormalizerRegistry` 一起停在 `legacy.ign/`——它们描述的是**一种**
@@ -96,7 +101,8 @@
 ### Request / Response / Body
 
 - Header 读松写紧：`_I.GET` 答 `HeaderValueOrUndefined`，写入预检用严格
-  `HeaderValue`（两份 parser 都在 `Workflow/Exchange/Parser.mjs`）。
+  `HeaderValue`（两份 parser 都在 `Workflow/Exchange/_Parser.mjs`，跨目录消费的
+  几个数值/方法 parser 在包根 `src/_Parser.mjs`）。
 - `Request.get url()`：绝对 URL 直接用；相对 URL 用 `header.get('host')` +
   `exchange.protocol` 拼，缺 host 抛 `ThrowDeployer`。
 - `Request.get body()` 按 `Configuration.Get.AllowedBodyMethods(workflow)` 设卡，逐次
@@ -177,7 +183,7 @@
 近 workflow 实例的实例级上下文。旧写法把 `install` 做成记录上的一个函数，根本没有实
 例可言——这是整次重构最根本的变动。
 
-- `Deployer/Registry.mjs` / `Deployer/Assert.mjs` 与部署器目录同级，都是非 subject 元素。
+- `Deployer/Registry.mjs` / `Deployer/_Parser.mjs` 与部署器目录同级，都是非 subject 元素。
   `ExchangeImplement` 已提到包根（与 `Workflow` 平级），因为它不依赖 Deployer、只依赖
   协议族。
 - 静态抽象（派生用 `static get`）：
@@ -204,7 +210,7 @@
   `attachDeployment`）曾经由框架代挂，只因为它们当时需要 workflow 上下文；现在派发与
   内容存储都在 deployment 里，部署器手里已经有足够的东西。
 - `attachDeployment` 写的是 `deployment[$I.KIT]`（部署端口本身），并用
-  `deployment[$I.COMMITTED]` 卡窗口；`DependenceName` 来自包级 `src/Parser.mjs`，因
+  `deployment[$I.COMMITTED]` 卡窗口；`DependenceName` 来自包级 `src/_Parser.mjs`，因
   为它不再是 CompoundWorkflow 专有。
 - **两个 exchange 的 `internal` 形状不同，协议因此必须在构造前决定**：HTTP 是连接期
   req/res 记录，WebSocket 是整条连接的控制侧记录，二者没有公共形状；而 `internal`
