@@ -23,6 +23,7 @@ export const I = deepFreeze({
 });
 
 const $I_KIT = Symbol('.$kit');
+const $I_WORKFLOW = Symbol('.$workflow');
 const $I_SERVER = Symbol('.$server');
 const $I_COMMITTED = Symbol('.$committed');
 const $I_LINKED = Symbol('.$linked');
@@ -37,6 +38,7 @@ const $I_ATTACH_EXCHANGE = Symbol('.$attachExchange()');
 
 export const $I = deepFreeze({
   KIT: $I_KIT,
+  WORKFLOW: $I_WORKFLOW,
   SERVER: $I_SERVER,
   COMMITTED: $I_COMMITTED,
   LINKED: $I_LINKED,

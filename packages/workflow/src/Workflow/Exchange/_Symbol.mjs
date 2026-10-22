@@ -1,22 +1,26 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_KIT = Symbol('.#kit');
+const I_DEPLOYMENT = Symbol('.#deployment');
 const I_INTERNAL = Symbol('.#internal');
 const I_REQUEST = Symbol('.#request');
 const I_RESPONSE = Symbol('.#response');
 
 export const I = deepFreeze({
   KIT: I_KIT,
+  DEPLOYMENT: I_DEPLOYMENT,
   INTERNAL: I_INTERNAL,
   REQUEST: I_REQUEST,
   RESPONSE: I_RESPONSE,
 });
 
+const $I_DEPLOYMENT = Symbol('.$deployment');
 const $I_INTERNAL = Symbol('.$internal');
 const $I_IDENTITY = Symbol('.$identity');
 const $I_KIT = Symbol('.$kit');
 
 export const $I = deepFreeze({
+  DEPLOYMENT: $I_DEPLOYMENT,
   INTERNAL: $I_INTERNAL,
   IDENTITY: $I_IDENTITY,
   KIT: $I_KIT,

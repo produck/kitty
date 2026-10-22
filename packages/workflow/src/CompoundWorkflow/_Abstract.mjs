@@ -60,8 +60,7 @@ class CompoundWorkflow extends Workflow.Abstract {
 
     const server = deployment[DEPLOYMENT.$I.SERVER];
     const TargetDeployer = Deployer.Registry.getByServer(server);
-    const DeployerKit = DeploymentKit('Kitty<Deployer>');
-    const deployer = new TargetDeployer(DeployerKit, deployment);
+    const deployer = new TargetDeployer(DeploymentKit, deployment);
 
     deployer[DEPLOYER.$I.INSTALL]();
 
@@ -72,18 +71,18 @@ class CompoundWorkflow extends Workflow.Abstract {
     deployment[DEPLOYMENT.$I.COMMIT]();
   }
 
-  async [WORKFLOW.$I.DEPLOY](server, DeploymentKit) {
+  async [WORKFLOW.$I.DEPLOY](server, kitName) {
     if (this[$I.STATE].RequestBodyDistributor === null) {
       Ow.Error.Common('It MUST set a request body distributor.');
     }
 
-    return super[WORKFLOW.$I.DEPLOY](server, DeploymentKit);
+    return super[WORKFLOW.$I.DEPLOY](server, kitName);
   }
 
   adapt(TargetDeployer) {
     this[WORKFLOW.$I.ASSERT.FINALIZED]();
 
-    const DeploymentKit = this[WORKFLOW.$I.KIT]('Kitty<Deployment:OneTime>');
+    const DeploymentKitName = 'Kitty<Deployment:OneTime>';
 
     Deployer.Registry.assertDeployer(TargetDeployer);
 
@@ -120,14 +119,14 @@ class CompoundWorkflow extends Workflow.Abstract {
 
         const deployment = await this[WORKFLOW.$I.COMPILE](
           server,
-          DeploymentKit,
+          DeploymentKitName,
         );
 
         return deployment.listeners;
       },
       deploy: async (server) => {
         consumeBy(deployer, server);
-        await this[WORKFLOW.$I.DEPLOY](server, DeploymentKit);
+        await this[WORKFLOW.$I.DEPLOY](server, DeploymentKitName);
       },
     });
 
@@ -141,8 +140,8 @@ class CompoundWorkflow extends Workflow.Abstract {
       ThrowTypeError('args[0]', 'sub class of Plugin');
     }
 
-    const PluginKit = this[WORKFLOW.$I.KIT]('Kitty<Plugin>');
-    const plugin = new TargetPlugin(PluginKit, this);
+    const WorkflowKit = this[WORKFLOW.$I.KIT];
+    const plugin = new TargetPlugin(WorkflowKit, this);
 
     plugin[PLUGIN.$I.INSTALL]();
 

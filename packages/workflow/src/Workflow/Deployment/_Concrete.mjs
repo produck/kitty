@@ -17,15 +17,17 @@ export default class Deployment {
   [I.HANDLED_EXCHANGE_SET] = new WeakSet();
   [I.EXCHANGE_ATTACHER_LIST] = [];
 
-  constructor(DeploymentKit, server, workflow) {
-    if (!Kit.isKit(DeploymentKit)) {
-      ThrowTypeError('args[0] as DeploymentKit', 'Kit');
+  constructor(WorkflowKit, workflow, options) {
+    if (!Kit.isKit(WorkflowKit)) {
+      ThrowTypeError('args[0] as WorkflowKit', 'Kit');
     }
 
-    this[I.KIT] = DeploymentKit;
+    const { server, kitName = 'Kitty<Deployment>' } = options;
+
+    this[I.KIT] = WorkflowKit(kitName);
     this[I.SERVER] = server;
     this[I.WORKFLOW] = workflow;
-    DeploymentKit[K_DEPLOYMENT_SERVER] = server;
+    this[I.KIT][K_DEPLOYMENT_SERVER] = server;
   }
 
   get listeners() {
@@ -34,6 +36,10 @@ export default class Deployment {
 
   get [$I.KIT]() {
     return this[I.KIT];
+  }
+
+  get [$I.WORKFLOW]() {
+    return this[I.WORKFLOW];
   }
 
   get [$I.SERVER]() {
@@ -61,8 +67,8 @@ export default class Deployment {
   }
 
   async [$I.HANDLE_EXCHANGE](Exchange, internal) {
-    const ExchangeKit = this[I.KIT]('Kitty<Exchange>');
-    const exchange = new Exchange(ExchangeKit, internal);
+    const exchange = new Exchange(this[I.KIT], this, { internal });
+    const ExchangeKit = exchange[EXCHANGE.$I.KIT];
     const identity = exchange[EXCHANGE.$I.IDENTITY];
 
     if (this[$I.HAS_EXCHANGE](identity)) {

@@ -5,26 +5,31 @@ import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
 import * as Kit from '@produck/kit';
 
-import { K_EXCHANGE, useWorkflow } from '../../Capability.mjs';
-import * as P from './_Parser.mjs';
-import { I, $I, _I, _S } from './_Symbol.mjs';
+import { K_EXCHANGE } from '../../Capability.mjs';
 import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
+import * as P from './_Parser.mjs';
+import { DEPLOYMENT } from './_Borrow.mjs';
+import { I, $I, _I, _S } from './_Symbol.mjs';
 
 class Exchange extends EventTarget {
+  [I.DEPLOYMENT] = null;
   [I.INTERNAL] = null;
   [I.REQUEST] = null;
   [I.RESPONSE] = null;
 
-  constructor(ExchangeKit, internal) {
+  constructor(DeploymentKit, deployment, { internal }) {
     super();
 
-    if (!Kit.isKit(ExchangeKit)) {
-      ThrowTypeError('args[0] as ExchangeKit', 'Kit');
+    if (!Kit.isKit(DeploymentKit)) {
+      ThrowTypeError('args[0] as DeploymentKit', 'Kit');
     }
+
+    const ExchangeKit = DeploymentKit('Kitty<Exchange>');
 
     ExchangeKit[K_EXCHANGE] = $(this);
     this[I.KIT] = ExchangeKit;
+    this[I.DEPLOYMENT] = deployment;
     this[I.INTERNAL] = internal;
     this[SYMBOL.CONSTRUCTOR] = new.target;
     this[I.REQUEST] = new this[SYMBOL.CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
@@ -33,6 +38,10 @@ class Exchange extends EventTarget {
 
   get [$I.KIT]() {
     return this[I.KIT];
+  }
+
+  get [$I.DEPLOYMENT]() {
+    return this[I.DEPLOYMENT];
   }
 
   get [$I.IDENTITY]() {
@@ -44,7 +53,7 @@ class Exchange extends EventTarget {
   }
 
   get workflow() {
-    return useWorkflow(this[$I.KIT]);
+    return this[I.DEPLOYMENT][DEPLOYMENT.$I.WORKFLOW];
   }
 
   get request() {

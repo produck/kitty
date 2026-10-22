@@ -38,12 +38,12 @@ class Deployer {
     return undefined;
   }
 
-  constructor(DeployerKit, deployment) {
-    if (!Kit.isKit(DeployerKit)) {
-      ThrowTypeError('args[0] as DeployerKit', 'Kit');
+  constructor(DeploymentKit, deployment) {
+    if (!Kit.isKit(DeploymentKit)) {
+      ThrowTypeError('args[0] as DeploymentKit', 'Kit');
     }
 
-    this[I.KIT] = DeployerKit;
+    this[I.KIT] = DeploymentKit('Kitty<Deployer>');
     this[I.DEPLOYMENT] = deployment;
     this[SYMBOL.CONSTRUCTOR] = new.target;
     this[I.ATTACH.LISTENER]();

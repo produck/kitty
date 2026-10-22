@@ -14,12 +14,12 @@ class Workflow {
   [I.HANDLER_LIST] = [];
   [$I.PIPELINE] = DEFAULT_PASSTHROUGH;
 
-  constructor(kit) {
-    if (!Kit.isKit(kit)) {
-      ThrowTypeError('args[0] as kit', 'Kit');
+  constructor(ExternalKit = Kit.global) {
+    if (!Kit.isKit(ExternalKit)) {
+      ThrowTypeError('args[0] as ExternalKit', 'Kit');
     }
 
-    const WorkflowKit = kit('Kitty<Workflow>');
+    const WorkflowKit = ExternalKit('Kitty<Workflow>');
 
     this[I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = $(this);
@@ -68,19 +68,19 @@ class Workflow {
     }
   }
 
-  async [$I.COMPILE](
-    server,
-    DeploymentKit = this[$I.KIT]('Kitty<Deployment>'),
-  ) {
-    const deployment = new Deployment.Concrete(DeploymentKit, server, this);
+  async [$I.COMPILE](server, kitName) {
+    const deployment = new Deployment.Concrete(this[$I.KIT], this, {
+      server,
+      kitName,
+    });
 
     await this[_I.COMPILE_DEPLOYMENT](deployment);
 
     return deployment;
   }
 
-  async [$I.DEPLOY](server, DeploymentKit) {
-    const deployment = await this[$I.COMPILE](server, DeploymentKit);
+  async [$I.DEPLOY](server, kitName) {
+    const deployment = await this[$I.COMPILE](server, kitName);
 
     deployment.link();
   }

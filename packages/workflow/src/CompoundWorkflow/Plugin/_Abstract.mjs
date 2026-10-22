@@ -7,12 +7,12 @@ import { _A, WORKFLOW } from './_Borrow.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
 
 class Plugin {
-  constructor(kit, workflow) {
-    if (!Kit.isKit(kit)) {
-      ThrowTypeError('args[0] as kit', 'Kit');
+  constructor(WorkflowKit, workflow) {
+    if (!Kit.isKit(WorkflowKit)) {
+      ThrowTypeError('args[0] as WorkflowKit', 'Kit');
     }
 
-    this[I.KIT] = kit;
+    this[I.KIT] = WorkflowKit('Kitty<Plugin>');
     this[I.WORKFLOW] = workflow;
     this[I.ATTACH.WORKFLOW]();
     this[I.ATTACH.DEPLOYMENT_ATTACHER]();
