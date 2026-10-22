@@ -2,7 +2,7 @@ import * as net from 'node:net';
 
 import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
-import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
+import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import * as Kit from '@produck/kit';
 
 import { K_EXCHANGE } from '../../Capability.mjs';
@@ -115,7 +115,7 @@ export default Abstract(
     [_I.SERVER.PROTOCOL.GET]: M.Method().args(M.Any).returns(P.ServerProtocol),
   }),
   Abstract.Static({
-    [_S.REQUEST_CTOR]: SubConstructorOf(Request.Abstract),
-    [_S.RESPONSE_CTOR]: SubConstructorOf(Response.Abstract),
+    [_S.REQUEST_CTOR]: M_Sub(Request.Abstract),
+    [_S.RESPONSE_CTOR]: M_Sub(Response.Abstract),
   }),
 );

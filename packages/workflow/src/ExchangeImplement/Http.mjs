@@ -4,6 +4,8 @@ import * as Exchange from '../Workflow/Exchange/index.mjs';
 import * as HttpExchange from '../CompoundWorkflow/HttpExchange/index.mjs';
 
 import * as EXCHANGE from '../Workflow/Exchange/_Symbol.mjs';
+import * as MUTABLE_RESPONSE from '../Workflow/Exchange/MutableResponse/_Symbol.mjs';
+import * as MUTABLE_RESPONSE_HEADER from '../Workflow/Exchange/Response/MutableHeader/_Symbol.mjs';
 import * as PART from '../Workflow/Exchange/Part/_Symbol.mjs';
 import * as REQUEST from '../Workflow/Exchange/Request/_Symbol.mjs';
 import * as REQUEST_HEADER from '../Workflow/Exchange/Request/Header/_Symbol.mjs';
@@ -86,7 +88,9 @@ export function Http(options) {
     }
   }
 
-  class ImplHttpResponseHeader extends Exchange.Response.Header.Abstract {
+  class ImplHttpResponseHeader
+    extends Exchange.Response.MutableHeader.Abstract
+  {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[PART.$I.INTERNAL],
@@ -105,11 +109,11 @@ export function Http(options) {
       return getResponseHeaderKeys(this[I_OPTIONS_CONTEXT]);
     }
 
-    [RESPONSE_HEADER._I.SET](_internal, key, value) {
+    [MUTABLE_RESPONSE_HEADER._I.SET](_internal, key, value) {
       setResponseHeader(this[I_OPTIONS_CONTEXT], key, value);
     }
 
-    [RESPONSE_HEADER._I.DELETE](_internal, key) {
+    [MUTABLE_RESPONSE_HEADER._I.DELETE](_internal, key) {
       deleteResponseHeader(this[I_OPTIONS_CONTEXT], key);
     }
   }
@@ -181,7 +185,7 @@ export function Http(options) {
       return getResponseStatus(this[I_OPTIONS_CONTEXT]);
     }
 
-    [RESPONSE._I.STATUS.SET](_internal, code) {
+    [MUTABLE_RESPONSE._I.STATUS.SET](_internal, code) {
       setResponseStatus(this[I_OPTIONS_CONTEXT], code);
     }
 
@@ -189,7 +193,7 @@ export function Http(options) {
       return getResponseStatusText(this[I_OPTIONS_CONTEXT]);
     }
 
-    [RESPONSE._I.STATUS_TEXT.SET](_internal, text) {
+    [MUTABLE_RESPONSE._I.STATUS_TEXT.SET](_internal, text) {
       setResponseStatusText(this[I_OPTIONS_CONTEXT], text);
     }
 

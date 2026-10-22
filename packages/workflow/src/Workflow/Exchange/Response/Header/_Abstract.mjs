@@ -25,23 +25,6 @@ class ResponseHeader extends Part.Concrete {
       yield [key, this.get(key)];
     }
   }
-
-  set(key, value) {
-    P.HeaderName(key);
-    P.HeaderValue(value);
-    this[_I.SET](this[PART.$I.INTERNAL], key, value);
-  }
-
-  delete(key) {
-    P.HeaderName(key);
-    this[_I.DELETE](this[PART.$I.INTERNAL], key);
-  }
-
-  clear() {
-    for (const key of this.keys()) {
-      this.delete(key);
-    }
-  }
 }
 
 export default Abstract(
@@ -51,7 +34,5 @@ export default Abstract(
       .args(M.Any, M.String)
       .returns(P.HeaderValueOrUndefined),
     [_I.KEYS]: M.Method().args(M.Any).returns(P.Iterable),
-    [_I.SET]: M.Method().args(M.Any, M.String, M.String).returns(M.Undefined),
-    [_I.DELETE]: M.Method().args(M.Any, M.String).returns(M.Undefined),
   }),
 );

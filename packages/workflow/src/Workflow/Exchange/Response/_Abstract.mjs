@@ -1,6 +1,6 @@
 import { SYMBOL } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
-import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
+import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
 import * as P from './_Parser.mjs';
 import * as Part from '../Part/index.mjs';
@@ -28,17 +28,6 @@ class Response extends Part.Concrete {
     return this[_I.STATUS_TEXT.GET](this[PART.$I.INTERNAL]);
   }
 
-  setStatus(code, text) {
-    P.HTTPStatusCode(code);
-
-    this[_I.STATUS.SET](this[PART.$I.INTERNAL], code);
-
-    if (text !== undefined) {
-      P.HeaderValue(text);
-      this[_I.STATUS_TEXT.SET](this[PART.$I.INTERNAL], text);
-    }
-  }
-
   get isFinished() {
     return this[_I.IS_FINISHED](this[PART.$I.INTERNAL]);
   }
@@ -48,14 +37,10 @@ export default Abstract(
   Response,
   Abstract({
     [_I.STATUS.GET]: M.Method().args(M.Any).returns(P.HTTPStatusCode),
-    [_I.STATUS.SET]: M.Method()
-      .args(M.Any, P.HTTPStatusCode)
-      .returns(M.Undefined),
     [_I.STATUS_TEXT.GET]: M.Method().args(M.Any).returns(M.String),
-    [_I.STATUS_TEXT.SET]: M.Method().args(M.Any, M.String).returns(M.Undefined),
     [_I.IS_FINISHED]: M.Method().args(M.Any).returns(M.Boolean),
   }),
   Abstract.Static({
-    [_S.HEADER_CTOR]: SubConstructorOf(Header.Abstract),
+    [_S.HEADER_CTOR]: M_Sub(Header.Abstract),
   }),
 );

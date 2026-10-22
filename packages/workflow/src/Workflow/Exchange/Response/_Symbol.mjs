@@ -7,19 +7,15 @@ export const I = deepFreeze({
 });
 
 const _I_STATUS_GET = Symbol('._getStatus()');
-const _I_STATUS_SET = Symbol('._setStatus()');
 const _I_STATUS_TEXT_GET = Symbol('._getStatusText()');
-const _I_STATUS_TEXT_SET = Symbol('._setStatusText()');
 const _I_IS_FINISHED = Symbol('._isFinished()');
 
 export const _I = deepFreeze({
   STATUS: {
     GET: _I_STATUS_GET,
-    SET: _I_STATUS_SET,
   },
   STATUS_TEXT: {
     GET: _I_STATUS_TEXT_GET,
-    SET: _I_STATUS_TEXT_SET,
   },
   IS_FINISHED: _I_IS_FINISHED,
 });

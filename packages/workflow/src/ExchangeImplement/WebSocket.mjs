@@ -30,15 +30,9 @@ export function WebSocket(options) {
       header: { get: getRequestHeader, keys: getRequestHeaderKeys },
     },
     response: {
-      status: { get: getResponseStatus, set: setResponseStatus },
-      statusText: { get: getResponseStatusText, set: setResponseStatusText },
-      finished: { is: isResponseFinished },
-      header: {
-        get: getResponseHeader,
-        keys: getResponseHeaderKeys,
-        set: setResponseHeader,
-        delete: deleteResponseHeader,
-      },
+      status: { get: getResponseStatus },
+      statusText: { get: getResponseStatusText },
+      header: { get: getResponseHeader, keys: getResponseHeaderKeys },
     },
     controller: {
       readyState: { get: getControllerReadyState },
@@ -84,14 +78,6 @@ export function WebSocket(options) {
 
     [RESPONSE_HEADER._I.KEYS](_internal) {
       return getResponseHeaderKeys(this[I_OPTIONS_CONTEXT]);
-    }
-
-    [RESPONSE_HEADER._I.SET](_internal, key, value) {
-      setResponseHeader(this[I_OPTIONS_CONTEXT], key, value);
-    }
-
-    [RESPONSE_HEADER._I.DELETE](_internal, key) {
-      deleteResponseHeader(this[I_OPTIONS_CONTEXT], key);
     }
   }
 
@@ -143,7 +129,7 @@ export function WebSocket(options) {
     }
   }
 
-  class ImplWebSocketResponse extends Exchange.Response.Abstract {
+  class ImplWebSocketResponse extends WebSocketExchange.Response.Abstract {
     [I_OPTIONS_CONTEXT] = Object.freeze({
       self: this,
       internal: this[PART.$I.INTERNAL],
@@ -162,20 +148,8 @@ export function WebSocket(options) {
       return getResponseStatus(this[I_OPTIONS_CONTEXT]);
     }
 
-    [RESPONSE._I.STATUS.SET](_internal, code) {
-      setResponseStatus(this[I_OPTIONS_CONTEXT], code);
-    }
-
     [RESPONSE._I.STATUS_TEXT.GET](_internal) {
       return getResponseStatusText(this[I_OPTIONS_CONTEXT]);
-    }
-
-    [RESPONSE._I.STATUS_TEXT.SET](_internal, text) {
-      setResponseStatusText(this[I_OPTIONS_CONTEXT], text);
-    }
-
-    [RESPONSE._I.IS_FINISHED](_internal) {
-      return isResponseFinished(this[I_OPTIONS_CONTEXT]);
     }
   }
 

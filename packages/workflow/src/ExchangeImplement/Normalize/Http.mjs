@@ -1,7 +1,7 @@
 import { isPlainObject } from 'is-plain-object';
 import { ThrowTypeError } from '@produck/argot';
 
-import normalizeBase from './Base.mjs';
+import normalizeBase, { normalizeMutableResponse } from './Base.mjs';
 
 export default function normalizeHttp(_options) {
   const $base = normalizeBase(_options);
@@ -50,7 +50,7 @@ export default function normalizeHttp(_options) {
     }
 
     {
-      const response = (options.response = $base.response);
+      const response = (options.response = normalizeMutableResponse(_response));
       const { body: _body } = _response;
 
       if (isPlainObject(_body)) {

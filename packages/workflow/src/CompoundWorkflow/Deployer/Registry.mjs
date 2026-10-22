@@ -1,5 +1,5 @@
 import { Ow } from '@produck/argot';
-import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
+import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
 import Deployer from './_Abstract.mjs';
 import { _S } from './_Symbol.mjs';
@@ -7,7 +7,7 @@ import { _S } from './_Symbol.mjs';
 const registry = new Map();
 const instanceMap = new WeakMap();
 
-const assertDeployer = SubConstructorOf(Deployer);
+const assertDeployer = M_Sub(Deployer);
 
 function registerDeployer(DeployerClass) {
   assertDeployer(DeployerClass);

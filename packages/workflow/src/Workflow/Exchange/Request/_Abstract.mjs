@@ -1,6 +1,6 @@
 import { SYMBOL } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
-import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
+import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
 import { ThrowDeployer } from '../Utils.mjs';
 import * as Part from '../Part/index.mjs';
@@ -49,6 +49,6 @@ export default Abstract(
     [_I.URL.GET]: M.Method().args(M.Any).returns(M.String),
   }),
   Abstract.Static({
-    [_S.HEADER_CTOR]: SubConstructorOf(Header.Abstract),
+    [_S.HEADER_CTOR]: M_Sub(Header.Abstract),
   }),
 );

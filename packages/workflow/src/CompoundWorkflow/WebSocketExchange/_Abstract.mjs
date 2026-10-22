@@ -1,6 +1,6 @@
 import { SYMBOL } from '@produck/argot';
 import Abstract, { ShadowThis as $ } from '@produck/es-abstract';
-import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
+import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
 import { K_CONTROLLER } from '../../Capability.mjs';
 import * as Workflow from '../../Workflow/index.mjs';
@@ -33,6 +33,6 @@ class WebSocketExchange extends Workflow.Exchange.Abstract {
 export default Abstract(
   WebSocketExchange,
   Abstract.Static({
-    [_S.CONTROLLER_CTOR]: SubConstructorOf(Controller.Abstract),
+    [_S.CONTROLLER_CTOR]: M_Sub(Controller.Abstract),
   }),
 );

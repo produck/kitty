@@ -1,6 +1,108 @@
 import { isPlainObject } from 'is-plain-object';
 import { ThrowTypeError } from '@produck/argot';
 
+export function normalizeResponse(_response) {
+  if (!isPlainObject(_response)) {
+    ThrowTypeError('args[0].response', 'plain object');
+  }
+
+  const response = {};
+  const {
+    status: _status,
+    statusText: _statusText,
+    finished,
+    header,
+  } = _response;
+
+  if (isPlainObject(_status)) {
+    const { get: _get } = _status;
+
+    if (typeof _get !== 'function') {
+      ThrowTypeError('args[0].response.status.get', 'function');
+    }
+
+    response.status = { get: _get };
+  } else {
+    ThrowTypeError('args[0].response.status', 'plain object');
+  }
+
+  if (isPlainObject(_statusText)) {
+    const { get: _get } = _statusText;
+
+    if (typeof _get !== 'function') {
+      ThrowTypeError('args[0].response.statusText.get', 'function');
+    }
+
+    response.statusText = { get: _get };
+  } else {
+    ThrowTypeError('args[0].response.statusText', 'plain object');
+  }
+
+  if (isPlainObject(finished)) {
+    const { is: _is } = finished;
+
+    if (typeof _is !== 'function') {
+      ThrowTypeError('args[0].response.finished.is', 'function');
+    }
+
+    response.finished = { is: _is };
+  } else {
+    ThrowTypeError('args[0].response.finished', 'plain object');
+  }
+
+  if (isPlainObject(header)) {
+    const { get: _get, keys: _keys } = header;
+
+    if (typeof _get !== 'function') {
+      ThrowTypeError('args[0].response.header.get', 'function');
+    }
+
+    if (typeof _keys !== 'function') {
+      ThrowTypeError('args[0].response.header.keys', 'function');
+    }
+
+    response.header = { get: _get, keys: _keys };
+  } else {
+    ThrowTypeError('args[0].response.header', 'plain object');
+  }
+
+  return response;
+}
+
+export function normalizeMutableResponse(_response) {
+  const response = normalizeResponse(_response);
+  const { status: _status, statusText: _statusText, header } = _response;
+
+  const { set: _setStatus } = _status;
+
+  if (typeof _setStatus !== 'function') {
+    ThrowTypeError('args[0].response.status.set', 'function');
+  }
+
+  const { set: _setStatusText } = _statusText;
+
+  if (typeof _setStatusText !== 'function') {
+    ThrowTypeError('args[0].response.statusText.set', 'function');
+  }
+
+  const { set: _setHeader, delete: _deleteHeader } = header;
+
+  if (typeof _setHeader !== 'function') {
+    ThrowTypeError('args[0].response.header.set', 'function');
+  }
+
+  if (typeof _deleteHeader !== 'function') {
+    ThrowTypeError('args[0].response.header.delete', 'function');
+  }
+
+  response.status.set = _setStatus;
+  response.statusText.set = _setStatusText;
+  response.header.set = _setHeader;
+  response.header.delete = _deleteHeader;
+
+  return response;
+}
+
 export default function normalizeBase(_options) {
   const options = {};
 
@@ -10,7 +112,6 @@ export default function normalizeBase(_options) {
       server: _server,
       httpVersion: _httpVersion,
       request: _request,
-      response: _response,
     } = _options;
 
     if (isPlainObject(_identity)) {
@@ -123,105 +224,6 @@ export default function normalizeBase(_options) {
       }
     } else {
       ThrowTypeError('args[0].request', 'plain object');
-    }
-
-    if (isPlainObject(_response)) {
-      const response = (options.response = {});
-
-      const {
-        status: _status,
-        statusText: _statusText,
-        finished: _finished,
-        header: _header,
-      } = _response;
-
-      if (isPlainObject(_status)) {
-        const status = (response.status = {});
-
-        const { get: _get, set: _set } = _status;
-
-        if (typeof _get === 'function') {
-          status.get = _get;
-        } else {
-          ThrowTypeError('args[0].response.status.get', 'function');
-        }
-
-        if (typeof _set === 'function') {
-          status.set = _set;
-        } else {
-          ThrowTypeError('args[0].response.status.set', 'function');
-        }
-      } else {
-        ThrowTypeError('args[0].response.status', 'plain object');
-      }
-
-      if (isPlainObject(_statusText)) {
-        const statusText = (response.statusText = {});
-
-        const { get: _get, set: _set } = _statusText;
-
-        if (typeof _get === 'function') {
-          statusText.get = _get;
-        } else {
-          ThrowTypeError('args[0].response.statusText.get', 'function');
-        }
-
-        if (typeof _set === 'function') {
-          statusText.set = _set;
-        } else {
-          ThrowTypeError('args[0].response.statusText.set', 'function');
-        }
-      } else {
-        ThrowTypeError('args[0].response.statusText', 'plain object');
-      }
-
-      if (isPlainObject(_finished)) {
-        const finished = (response.finished = {});
-
-        const { is: _is } = _finished;
-
-        if (typeof _is === 'function') {
-          finished.is = _is;
-        } else {
-          ThrowTypeError('args[0].response.finished.is', 'function');
-        }
-      } else {
-        ThrowTypeError('args[0].response.finished', 'plain object');
-      }
-
-      if (isPlainObject(_header)) {
-        const header = (response.header = {});
-
-        const { get: _get, keys: _keys, set: _set, delete: _delete } = _header;
-
-        if (typeof _get === 'function') {
-          header.get = _get;
-        } else {
-          ThrowTypeError('args[0].response.header.get', 'function');
-        }
-
-        if (typeof _keys === 'function') {
-          header.keys = _keys;
-        } else {
-          ThrowTypeError('args[0].response.header.keys', 'function');
-        }
-
-        if (typeof _set === 'function') {
-          header.set = _set;
-        } else {
-          ThrowTypeError('args[0].response.header.set', 'function');
-        }
-
-        if (typeof _delete === 'function') {
-          header.delete = _delete;
-        } else {
-          ThrowTypeError('args[0].response.header.delete', 'function');
-        }
-      } else {
-        ThrowTypeError('args[0].response.header', 'plain object');
-      }
-    } else {
-      ThrowTypeError('args[0].response', 'plain object');
     }
   } else {
     ThrowTypeError('args[0]', 'plain object');

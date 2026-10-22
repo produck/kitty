@@ -1,6 +1,6 @@
 import { Ow, SYMBOL } from '@produck/argot';
 import Abstract from '@produck/es-abstract';
-import { SubConstructorOf } from '@produck/es-abstract-member-constructor';
+import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
 import * as Workflow from '../../../Workflow/index.mjs';
 import * as Configuration from '../../Configuration/index.mjs';
@@ -28,6 +28,6 @@ class HttpRequest extends Workflow.Exchange.Request.Abstract {
 export default Abstract(
   HttpRequest,
   Abstract.Static({
-    [_S.BODY_CTOR]: SubConstructorOf(Body.Abstract),
+    [_S.BODY_CTOR]: M_Sub(Body.Abstract),
   }),
 );
