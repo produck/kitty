@@ -6,7 +6,7 @@ export const I = deepFreeze({
   DATA: I_DATA,
 });
 
-const _I_DATA_SET = Symbol('._setData(value)');
+const _I_DATA_SET = Symbol('._setData()');
 
 export const _I = deepFreeze({
   DATA: {

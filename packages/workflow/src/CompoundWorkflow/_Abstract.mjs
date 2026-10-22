@@ -5,18 +5,18 @@ import * as Fugue from '@produck/fugue';
 
 import * as Deployer from './Deployer/index.mjs';
 import * as Configuration from './Configuration/index.mjs';
-import * as Mixin from './Mixin.mjs';
+import * as Plugin from './Plugin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
 import * as P from './_Parser.mjs';
 import { useWorkflow } from '../Capability.mjs';
-import { I, $I, _I } from './_Symbol.mjs';
-import { DEPLOYER, DEPLOYMENT, WORKFLOW } from './_Borrow.mjs';
+import { $I, _I, I } from './_Symbol.mjs';
+import { DEPLOYER, DEPLOYMENT, PLUGIN, WORKFLOW } from './_Borrow.mjs';
 
 class CompoundWorkflow extends Workflow.Abstract {
-  [I.MIXIN.HANDLER.PREFIX.LIST] = [];
-  [I.MIXIN.DEPLOYMENT.ATTACHER.LIST] = [];
-  [I.MIXIN.EXCHANGE.ATTACHER.LIST] = [];
+  [I.PLUGIN_HANDLER_PREFIX_LIST] = [];
+  [I.PLUGIN_DEPLOYMENT_ATTACHER_LIST] = [];
+  [I.PLUGIN_EXCHANGE_ATTACHER_LIST] = [];
 
   [$I.STATE] = {
     RequestBodyDistributor: null,
@@ -27,30 +27,45 @@ class CompoundWorkflow extends Workflow.Abstract {
     Configuration.install(useWorkflow(this[WORKFLOW.$I.KIT]));
   }
 
+  [$I.APPEND.PREFIX_HANDLER](...handlerList) {
+    this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
+    this[I.PLUGIN_HANDLER_PREFIX_LIST].push(...handlerList);
+  }
+
+  [$I.APPEND.DEPLOYMENT_ATTACHER](attacher) {
+    this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
+    this[I.PLUGIN_DEPLOYMENT_ATTACHER_LIST].push(attacher);
+  }
+
+  [$I.APPEND.EXCHANGE_ATTACHER](attacher) {
+    this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
+    this[I.PLUGIN_EXCHANGE_ATTACHER_LIST].push(attacher);
+  }
+
   [$I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value) {
     return this[_I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value);
   }
 
   [WORKFLOW._I.COMPOSE.EXTEND]() {
-    Object.freeze(this[I.MIXIN.HANDLER.PREFIX.LIST]);
-    this[WORKFLOW.$I.COMPOSE.PREPEND](...this[I.MIXIN.HANDLER.PREFIX.LIST]);
+    Object.freeze(this[I.PLUGIN_HANDLER_PREFIX_LIST]);
+    this[WORKFLOW.$I.COMPOSE.PREPEND](...this[I.PLUGIN_HANDLER_PREFIX_LIST]);
   }
 
   [WORKFLOW._I.COMPILE_DEPLOYMENT](deployment) {
     const DeploymentKit = deployment[DEPLOYMENT.$I.KIT];
 
-    for (const attacher of this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST]) {
+    for (const attacher of this[I.PLUGIN_DEPLOYMENT_ATTACHER_LIST]) {
       attacher(DeploymentKit);
     }
 
     const server = deployment[DEPLOYMENT.$I.SERVER];
-    const DeployerClass = Deployer.Registry.getByServer(server);
+    const TargetDeployer = Deployer.Registry.getByServer(server);
     const DeployerKit = DeploymentKit('Kitty<Deployer>');
-    const deployer = new DeployerClass(DeployerKit, deployment);
+    const deployer = new TargetDeployer(DeployerKit, deployment);
 
     deployer[DEPLOYER.$I.INSTALL]();
 
-    for (const attacher of this[I.MIXIN.EXCHANGE.ATTACHER.LIST]) {
+    for (const attacher of this[I.PLUGIN_EXCHANGE_ATTACHER_LIST]) {
       deployment[DEPLOYMENT.$I.ADD_EXCHANGE_ATTACHER](attacher);
     }
 
@@ -65,14 +80,14 @@ class CompoundWorkflow extends Workflow.Abstract {
     return super[WORKFLOW.$I.DEPLOY](server, DeploymentKit);
   }
 
-  adapt(DeployerClass) {
+  adapt(TargetDeployer) {
     this[WORKFLOW.$I.ASSERT.FINALIZED]();
 
     const DeploymentKit = this[WORKFLOW.$I.KIT]('Kitty<Deployment:OneTime>');
 
-    Deployer.Registry.assertDeployer(DeployerClass);
+    Deployer.Registry.assertDeployer(TargetDeployer);
 
-    const Server = DeployerClass[DEPLOYER._S.SERVER_CTOR];
+    const Server = TargetDeployer[DEPLOYER._S.SERVER_CTOR];
     let expired = false;
     let consumed = false;
 
@@ -96,7 +111,7 @@ class CompoundWorkflow extends Workflow.Abstract {
       }
 
       consumed = true;
-      Deployer.Registry.associate(server, DeployerClass);
+      Deployer.Registry.associate(server, TargetDeployer);
     }
 
     const deployer = Object.freeze({
@@ -119,43 +134,17 @@ class CompoundWorkflow extends Workflow.Abstract {
     return deployer;
   }
 
-  mixin(installer) {
-    const WorkflowKit = this[WORKFLOW.$I.KIT];
-    const MixinKit = WorkflowKit('Kitty<Mixin>');
+  mixin(TargetPlugin) {
+    if (!isSubConstructor(TargetPlugin, Plugin.Abstract)) {
+      ThrowTypeError('args[0]', 'sub class of Plugin');
+    }
 
-    Mixin.assertInstaller(installer);
+    const PluginKit = this[WORKFLOW.$I.KIT]('Kitty<Plugin>');
+    const plugin = new TargetPlugin(PluginKit, this);
 
-    MixinKit.attachWorkflow = (name, value) => {
-      this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      P.DependenceName(name);
-      WorkflowKit[name] = value;
-    };
+    plugin[PLUGIN.$I.INSTALL]();
 
-    MixinKit.appendDeploymentAttacher = (attacher) => {
-      this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      P.Attacher(attacher);
-      this[I.MIXIN.DEPLOYMENT.ATTACHER.LIST].push(attacher);
-    };
-
-    MixinKit.appendExchangeAttacher = (attacher) => {
-      this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-      P.Attacher(attacher);
-      this[I.MIXIN.EXCHANGE.ATTACHER.LIST].push(attacher);
-    };
-
-    MixinKit.appendPrefixHandler = (...handlerList) => {
-      this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-
-      for (const index in handlerList) {
-        const handler = handlerList[index];
-
-        P.Handler(handler, index);
-      }
-
-      this[I.MIXIN.HANDLER.PREFIX.LIST].push(...handlerList);
-    };
-
-    installer(MixinKit);
+    return this;
   }
 
   setRequestBodyDistributorConstructor(Constructor) {
