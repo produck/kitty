@@ -6,16 +6,24 @@ import * as Fugue from '@produck/fugue';
 
 import * as Configuration from '../../../Configuration/index.mjs';
 import * as Workflow from '../../../../Workflow/index.mjs';
-import { PART, COMPOUND_WORKFLOW } from './_Borrow.mjs';
+import * as Event from './Event.mjs';
+import { _A, PART } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
 
 class HttpRequestBody extends Workflow.Exchange.Part.Concrete {
   constructor(exchange) {
     super(exchange);
 
-    const source = Readable.toWeb(this[_I.SOURCE.GET](this[PART.$I.INTERNAL]));
+    this[I.READABLE] = this[_I.SOURCE.GET](this[PART.$I.INTERNAL]);
+    this[I.INIT.DISTRIBUTOR]();
+    this[I.INIT.READABLE_EVENT]();
+    this[I.INIT.MAX_BODY_SIZE]();
+  }
+
+  [I.INIT.DISTRIBUTOR]() {
+    const source = Readable.toWeb(this[I.READABLE]);
     const { workflow } = this;
-    const { RequestBodyDistributor } = workflow[COMPOUND_WORKFLOW.$I.STATE];
+    const { RequestBodyDistributor } = workflow[_A.COMPOUND.$I.STATE];
     const distributor = new RequestBodyDistributor(source);
 
     for (const { key } of Configuration.Item.Distributor) {
@@ -25,10 +33,17 @@ class HttpRequestBody extends Workflow.Exchange.Part.Concrete {
     }
 
     this[I.DISTRIBUTOR] = distributor;
-    this[I.MAX_BODY_SIZE]();
   }
 
-  [I.MAX_BODY_SIZE]() {
+  [I.INIT.READABLE_EVENT]() {
+    const readable = this[I.READABLE];
+
+    readable.on('close', () => this.dispatchEvent(new Event.Close()));
+    readable.on('end', () => this.dispatchEvent(new Event.End()));
+    readable.on('error', (error) => this.dispatchEvent(new Event.Error(error)));
+  }
+
+  [I.INIT.MAX_BODY_SIZE]() {
     const distributor = this[I.DISTRIBUTOR];
     let consumed = 0;
 
@@ -46,7 +61,9 @@ class HttpRequestBody extends Workflow.Exchange.Part.Concrete {
       }
 
       const { response } = this.exchange;
+      const limit = Configuration.Get.MaxBodySize(this.workflow);
 
+      this.dispatchEvent(new Event.Limit(limit, consumed));
       Common.ignoreRejection(distributor.destroy());
 
       if (!response.isFinished) {

@@ -130,6 +130,29 @@
 - 流收尾优先 `terminate()`（同步、只关门禁），不用 `destroy()`（会 error 掉已发出
   的副本并取消源）。
 
+### 事件
+
+- 事件只承载**决策与生命周期**，不承载数据本身。数据走流；用事件再发一遍等于在流
+  之外开第二条 IO 通道，下游会有两套读法与两套背压语义。
+- 事件类型的数量不是成本，**契约**才是：类型是字符串匹配，改名或改判据后下游只是
+  静默收不到，没有编译器兜底。新增前先问“能否由已有事件推导”。
+- 每个事件必须能回答：谁发、何时发、载荷、顺序、次数。
+- `Exchange` 三件套：`exchange-pipeline-done`（管线正常返回）、
+  `exchange-pipeline-error`（管线抛出，`detail.error`，随后原样 rethrow）、
+  `exchange-pipeline-finish`（**不分成败**，只表示没有后续可做）。`done` / `error`
+  二选一先发，`finish` 永远最后且必定发生，三者恰好各一次。
+- `finish` 发在 `finally` 里，它负责“恰好一次”这个保证。删掉它，收尾责任就落到每个
+  deployer 身上，且 `HttpExchange` 的超时定时器会漏（每个未收尾的 exchange 泄漏一个
+  timer）。
+- 只在下游拿不到原对象时才转发事件：`request.body.distributor` 已原样暴露，故不转发
+  fugue 的五个事件；node `readable` 被 `toWeb()` 封装后下游拿不到，所以 body 自己
+  转发 `http-request-body-data-{end,close,error}`。
+- **不包庇监听器异常**：node 把监听器抛错放到 `nextTick` 重抛，成为
+  `uncaughtException`，此刻进程状态未定义，继续跑会把业务资产写坏。所以库不装全局
+  `uncaughtException` 处理器，也不在 `dispatchEvent` 外包 `try/catch`——让它炸，交给
+  进程管理器重启。正面副作用：异常在 `nextTick` 才抛，不打断我们正在执行的收尾，也
+  不会覆盖管线原始异常（实测）。
+
 ### Workflow / CompoundWorkflow
 
 - `Workflow` 只管管线：`use()` / `finalize()` / `PIPELINE`，加 `compile` / `deploy`

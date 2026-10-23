@@ -3,6 +3,7 @@ import * as Kit from '@produck/kit';
 import { compose } from '@produck/compose';
 
 import { K_DEPLOYMENT_SERVER } from '../../Capability.mjs';
+import * as Exchange from '../Exchange/index.mjs';
 import { EXCHANGE, WORKFLOW } from './_Borrow.mjs';
 import { I, $I } from './_Symbol.mjs';
 
@@ -66,8 +67,8 @@ export default class Deployment {
     this[I.LINK_LIST].unshift(linker);
   }
 
-  async [$I.HANDLE_EXCHANGE](Exchange, internal) {
-    const exchange = new Exchange(this[I.KIT], this, { internal });
+  async [$I.HANDLE_EXCHANGE](TargetExchange, internal) {
+    const exchange = new TargetExchange(this[I.KIT], this, { internal });
     const ExchangeKit = exchange[EXCHANGE.$I.KIT];
     const identity = exchange[EXCHANGE.$I.IDENTITY];
 
@@ -80,8 +81,13 @@ export default class Deployment {
 
     try {
       await this[I.WORKFLOW][WORKFLOW.$I.PIPELINE](ExchangeKit);
+      exchange.dispatchEvent(new Exchange.Event.Done());
+    } catch (error) {
+      exchange.dispatchEvent(new Exchange.Event.Error(error));
+
+      throw error;
     } finally {
-      exchange.dispatchEvent(new Event('close'));
+      exchange.dispatchEvent(new Exchange.Event.Finish());
     }
   }
 
