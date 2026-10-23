@@ -4,9 +4,13 @@ import * as Kit from '@produck/kit';
 
 import * as P from '../_Parser.mjs';
 import { _A, WORKFLOW } from './_Borrow.mjs';
-import { I, $I, _I } from './_Symbol.mjs';
+import { I, $I, _I, _S } from './_Symbol.mjs';
 
 class Plugin {
+  static get name() {
+    return this[_S.NAME];
+  }
+
   constructor(WorkflowKit, workflow) {
     if (!Kit.isKit(WorkflowKit)) {
       ThrowTypeError('args[0] as WorkflowKit', 'Kit');
@@ -71,5 +75,8 @@ export default Abstract(
   Plugin,
   Abstract({
     [_I.INSTALL]: M.Method().args(P.Kit),
+  }),
+  Abstract.Static({
+    [_S.NAME]: M.String,
   }),
 );

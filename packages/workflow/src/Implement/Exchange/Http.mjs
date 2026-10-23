@@ -1,20 +1,20 @@
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
-import * as Exchange from '../Workflow/Exchange/index.mjs';
-import * as HttpExchange from '../CompoundWorkflow/HttpExchange/index.mjs';
+import * as Exchange from '../../Workflow/Exchange/index.mjs';
+import * as HttpExchange from '../../CompoundWorkflow/HttpExchange/index.mjs';
 
-import * as EXCHANGE from '../Workflow/Exchange/_Symbol.mjs';
-import * as MUTABLE_RESPONSE from '../Workflow/Exchange/MutableResponse/_Symbol.mjs';
-import * as MUTABLE_RESPONSE_HEADER from '../Workflow/Exchange/Response/MutableHeader/_Symbol.mjs';
-import * as PART from '../Workflow/Exchange/Part/_Symbol.mjs';
-import * as REQUEST from '../Workflow/Exchange/Request/_Symbol.mjs';
-import * as REQUEST_HEADER from '../Workflow/Exchange/Request/Header/_Symbol.mjs';
-import * as RESPONSE from '../Workflow/Exchange/Response/_Symbol.mjs';
-import * as RESPONSE_HEADER from '../Workflow/Exchange/Response/Header/_Symbol.mjs';
-import * as HTTP_REQUEST from '../CompoundWorkflow/HttpExchange/Request/_Symbol.mjs';
-import * as HTTP_REQUEST_BODY from '../CompoundWorkflow/HttpExchange/Request/Body/_Symbol.mjs';
-import * as HTTP_RESPONSE from '../CompoundWorkflow/HttpExchange/Response/_Symbol.mjs';
-import * as HTTP_RESPONSE_BODY from '../CompoundWorkflow/HttpExchange/Response/Body/_Symbol.mjs';
+import * as EXCHANGE from '../../Workflow/Exchange/_Symbol.mjs';
+import * as MUTABLE_RESPONSE from '../../Workflow/Exchange/MutableResponse/_Symbol.mjs';
+import * as MUTABLE_RESPONSE_HEADER from '../../Workflow/Exchange/Response/MutableHeader/_Symbol.mjs';
+import * as PART from '../../Workflow/Exchange/Part/_Symbol.mjs';
+import * as REQUEST from '../../Workflow/Exchange/Request/_Symbol.mjs';
+import * as REQUEST_HEADER from '../../Workflow/Exchange/Request/Header/_Symbol.mjs';
+import * as RESPONSE from '../../Workflow/Exchange/Response/_Symbol.mjs';
+import * as RESPONSE_HEADER from '../../Workflow/Exchange/Response/Header/_Symbol.mjs';
+import * as HTTP_REQUEST from '../../CompoundWorkflow/HttpExchange/Request/_Symbol.mjs';
+import * as HTTP_REQUEST_BODY from '../../CompoundWorkflow/HttpExchange/Request/Body/_Symbol.mjs';
+import * as HTTP_RESPONSE from '../../CompoundWorkflow/HttpExchange/Response/_Symbol.mjs';
+import * as HTTP_RESPONSE_BODY from '../../CompoundWorkflow/HttpExchange/Response/Body/_Symbol.mjs';
 
 import * as Normalize from './Normalize/index.mjs';
 

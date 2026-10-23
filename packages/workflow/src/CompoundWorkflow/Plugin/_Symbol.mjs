@@ -33,3 +33,9 @@ const _I_INSTALL = Symbol('._install()');
 export const _I = deepFreeze({
   INSTALL: _I_INSTALL,
 });
+
+const _S_NAME = Symbol('._name');
+
+export const _S = deepFreeze({
+  NAME: _S_NAME,
+});

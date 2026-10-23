@@ -79,7 +79,7 @@
   capability 查找。往哪边分只是因为谁 dispatch 谁——壳归 `Workflow`（它的
   `Deployment` 要读 identity），协议族归 `CompoundWorkflow`（`Deployer` 按协议
   选构造器，且协议族要读复合工作流的 `STATE`）。
-- `ExchangeImplement/` 仍在包根，是集成层用的打包入口，不是 subject。
+- `Implement/Exchange/` 是集成层用的打包入口，不是 subject。
 
 - `Exchange`：协议共用壳——`identity` / `server` / `protocol` / `mode` /
   `httpVersion` / `workflow` / `toJSON`，加 `request`（header / method / url）与
@@ -184,7 +184,7 @@
 例可言——这是整次重构最根本的变动。
 
 - `Deployer/Registry.mjs` / `Deployer/_Parser.mjs` 与部署器目录同级，都是非 subject 元素。
-  `ExchangeImplement` 已提到包根（与 `Workflow` 平级），因为它不依赖 Deployer、只依赖
+  `Implement/Exchange/` 与 `Workflow`、`CompoundWorkflow` 平级，因为它不依赖 Deployer、 只依赖
   协议族。
 - 静态抽象（派生用 `static get`）：
   - `_S.NAME`（`M.String`）：部署器名字。
@@ -244,7 +244,7 @@
 配连接或消息。更名覆盖目录、`DeployerKit`、`registerDeployer`、`ThrowDeployer` /
 `DeployerGuard`、包出口。
 
-### ExchangeImplement
+### Implement/Exchange
 
 它是**打包的实现定义器**：一个入口交出一整套（Exchange + 各个 part）构造器，本身没有
 “一个类一个 subject”的内涵。因此它按 LAY-5 **永远是非 subject 元素**，不是待办；把

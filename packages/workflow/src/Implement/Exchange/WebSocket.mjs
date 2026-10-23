@@ -1,16 +1,16 @@
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
-import * as Exchange from '../Workflow/Exchange/index.mjs';
-import * as WebSocketExchange from '../CompoundWorkflow/WebSocketExchange/index.mjs';
+import * as Exchange from '../../Workflow/Exchange/index.mjs';
+import * as WebSocketExchange from '../../CompoundWorkflow/WebSocketExchange/index.mjs';
 
-import * as CONTROLLER from '../CompoundWorkflow/WebSocketExchange/Controller/_Symbol.mjs';
-import * as EXCHANGE from '../Workflow/Exchange/_Symbol.mjs';
-import * as WEB_SOCKET_EXCHANGE from '../CompoundWorkflow/WebSocketExchange/_Symbol.mjs';
-import * as PART from '../Workflow/Exchange/Part/_Symbol.mjs';
-import * as REQUEST from '../Workflow/Exchange/Request/_Symbol.mjs';
-import * as REQUEST_HEADER from '../Workflow/Exchange/Request/Header/_Symbol.mjs';
-import * as RESPONSE from '../Workflow/Exchange/Response/_Symbol.mjs';
-import * as RESPONSE_HEADER from '../Workflow/Exchange/Response/Header/_Symbol.mjs';
+import * as CONTROLLER from '../../CompoundWorkflow/WebSocketExchange/Controller/_Symbol.mjs';
+import * as EXCHANGE from '../../Workflow/Exchange/_Symbol.mjs';
+import * as WEB_SOCKET_EXCHANGE from '../../CompoundWorkflow/WebSocketExchange/_Symbol.mjs';
+import * as PART from '../../Workflow/Exchange/Part/_Symbol.mjs';
+import * as REQUEST from '../../Workflow/Exchange/Request/_Symbol.mjs';
+import * as REQUEST_HEADER from '../../Workflow/Exchange/Request/Header/_Symbol.mjs';
+import * as RESPONSE from '../../Workflow/Exchange/Response/_Symbol.mjs';
+import * as RESPONSE_HEADER from '../../Workflow/Exchange/Response/Header/_Symbol.mjs';
 
 import * as Normalize from './Normalize/index.mjs';
 
