@@ -5,6 +5,7 @@ import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 import { Abstract, DeployerRegistry, SYMBOL } from '@produck/kitty-workflow';
 
 import HttpExchange from './HttpExchange.mjs';
+import WebSocketExchange from './WebSocketExchange.mjs';
 
 export function createDeployer(options = {}) {
   const {
@@ -12,6 +13,7 @@ export function createDeployer(options = {}) {
     declare = null,
     linkers = [],
     install = null,
+    webSocket = false,
   } = options;
 
   class Server extends net.Server {}
@@ -35,6 +37,10 @@ export function createDeployer(options = {}) {
 
       static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.HTTP]() {
         return HttpExchange;
+      }
+
+      static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
+        return webSocket ? WebSocketExchange : undefined;
       }
 
       [SYMBOL.DEPLOYER._I.INSTALL](kit) {
