@@ -447,11 +447,20 @@ Response concepts    → KittyExchangeResponse
 
 ### Exchange identity
 
-The dispatch reads `Exchange[$I.IDENTITY]` once, right after
-construction, and records it in the workflow's own handled-identity set.
-One identity object may therefore back at most one dispatch; a second
-Exchange answering the same identity is rejected before any workflow
-handler runs.
+Identity is resolved **before** the exchange is constructed. The
+dispatch asks the class through the protected static entry
+`TargetExchange[$S.IDENTITY](internal)`, which forwards to the abstract
+static slot `[_S.IDENTITY]` every concrete Exchange must implement. The
+result is recorded in the deployment's handled-identity set.
+
+Two consequences:
+
+- one identity object backs at most one dispatch, and a repeat is
+  rejected before any object graph is built — no half-constructed
+  exchange, no stray timer;
+- the deployment never reads the exchange instance for identity, so the
+  instance keeps only the protected `[$I.INTERNAL]` record getter that
+  its parts read.
 
 ### Exchange Implement
 

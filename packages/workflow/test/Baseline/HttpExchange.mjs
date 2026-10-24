@@ -20,7 +20,7 @@ export default SCP(
       return exchangeFacts.httpVersion(internal);
     }
 
-    [SYMBOL.EXCHANGE._I.IDENTITY.GET](internal) {
+    static [SYMBOL.EXCHANGE._S.IDENTITY](internal) {
       return exchangeFacts.identity(internal);
     }
 

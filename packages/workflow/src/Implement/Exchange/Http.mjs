@@ -221,8 +221,8 @@ export function Http(options) {
       return Impl.Response;
     }
 
-    [EXCHANGE._I.IDENTITY.GET](_internal) {
-      return getIdentity(this[I_OPTIONS_CONTEXT]);
+    static [EXCHANGE._S.IDENTITY](internal) {
+      return getIdentity(internal);
     }
 
     [EXCHANGE._I.SERVER.GET](_internal) {

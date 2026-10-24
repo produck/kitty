@@ -69,15 +69,17 @@ export default class Deployment {
   }
 
   async [$I.HANDLE_EXCHANGE](TargetExchange, internal) {
-    const exchange = new TargetExchange(this[I.KIT], this, { internal });
-    const ExchangeKit = exchange[EXCHANGE.$I.KIT];
-    const identity = exchange[EXCHANGE.$I.IDENTITY];
+    const identity = TargetExchange[EXCHANGE.$S.IDENTITY](internal);
 
     if (this[$I.HAS_EXCHANGE](identity)) {
       Ow.Error.Common('The Exchange has already been dispatched.');
     }
 
     this[$I.REGISTER_EXCHANGE](identity);
+
+    const exchange = new TargetExchange(this[I.KIT], this, { internal });
+    const ExchangeKit = exchange[EXCHANGE.$I.KIT];
+
     this[$I.ATTACH_EXCHANGE](ExchangeKit);
 
     try {

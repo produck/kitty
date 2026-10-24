@@ -176,8 +176,8 @@ export function WebSocket(options) {
       return Impl.Controller;
     }
 
-    [EXCHANGE._I.IDENTITY.GET](_internal) {
-      return getIdentity(this[I_OPTIONS_CONTEXT]);
+    static [EXCHANGE._S.IDENTITY](internal) {
+      return getIdentity(internal);
     }
 
     [EXCHANGE._I.SERVER.GET](_internal) {

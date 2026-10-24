@@ -9,7 +9,7 @@ import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
 import * as P from './_Parser.mjs';
 import { DEPLOYMENT } from './_Borrow.mjs';
-import { I, $I, _I, _S } from './_Symbol.mjs';
+import { I, $I, $S, _I, _S } from './_Symbol.mjs';
 
 export const K_EXCHANGE = Symbol('ExchangeKit.exchange');
 export const K_REQUEST = Symbol('ExchangeKit.request');
@@ -48,10 +48,6 @@ class Exchange extends EventTarget {
 
   get [$I.DEPLOYMENT]() {
     return this[I.DEPLOYMENT];
-  }
-
-  get [$I.IDENTITY]() {
-    return this[_I.IDENTITY.GET](this[I.INTERNAL]);
   }
 
   get [$I.INTERNAL]() {
@@ -109,18 +105,22 @@ class Exchange extends EventTarget {
   get httpVersion() {
     return this[_I.HTTP_VERSION](this[I.INTERNAL]);
   }
+
+  static [$S.IDENTITY](internal) {
+    return this[_S.IDENTITY](internal);
+  }
 }
 
 export default Abstract(
   Exchange,
   Abstract({
     [_I.HTTP_VERSION]: M.Method().args(M.Any).returns(P.HttpVersion),
-    [_I.IDENTITY.GET]: M.Method().args().rest(M.Any).returns(M.Object),
     [_I.MODE]: M.Method().args(M.Any).returns(P.ExchangeMode),
     [_I.SERVER.GET]: M.Method().args(M.Any).returns(M.Instance(net.Server)),
     [_I.SERVER.PROTOCOL.GET]: M.Method().args(M.Any).returns(P.ServerProtocol),
   }),
   Abstract.Static({
+    [_S.IDENTITY]: M.Method().args(M.Any).returns(M.Object),
     [_S.REQUEST_CTOR]: M_Sub(Request.Abstract),
     [_S.RESPONSE_CTOR]: M_Sub(Response.Abstract),
   }),
