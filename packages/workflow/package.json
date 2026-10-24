@@ -13,13 +13,16 @@
   },
   "description": "Web application using kit.",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": {
+      "import": "./src/index.mjs",
+      "types": "./src/index.d.mts"
+    }
   },
   "license": "MIT",
   "name": "@produck/kitty-workflow",
   "scripts": {
     "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
-    "test": "node --test test/index.mjs"
+    "test": "node test/index.mjs"
   },
   "type": "module",
   "version": "0.0.0"

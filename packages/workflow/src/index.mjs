@@ -104,3 +104,4 @@ export const SYMBOL = deepFreeze({
 export const DeployerRegistry = _Deployer.Registry;
 export * from './Capability.mjs';
 export * as Implement from './Implement/index.mjs';
+export const { Tune, Get } = _CompoundWorkflow.Configuration;
