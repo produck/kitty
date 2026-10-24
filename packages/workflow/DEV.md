@@ -169,7 +169,7 @@
 - 它的私有 `STATE` 只记一个可变资源（`RequestBodyDistributor`），`finalize()` 之后
   仍可用 `setRequestBodyDistributorConstructor()` 更换。
 - “必须有请求体分发器”的卡点在 `CompoundWorkflow` 的 `$I.DEPLOY` 覆写上，所以
-  `compile()` 不受影响，`deploy()` 与 `adapt().deploy()` 两路都会过它。
+  `compile()` 不受影响，`deploy()` 与 `withDeployer().deploy()` 两路都会过它。
 - `[COMPILE_DEPLOYMENT]` 只做四件事：跑 mixin 的部署 attacher → 取部署器类 → 注册
   workflow 侧的 handler → `new` 部署器、`$I.INSTALL()`、`$I.COMPILE()` 封口。它不写
   任何 kit 端口，也不碰产物形状。

@@ -78,7 +78,7 @@ class CompoundWorkflow extends Workflow.Abstract {
     return super[WORKFLOW.$I.DEPLOY](server, kitName);
   }
 
-  adapt(TargetDeployer) {
+  withDeployer(TargetDeployer) {
     this[WORKFLOW.$I.ASSERT.FINALIZED]();
 
     const DeploymentKitName = 'Kitty<Deployment:OneTime>';

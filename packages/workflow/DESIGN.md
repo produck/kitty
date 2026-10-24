@@ -909,7 +909,7 @@ member-level API requirements:
   attaches artifact listeners to a server instance.
 - **deploy**: Auto-discovery deployment — looks up a deployer from
   global Deployer registry by prototype chain.
-- **adapt**: Ephemeral custom deployment — no global registration,
+- **withDeployer**: Ephemeral custom deployment — no global registration,
   one-off use with immediate invocation guard.
 - **tune**: Adjust a supplier-owned runtime parameter on a workflow.
   Complements `attach` (install capability) with parameter-level

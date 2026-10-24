@@ -180,7 +180,7 @@ describe('Workflow', () => {
     });
   });
 
-  describe('.adapt()', () => {
+  describe('.withDeployer()', () => {
     it('should compile through a one-time deployer', async () => {
       const fixture = Baseline.createDeployer({
         declare: (kit) => kit.declare('request', () => {}),
@@ -189,8 +189,8 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      const adaptee = workflow.adapt(fixture.Deployer);
-      const manifest = await adaptee.compile(new fixture.Server());
+      const handle = workflow.withDeployer(fixture.Deployer);
+      const manifest = await handle.compile(new fixture.Server());
 
       assert.deepEqual(Object.keys(manifest), ['request']);
     });
@@ -201,11 +201,11 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      const adaptee = workflow.adapt(fixture.Deployer);
+      const handle = workflow.withDeployer(fixture.Deployer);
 
-      await adaptee.compile(new fixture.Server());
+      await handle.compile(new fixture.Server());
 
-      await assert.rejects(() => adaptee.deploy(new fixture.Server()));
+      await assert.rejects(() => handle.deploy(new fixture.Server()));
     });
   });
 

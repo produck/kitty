@@ -1,7 +1,7 @@
 # Deployment Paths
 
 This document describes the deployment-facing features of
-`KittyWorkflow`: `deploy()`, `compile()`, and the ephemeral `adapt()`
+`KittyWorkflow`: `deploy()`, `compile()`, and the ephemeral `withDeployer()`
 path.
 
 `KittyWorkflow` is similar to Koa in that both organize request
@@ -22,7 +22,7 @@ protocol.
 - `workflow.compile(server)` removes the standard plug and exposes the
   manifest wires. It returns the manifest record so callers can attach
   the declared materials manually.
-- `workflow.adapt(options)` gives the workflow a temporary deployment
+- `workflow.withDeployer(Deployer)` gives the workflow a temporary deployment
   deployer. Downstream code can provide one custom deployment kit for a
   single compile or deploy opportunity, without registering anything
   globally.
@@ -110,13 +110,13 @@ how to connect them.
 Examples include custom event attachment, partial attachment, tests, or
 embedding Kitty materials into a larger server lifecycle.
 
-## Ephemeral Adapt
+## Ephemeral With Deployer
 
-`adapt(options)` is the path for temporary deployer replacement. It is
+`withDeployer(Deployer)` is the path for temporary deployer replacement. It is
 a stable Composition-layer decision, not part of the Abstract
 workflow lifecycle skeleton. The Abstract layer provides the normal
 `compile()` / `deploy()` lifecycle and deployment-kit initialization;
-`CompoundKittyWorkflow` owns `adapt()` because it is the layer that
+`CompoundKittyWorkflow` owns `withDeployer()` because it is the layer that
 combines Workflow, Mixin, and Deployer domains.
 
 The temporary deployer should not register anything globally and should
@@ -147,14 +147,14 @@ Useful cases include:
 ## One-Shot Constraint
 
 The ephemeral deployer path is one-shot and same-tick. A single
-`adapt()` call creates one temporary deployment opportunity. Exactly
+`withDeployer()` call creates one temporary deployment opportunity. Exactly
 one of the returned `compile()` or `deploy()` operations must be
 called synchronously at the call site, before the queued microtask
 expires the scope. After the operation is called, its promise may settle
 asynchronously.
 
 If a caller needs both a manual compile and a deploy, it should call
-`adapt()` twice.
+`withDeployer()` twice.
 
 This keeps the deployment state simple: each temporary deployer scope has
 one outcome, and the workflow avoids retaining ambiguous partially used

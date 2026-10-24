@@ -28,7 +28,7 @@ here.
 - **Composition layer** (`Compound.mjs`): Extends the abstract layer
   and implements two orthogonal domains — **Mixin** and **Deployer** —
   each responsible for a distinct kind of capability injection. Owns
-  `adapt(options)` for ephemeral deployment. `MixinKit` and
+  `withDeployer(Deployer)` for ephemeral deployment. `MixinKit` and
   `DeployerKit` act as attachment ports: scoped, kit-backed facades
   over the workflow assembly surface.
 
@@ -69,7 +69,7 @@ The full lifecycle in `CompoundKittyWorkflow`:
 
 ```text
 constructor(kit) → mixin(installer)* → use(handler)* → finalize()
-  → deploy(server) / compile(server) / adapt(options)
+  → deploy(server) / compile(server) / withDeployer(Deployer)
   → Deployer.Registry / temporary deployer → DeploymentKit prepared
   → deployer[$I.INSTALL]() → compile phase → link compiled
   → link() → server wired via linker chain
@@ -323,7 +323,7 @@ INSTALL}`.
 Deployer resolution follows a two-level lookup:
 
 1. **Instance-level** (via `associate`): Check if the server instance
-   has an explicitly associated deployer class. Set by the `adapt()`
+   has an explicitly associated deployer class. Set by the `withDeployer()`
    path for one-off deployments.
 2. **Constructor-level** (via `registerDeployer`): Fall back to the
    class registered for the server constructor.
@@ -336,7 +336,7 @@ registry. This covers two usage patterns:
   code uses `deploy(server)` and gets the right deployer
   automatically.
 - **Per-instance override**: Advanced users with custom server
-  subclasses or temporary setups use `adapt()` to bind a deployer
+  subclasses or temporary setups use `withDeployer()` to bind a deployer
   directly to a specific instance, bypassing global registration.
 
 The registry stores the **class** itself, keyed by
@@ -574,7 +574,7 @@ layer (application logic, server-agnostic).
 ### Deployment flow
 
 ```text
-deploy(server) / adapt(options).deploy(server)
+deploy(server) / withDeployer(Deployer).deploy(server)
   │
   ├─ 1. Create the Deployment (DeploymentKit + server)
   ├─ 2. Run mixin deployment attachers on DeploymentKit
@@ -596,23 +596,23 @@ continues through step 9.
 
 Three deployment paths serve different scenarios:
 
-| Property        | `deploy(server)`                        | `compile(server)`                       | `adapt(options)`                                       |
+| Property        | `deploy(server)`                        | `compile(server)`                       | `withDeployer(Deployer)`                               |
 | --------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
 | Deployer source | Global registry (by server constructor) | Global registry (by server constructor) | Inline `options` (per-instance override)               |
 | Links server    | Yes (`link` called)                     | No (returns raw manifest)               | `compile` or `deploy`                                  |
 | Reusability     | Unlimited calls                         | Unlimited calls                         | Single-use; exactly one of `compile`/`deploy` per call |
 | Timing          | No constraint                           | No constraint                           | Must be consumed synchronously (microtask-guarded)     |
 
-### `adapt()` single-use contract
+### `withDeployer()` single-use contract
 
-The scope returned by `adapt()` enforces:
+The scope returned by `withDeployer()` enforces:
 
 - `queueMicrotask` expires the availability window — the returned
   operation must be called synchronously at the call site.
 - A `consumed` flag prevents double-call of either `compile` or
   `deploy`.
 - `compile` and `deploy` share a single execution lock — only one
-  may be called per `adapt()` invocation.
+  may be called per `withDeployer()` invocation.
 
 ## Deployment
 
@@ -737,16 +737,16 @@ Handlers with `length > 2` are rejected by `assertHandlerByIndex`.
 
 ### State guards
 
-- `finalize()`, `compile()`, `deploy()`, `adapt()`, `use()`, and
+- `finalize()`, `compile()`, `deploy()`, `withDeployer()`, `use()`, and
   `mixin()` all check whether the workflow has already been finalized.
   Repeated finalization throws.
-- `adapt()` uses `queueMicrotask` to guard the synchronous consumption
+- `withDeployer()` uses `queueMicrotask` to guard the synchronous consumption
   window. Deferring the returned `compile()` or `deploy()` call beyond
   the current microtask causes it to be rejected.
 
 ## Server Lifecycle Ownership
 
-The server passed to `deploy()` / `adapt().deploy()` remains under the
+The server passed to `deploy()` / `withDeployer().deploy()` remains under the
 caller's control at all times. Workflow does not:
 
 - Start or stop the server.
