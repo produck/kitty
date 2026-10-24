@@ -2,11 +2,12 @@ import { SYMBOL } from '@produck/argot';
 import Abstract, { ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
-import { K_CONTROLLER } from '../../Capability.mjs';
 import * as Workflow from '../../Workflow/index.mjs';
 import * as Controller from './Controller/index.mjs';
 import { EXCHANGE } from './_Borrow.mjs';
 import { I, _S } from './_Symbol.mjs';
+
+export const K_CONTROLLER = Symbol('ExchangeKit.controller');
 
 class WebSocketExchange extends Workflow.Exchange.Abstract {
   [I.CONTROLLER] = null;

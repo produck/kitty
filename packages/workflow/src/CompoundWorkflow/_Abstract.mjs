@@ -1,6 +1,6 @@
 import { Ow, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
-import Abstract, { Member as M } from '@produck/es-abstract';
+import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
 import * as Deployer from './Deployer/index.mjs';
@@ -9,7 +9,6 @@ import * as Plugin from './Plugin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
 import * as P from './_Parser.mjs';
-import { useWorkflow } from '../Capability.mjs';
 import { $I, _I, I } from './_Symbol.mjs';
 import { DEPLOYER, DEPLOYMENT, PLUGIN, WORKFLOW } from './_Borrow.mjs';
 
@@ -24,7 +23,7 @@ class CompoundWorkflow extends Workflow.Abstract {
 
   constructor(...args) {
     super(...args);
-    Configuration.install(useWorkflow(this[WORKFLOW.$I.KIT]));
+    Configuration.install($(this));
   }
 
   [$I.APPEND.PREFIX_HANDLER](...handlerList) {

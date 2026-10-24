@@ -1,4 +1,9 @@
-export { default as Abstract } from './_Abstract.mjs';
+export {
+  default as Abstract,
+  K_EXCHANGE,
+  K_REQUEST,
+  K_RESPONSE,
+} from './_Abstract.mjs';
 export * as Event from './Event.mjs';
 export * as Part from './Part/index.mjs';
 export * as Request from './Request/index.mjs';

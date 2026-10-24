@@ -5,12 +5,15 @@ import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import * as Kit from '@produck/kit';
 
-import { K_EXCHANGE } from '../../Capability.mjs';
 import * as Request from './Request/index.mjs';
 import * as Response from './Response/index.mjs';
 import * as P from './_Parser.mjs';
 import { DEPLOYMENT } from './_Borrow.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
+
+export const K_EXCHANGE = Symbol('ExchangeKit.exchange');
+export const K_REQUEST = Symbol('ExchangeKit.request');
+export const K_RESPONSE = Symbol('ExchangeKit.response');
 
 class Exchange extends EventTarget {
   [I.DEPLOYMENT] = null;
@@ -34,6 +37,9 @@ class Exchange extends EventTarget {
     this[SYMBOL.CONSTRUCTOR] = new.target;
     this[I.REQUEST] = new this[SYMBOL.CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
     this[I.RESPONSE] = new this[SYMBOL.CONSTRUCTOR][_S.RESPONSE_CTOR]($(this));
+
+    ExchangeKit[K_REQUEST] = this[I.REQUEST];
+    ExchangeKit[K_RESPONSE] = this[I.RESPONSE];
   }
 
   get [$I.KIT]() {

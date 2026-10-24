@@ -2,10 +2,11 @@ import { Ow, ThrowTypeError } from '@produck/argot';
 import * as Kit from '@produck/kit';
 import { compose } from '@produck/compose';
 
-import { K_DEPLOYMENT_SERVER } from '../../Capability.mjs';
 import * as Exchange from '../Exchange/index.mjs';
 import { EXCHANGE, WORKFLOW } from './_Borrow.mjs';
 import { I, $I } from './_Symbol.mjs';
+
+export const K_DEPLOYMENT_SERVER = Symbol('DeploymentKit.server');
 
 export default class Deployment {
   [I.KIT] = null;

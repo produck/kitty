@@ -1,11 +1,13 @@
 import * as Kit from '@produck/kit';
 
-export const K_WORKFLOW = Symbol('WorkflowKit.Workflow');
-export const K_DEPLOYMENT_SERVER = Symbol('DeploymentKit.server');
-export const K_EXCHANGE = Symbol('KittyExchange.exchange');
-export const K_CONTROLLER = Symbol('ExchangeKit.controller');
+import * as Workflow from './Workflow/index.mjs';
+import * as Deployment from './Workflow/Deployment/index.mjs';
+import * as Exchange from './Workflow/Exchange/index.mjs';
+import * as WebSocketExchange from './CompoundWorkflow/WebSocketExchange/index.mjs';
 
-export const { use: useWorkflow } = Kit.Getter(K_WORKFLOW);
-export const { use: useServer } = Kit.Getter(K_DEPLOYMENT_SERVER);
-export const { use: useExchange } = Kit.Getter(K_EXCHANGE);
-export const { use: useWebSocket } = Kit.Getter(K_CONTROLLER);
+export const { use: useWorkflow } = Kit.Getter(Workflow.K_WORKFLOW);
+export const { use: useServer } = Kit.Getter(Deployment.K_DEPLOYMENT_SERVER);
+export const { use: useExchange } = Kit.Getter(Exchange.K_EXCHANGE);
+export const { use: useRequest } = Kit.Getter(Exchange.K_REQUEST);
+export const { use: useResponse } = Kit.Getter(Exchange.K_RESPONSE);
+export const { use: useWebSocket } = Kit.Getter(WebSocketExchange.K_CONTROLLER);

@@ -5,10 +5,11 @@ import * as Composer from '@produck/compose';
 
 import { I, $I, _I } from './_Symbol.mjs';
 import * as Deployment from './Deployment/index.mjs';
-import { K_WORKFLOW } from '../Capability.mjs';
 import * as P from './_Parser.mjs';
 
 const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
+
+export const K_WORKFLOW = Symbol('WorkflowKit.Workflow');
 
 class Workflow {
   [I.HANDLER_LIST] = [];
