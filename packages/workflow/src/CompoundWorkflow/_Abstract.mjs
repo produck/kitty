@@ -121,7 +121,7 @@ class CompoundWorkflow extends Workflow.Abstract {
           DeploymentKitName,
         );
 
-        return deployment.listeners;
+        return deployment.manifest;
       },
       deploy: async (server) => {
         consumeBy(deployer, server);

@@ -66,7 +66,7 @@ function install(AdapterKit) {
 
   // The adapter does not attach its own listeners; it hands over a
   // `name → fn` record and the host attaches them to the server.
-  AdapterKit.exportListener('request', (req, res) =>
+  AdapterKit.declare('request', (req, res) =>
     handleRequest(AdapterKit, server, req, res),
   );
 }

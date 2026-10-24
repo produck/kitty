@@ -177,13 +177,12 @@
 ### Deployment
 
 编译的产物是一个 subject（`Workflow/Deployment/`），不是一条记录。“缺一层抽象”的三条
-证据：旧的 `{ listeners, link }` 让 `_I.COMPILE_DEPLOYMENT` 只能声明
-`returns(M.Object)`；`Deployer/Artifact.mjs`（已删）只能写一个没人调用的鸭子类型
+证据：旧的 `{ listeners, link }` 让 `_I.COMPILE_DEPLOYMENT` 只能声明`returns(M.Object)`；`Deployer/Artifact.mjs`（已删）只能写一个没人调用的鸭子类型
 谓词；生命周期散成一个局部布尔（`compiled`）加一个安装标记。
 
-- 它拥有：`KIT`、`SERVER`、`LISTENERS`、`LINK_LIST`、附着器列表、去重集合、handler、
+- 它拥有：`KIT`、`SERVER`、`MANIFEST`、`LINK_LIST`、附着器列表、去重集合、handler、
   `COMMITTED`、`LINKED`。
-- 全部是私有槽；包内只通过保护级 getter 或方法读写，公开面只有 `listeners` 与
+- 全部是私有槽；包内只通过保护级 getter 或方法读写，公开面只有 `manifest` 与
   `link()`。
 - `link()` 自带一次性守卫（`LINKED`），并自己组合 linker 链；`COMMITTED` 只能由
   `$I.COMMIT()` 翻转。
@@ -223,11 +222,11 @@
   状态。`SYMBOL.CONSTRUCTOR = new.target` 是本类读静态槽的唯一途径。
 - 保护级：`$I.INSTALL()`（安装并置位）。
 - 私有级：`I.KIT`、`I.DEPLOYMENT`、`I.ASSERT.NOT_COMMITTED`，以及 `I.ATTACH.*` 六个
-  附着过程（`LISTENER` / `SERVER_LINKER` / `EXCHANGE_ATTACHER` / `DEPLOYMENT` /
+  附着过程（`MANIFEST` / `SERVER_LINKER` / `EXCHANGE_ATTACHER` / `DEPLOYMENT` /
   `HANDLER.HTTP` / `HANDLER.WEB_SOCKET`）。
 - **能力长在 kit 上，状态待在 deployment 里**：公开成员下游可覆盖（不安全），保护成
   员包外拿不到（不可用）；kit 不是类成员，两头都不犯。构造器把六个附着过程全挂上：
-  `exportListener` / `setServerLinker` / `appendExchangeAttacher` /
+  `declare` / `setServerLinker` / `appendExchangeAttacher` /
   `attachDeployment` / `handleHttpExchange` / `handleWebSocketExchange`。
 - **`DeployerKit` 的六个端口全部由部署器自己写**：其中三个（两个协议入口、
   `attachDeployment`）曾经由框架代挂，只因为它们当时需要 workflow 上下文；现在派发与

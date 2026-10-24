@@ -902,8 +902,9 @@ member-level API requirements:
 - **Kit Recipe**: Describes dependencies to install into a kit.
   Deployer functions may still use recipes, but registry deployers are
   currently plain `install(DeployerKit)` functions.
-- **listeners**: A protocol-specific record of event handlers, for
-  example `{ request: (req, res) => {} }`.
+- **manifest**: A deployer-filled record of named materials for the
+  compile path, for example `{ request: (req, res) => {} }`. Values are
+  unconstrained; the name replaces the earlier `listeners` term.
 - **link**: A plain function `(server, listeners) => unknown` that
   attaches artifact listeners to a server instance.
 - **deploy**: Auto-discovery deployment — looks up a deployer from

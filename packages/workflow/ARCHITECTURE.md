@@ -59,7 +59,7 @@ constructor(kit) → use(handler)* → finalize()
   prefix + main handlers into a single workflow, then freezes the
   instance. After this, `use()` and `mixin()` are rejected.
 - **Compile**: `compile(server)` builds a `Deployment` and returns its
-  `listeners` record without linking to the server.
+  `manifest` record without linking to the server.
 - **Deploy**: `deploy(server)` builds the deployment, then calls
   `deployment.link()` to wire the server via the composed linker chain.
 
@@ -110,7 +110,7 @@ classDiagram
     +appendExchangeAttacher(attacher) void
     +handleHttpExchange(internal) Promise~unknown~
     +handleWebSocketExchange(internal) Promise~unknown~
-    +exportListener(name, listener) void
+    +declare(name, value) void
     +setServerLinker(link) void
   }
   class ExchangeKit["⚡ExchangeKit"] {
@@ -193,7 +193,8 @@ that it can actually use.
 
 - Exchange: one HTTP request and its response as one runtime unit.
 - ExchangeKit: the per-exchange kit derived from DeploymentKit.
-- DeployerKit: deployer bridge kit for listener export and server linking.
+- DeployerKit: deployer bridge kit for manifest declaration and server
+  linking.
 - DeploymentKit: per-server deployment scope, parent of ExchangeKit;
   also the compose context for the linker chain during deploy.
 
@@ -221,8 +222,8 @@ that it can actually use.
 - Naming uses Exchange consistently; transaction terminology is retired.
 - **Deployers support decoration**: a decorator chain can have multiple
   layers registered for the same server constructor. Each layer
-  independently receives a `DeployerKit` and contributes listeners,
-  attachers, and a linker. Kitty provides composition for both
+  independently receives a `DeployerKit` and contributes manifest
+  entries, attachers, and a linker. Kitty provides composition for both
   attachers (`appendExchangeAttacher`) and linkers (`setServerLinker`
   via LIFO stack + `compose`). Downstream deployers control their own
   decoration order and policy.
@@ -252,7 +253,7 @@ post-finalization calls via `this[$I.ASSERT.NOT_FINALIZED]()`.
 1. Create the Deployment from WorkflowKit and the server
 2. Mixin deployment attachers run on DeploymentKit
 3. Deployer.install(DeployerKit) — installs low-level protocol API,
-   registers exchange attachers, exports listeners and linker
+   registers exchange attachers, declares manifest entries and linkers
 4. The Deployer attaches the workflow-side ports: attachDeployment and
    the per-protocol dispatch entries
 5. Deployment is sealed; deploy() links it to the server
@@ -352,14 +353,14 @@ deployer at construction; the abstract install entry receives the same
 kit. It is the deployer's whole capability surface — deployer authors
 cannot mutate `DeploymentKit` directly.
 
-| Method                                            | Behavior                                                                                                   |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `deployerKit.exportListener(eventName, listener)` | Registers a named event listener for the output listeners record                                           |
-| `deployerKit.setServerLinker(link)`               | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install |
-| `deployerKit.handleHttpExchange(internal)`        | Reads `[_S.EXCHANGE_CTOR.HTTP]` from the deployer class, then hands the dispatch that class and `internal` |
-| `deployerKit.handleWebSocketExchange(internal)`   | Same, reading `[_S.EXCHANGE_CTOR.WEB_SOCKET]`; throws when the deployer declares no WebSocket slot         |
-| `deployerKit.attachDeployment(key, value)`        | Attaches a value to `DeploymentKit` for downstream use                                                     |
-| `deployerKit.appendExchangeAttacher(fn)`          | Registers an attacher for each `ExchangeKit` at runtime                                                    |
+| Method                                          | Behavior                                                                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `deployerKit.declare(name, value)`              | Declares a named manifest entry the compile path can consume                                               |
+| `deployerKit.setServerLinker(link)`             | Pushes a linker function onto a LIFO stack; linkers capture server and handlers via closure during install |
+| `deployerKit.handleHttpExchange(internal)`      | Reads `[_S.EXCHANGE_CTOR.HTTP]` from the deployer class, then hands the dispatch that class and `internal` |
+| `deployerKit.handleWebSocketExchange(internal)` | Same, reading `[_S.EXCHANGE_CTOR.WEB_SOCKET]`; throws when the deployer declares no WebSocket slot         |
+| `deployerKit.attachDeployment(key, value)`      | Attaches a value to `DeploymentKit` for downstream use                                                     |
+| `deployerKit.appendExchangeAttacher(fn)`        | Registers an attacher for each `ExchangeKit` at runtime                                                    |
 
 All methods guard against post-compilation calls via an internal
 `compiled` flag.
@@ -376,7 +377,7 @@ registry.set(Constructor, {
 });
 ```
 
-`Exchange`, `install`, and `name` are stored. `listeners` and `link`
+`Exchange`, `install`, and `name` are stored. `manifest` and `link`
 are produced at compile time by executing the `install` function
 against a `DeployerKit`.
 
@@ -542,8 +543,7 @@ layer (application logic, server-agnostic).
 ### Contract
 
 - **Deployer recipe** receives a `DeployerKit`. It must:
-  1. Attach protocol-specific listeners to the server via
-     `exportListener`.
+  1. Declare protocol-specific entry points through `declare`.
   2. On each incoming exchange, build the per-exchange `internal`
      record its own Exchange class needs, and call
      `deployerKit.handleHttpExchange(internal)` or
@@ -574,13 +574,13 @@ deploy(server) / adapt(options).deploy(server)
   ├─ 5. Construct the deployer with DeployerKit and the deployment
   ├─ 6. Register the workflow handler on the deployment
   ├─ 7. deployer[$I.INSTALL]()
-  │      └─ The deployer fills the deployment: listeners, linkers,
+  │      └─ The deployer fills the deployment: manifest entries, linkers,
   │         exchange attachers, deployment content
   ├─ 8. deployment[$I.COMMIT]() — the definition surface closes
   └─ 9. deployment.link() — the linker chain runs (deploy only)
 ```
 
-`compile()` stops after step 8 and returns `listeners`. `deploy()`
+`compile()` stops after step 8 and returns `manifest`. `deploy()`
 continues through step 9.
 
 ## Deployment Paths
@@ -590,7 +590,7 @@ Three deployment paths serve different scenarios:
 | Property        | `deploy(server)`                        | `compile(server)`                       | `adapt(options)`                                       |
 | --------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
 | Deployer source | Global registry (by server constructor) | Global registry (by server constructor) | Inline `options` (per-instance override)               |
-| Links server    | Yes (`link` called)                     | No (returns raw listeners)              | `compile` or `deploy`                                  |
+| Links server    | Yes (`link` called)                     | No (returns raw manifest)               | `compile` or `deploy`                                  |
 | Reusability     | Unlimited calls                         | Unlimited calls                         | Single-use; exactly one of `compile`/`deploy` per call |
 | Timing          | No constraint                           | No constraint                           | Must be consumed synchronously (microtask-guarded)     |
 
@@ -617,7 +617,7 @@ sealed:
 | `KIT`       | constructor                | package siblings     |
 | `SERVER`    | constructor                | package siblings     |
 | `WORKFLOW`  | constructor                | `$I.HANDLE_EXCHANGE` |
-| `LISTENERS` | `$I.SET_LISTENER`          | `get listeners`      |
+| `MANIFEST`  | `$I.DECLARE`               | `get manifest`       |
 | `LINK_LIST` | `$I.SET_LINKER`            | `link()`             |
 | attachers   | `$I.ADD_EXCHANGE_ATTACHER` | `$I.ATTACH_EXCHANGE` |
 | handled set | `$I.REGISTER_EXCHANGE`     | `$I.HAS_EXCHANGE`    |
@@ -626,7 +626,7 @@ sealed:
 
 Every piece of state is a private slot; the package reads it through
 protected getters or protected methods. Only two members are public:
-`listeners` and `link()`.
+`manifest` and `link()`.
 
 `$I.HANDLE_EXCHANGE(Exchange, internal)` is the whole dispatch: it
 derives the ExchangeKit, constructs the exchange, rejects a repeated

@@ -46,7 +46,7 @@ class Deployer {
     this[I.KIT] = DeploymentKit('Kitty<Deployer>');
     this[I.DEPLOYMENT] = deployment;
     this[SYMBOL.CONSTRUCTOR] = new.target;
-    this[I.ATTACH.LISTENER]();
+    this[I.ATTACH.MANIFEST]();
     this[I.ATTACH.SERVER_LINKER]();
     this[I.ATTACH.EXCHANGE_ATTACHER]();
     this[I.ATTACH.DEPLOYMENT]();
@@ -58,19 +58,15 @@ class Deployer {
     return this[I.KIT];
   }
 
-  [I.ATTACH.LISTENER]() {
-    this[I.KIT].exportListener = (eventName, listener) => {
+  [I.ATTACH.MANIFEST]() {
+    this[I.KIT].declare = (name, value) => {
       this[I.ASSERT.NOT_COMMITTED]();
 
-      if (typeof eventName !== 'string') {
-        ThrowTypeError('args[0] as eventName', 'string');
+      if (typeof name !== 'string') {
+        ThrowTypeError('args[0] as name', 'string');
       }
 
-      if (typeof listener !== 'function') {
-        ThrowTypeError('args[1] as listener', 'function');
-      }
-
-      this[I.DEPLOYMENT][DEPLOYMENT.$I.SET_LISTENER](eventName, listener);
+      this[I.DEPLOYMENT][DEPLOYMENT.$I.DECLARE](name, value);
     };
   }
 

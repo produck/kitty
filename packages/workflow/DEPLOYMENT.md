@@ -20,8 +20,8 @@ protocol.
   the registered deployer for the server constructor, builds a
   deployment, and links it to the server.
 - `workflow.compile(server)` removes the standard plug and exposes the
-  listener wires. It returns the listener record so callers can attach
-  handlers manually.
+  manifest wires. It returns the manifest record so callers can attach
+  the declared materials manually.
 - `workflow.adapt(options)` gives the workflow a temporary deployment
   deployer. Downstream code can provide one custom deployment kit for a
   single compile or deploy opportunity, without registering anything
@@ -37,14 +37,15 @@ Compiling a workflow against a server produces a `Deployment`
 (`Workflow/Deployment/`). It is the object the deployer fills in and the
 object `deploy()` links.
 
-`deployment.listeners` is a record of protocol-specific event handlers.
-Keys may be strings or symbols, and values are functions. The deployer
-accumulates it through `exportListener` calls during the install phase,
-and it represents the **public interface** that compile-path callers can
-attach manually.
+`deployment.manifest` is a record of the materials the deployer declares
+for the compile path. Keys are strings; values are unconstrained — a
+listener is the usual case, but an option record, a router, or a server
+decorator fits the same slot. The deployer accumulates it through
+`declare` calls during the install phase, and it represents the
+**public interface** that compile-path callers can wire manually.
 
-The listener record is **not consumed by `link`**. The deployer's linkers
-capture handler references via closure during install; the record is an
+The manifest is **not consumed by `link`**. The deployer's linkers
+capture what they need via closure during install; the record is an
 output for the `compile()` path only.
 
 `deployment.link()` runs the composed linker chain. Linkers are registered
@@ -52,7 +53,7 @@ via `setServerLinker` and keep a LIFO order; each captured the server and
 all handler references via closure during `deployer[$I.INSTALL]()`.
 
 `deploy()` calls `deployment.link()` to wire the server. `compile()`
-returns `deployment.listeners` and leaves linking to the caller.
+returns `deployment.manifest` and leaves linking to the caller.
 
 ## Standard Deploy
 
@@ -61,8 +62,8 @@ returns `deployment.listeners` and leaves linking to the caller.
 It refuses to run until a request body distributor class has been set
 with `workflow.setRequestBodyDistributorConstructor(Ctor)`; the class is what a
 request body instantiates, so deploying without it would fail on the
-first request. `compile(server)` is not gated — producing the listener
-functions may happen before the class is chosen.
+first request. `compile(server)` is not gated — producing the manifest
+materials may happen before the class is chosen.
 
 1. Look up the deployer class from `Deployer.Registry` by server
    constructor.
@@ -73,7 +74,7 @@ functions may happen before the class is chosen.
 4. Create `DeployerKit` from the deployment kit and construct the
    deployer with it and the deployment.
 5. Run `deployer[$I.INSTALL]()` — the deployer fills the deployment
-   through its kit ports: listeners (`exportListener`), linkers
+   through its kit ports: manifest entries (`declare`), linkers
    (`setServerLinker`), exchange attachers (`appendExchangeAttacher`),
    deployment content (`attachDeployment`), and the per-protocol dispatch
    entries. The workflow then registers its mixin exchange attachers on
@@ -101,13 +102,13 @@ implementation class; the deployer name describes the protocol bridge.
 `compile(server)` uses the same registered deployer source as
 `deploy()`, but stops before the link phase.
 
-It is useful when the caller wants Kitty to produce validated listener
-functions but wants to attach them manually. This is the exposed-wires
-path: Kitty provides the protocol handlers, and the application decides
+It is useful when the caller wants Kitty to produce validated manifest
+materials but wants to wire them manually. This is the exposed-materials
+path: Kitty provides the protocol materials, and the application decides
 how to connect them.
 
 Examples include custom event attachment, partial attachment, tests, or
-embedding Kitty listeners into a larger server lifecycle.
+embedding Kitty materials into a larger server lifecycle.
 
 ## Ephemeral Adapt
 

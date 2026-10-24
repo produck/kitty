@@ -5,7 +5,7 @@ const I_COMMITTED = Symbol('.#committed');
 const I_LINKED = Symbol('.#linked');
 const I_WORKFLOW = Symbol('.#workflow');
 const I_SERVER = Symbol('.#server');
-const I_LISTENERS = Symbol('.#listeners');
+const I_MANIFEST = Symbol('.#manifest');
 const I_LINK_LIST = Symbol('.#linkList');
 const I_HANDLED_EXCHANGE_SET = Symbol('.#handledExchangeSet');
 const I_EXCHANGE_ATTACHER_LIST = Symbol('.#exchangeAttacherList');
@@ -16,7 +16,7 @@ export const I = deepFreeze({
   LINKED: I_LINKED,
   WORKFLOW: I_WORKFLOW,
   SERVER: I_SERVER,
-  LISTENERS: I_LISTENERS,
+  MANIFEST: I_MANIFEST,
   LINK_LIST: I_LINK_LIST,
   HANDLED_EXCHANGE_SET: I_HANDLED_EXCHANGE_SET,
   EXCHANGE_ATTACHER_LIST: I_EXCHANGE_ATTACHER_LIST,
@@ -28,7 +28,7 @@ const $I_SERVER = Symbol('.$server');
 const $I_COMMITTED = Symbol('.$committed');
 const $I_LINKED = Symbol('.$linked');
 const $I_COMMIT = Symbol('.$commit()');
-const $I_SET_LISTENER = Symbol('.$setListener()');
+const $I_DECLARE = Symbol('.$declare()');
 const $I_SET_LINKER = Symbol('.$setLinker()');
 const $I_HANDLE_EXCHANGE = Symbol('.$handleExchange()');
 const $I_REGISTER_EXCHANGE = Symbol('.$registerExchange()');
@@ -43,7 +43,7 @@ export const $I = deepFreeze({
   COMMITTED: $I_COMMITTED,
   LINKED: $I_LINKED,
   COMMIT: $I_COMMIT,
-  SET_LISTENER: $I_SET_LISTENER,
+  DECLARE: $I_DECLARE,
   SET_LINKER: $I_SET_LINKER,
   HANDLE_EXCHANGE: $I_HANDLE_EXCHANGE,
   REGISTER_EXCHANGE: $I_REGISTER_EXCHANGE,

@@ -91,7 +91,7 @@ class Workflow {
 
     const deployment = await this[$I.COMPILE](server);
 
-    return deployment.listeners;
+    return deployment.manifest;
   }
 
   async deploy(server) {

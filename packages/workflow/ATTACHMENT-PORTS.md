@@ -305,7 +305,7 @@ export function install(DeployerKit) {
 
   kitByWorkflow.set(workflow, DeployerKit);
   DeployerKit.attachDeployment(K_PROTOCOL_STATE, createProtocolState());
-  DeployerKit.exportListener('request', createRequestListener());
+  DeployerKit.declare('request', createRequestListener());
   DeployerKit.setServerLinker(linkServer);
 }
 ```

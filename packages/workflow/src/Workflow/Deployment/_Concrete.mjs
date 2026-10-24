@@ -14,7 +14,7 @@ export default class Deployment {
   [I.LINKED] = false;
   [I.WORKFLOW] = null;
   [I.SERVER] = null;
-  [I.LISTENERS] = {};
+  [I.MANIFEST] = {};
   [I.LINK_LIST] = [];
   [I.HANDLED_EXCHANGE_SET] = new WeakSet();
   [I.EXCHANGE_ATTACHER_LIST] = [];
@@ -32,8 +32,8 @@ export default class Deployment {
     this[I.KIT][K_DEPLOYMENT_SERVER] = server;
   }
 
-  get listeners() {
-    return this[I.LISTENERS];
+  get manifest() {
+    return this[I.MANIFEST];
   }
 
   get [$I.KIT]() {
@@ -60,8 +60,8 @@ export default class Deployment {
     this[I.COMMITTED] = true;
   }
 
-  [$I.SET_LISTENER](eventName, listener) {
-    this[I.LISTENERS][eventName] = listener;
+  [$I.DECLARE](name, value) {
+    this[I.MANIFEST][name] = value;
   }
 
   [$I.SET_LINKER](linker) {
