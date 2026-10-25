@@ -1,5 +1,5 @@
 {
-  "name": "@produck/kitty-handler-request-content-negotiation",
+  "name": "@produck/kitty-plugin-status",
   "scripts": {
     "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
     "test": "node -e \"console.log('No tests configured')\""

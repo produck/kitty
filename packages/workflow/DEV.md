@@ -206,6 +206,16 @@ workflow 实例同寿命的实例级上下文。
   注册成 `undefined`；其余校验由读槽本身完成。
 - `getByServer(server)` 先查一次性部署的关联表，再按
   `Object.getPrototypeOf(server).constructor` 查注册表。
+- **部署器包按 server 构造器切分，不按协议名切分**：注册表键是单值的
+  `_S.SERVER_CTOR`，一个包只能登记一个构造器，所以
+  `http.createServer` / `https.createServer` / `http2.createServer` /
+  `http2.createSecureServer` 四种承载各成一包：
+  `deployer/http1/{http,https}` 与 `deployer/http2/{http,https}`。
+  目录名沿用 Node 模块名的对称约定（`http` = 明文，`https` = TLS），
+  且版本号只保留 major。
+- `deployer/http2/http` 是 h2c（prior-knowledge 明文）：浏览器不协商它，
+  价值在测试与内部链路。`@produck/kitty` 集成时**默认不注册它**，
+  需要的下游显式注册——这是对“默认安全”的交代。
 
 ### Implement/Exchange
 
@@ -245,3 +255,6 @@ subject 反而会把“成套交付”打散。
 4. **其它域尚无代码**：handler / kitty 占位 workspace 只有 `package.json`。
 5. **规范草案（`code-style/…/partial-constructor/README.md`）待修订**：`_Borrow` 的
    转发形状、BTB-1 的措辞、“空表不建”、能力符号是否进 `_Symbol.mjs`。
+6. **HTTP/2 的 `allowHTTP1` 取向未定**：允许则同一个 TLS server 也提供
+   1.1，与 `deployer/http1/https` 形成两条并行路径；不允许则彻底收敛到
+   按构造器选路。二选一，不留两可。

@@ -32,15 +32,16 @@
   },
   "workspaces": [
     "packages/workflow",
-    "packages/adaptor/http2",
-    "packages/adaptor/http1.1/http",
-    "packages/adaptor/http1.1/https",
-    "packages/handler/method",
-    "packages/handler/cookie",
-    "packages/handler/request-type",
-    "packages/handler/request-content-negotiation",
-    "packages/handler/response-type",
-    "packages/handler/status",
+    "packages/deployer/http2/http",
+    "packages/deployer/http2/https",
+    "packages/deployer/http1/http",
+    "packages/deployer/http1/https",
+    "packages/plugin/method",
+    "packages/plugin/cookie",
+    "packages/plugin/request-type",
+    "packages/plugin/request-content-negotiation",
+    "packages/plugin/response-type",
+    "packages/plugin/status",
     "packages/kitty"
   ]
 }

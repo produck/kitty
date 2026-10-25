@@ -1,5 +1,5 @@
 {
-  "name": "@produck/kitty-adaptor-http1.1-https",
+  "name": "@produck/kitty-deployer-http1-https",
   "scripts": {
     "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
     "test": "node -e \"console.log('No tests configured')\""
