@@ -58,8 +58,9 @@ constructor(kit) → use(handler)* → finalize()
 - **Finalization**: `finalize()` freezes the handler list, composes
   prefix + main handlers into a single workflow, then freezes the
   instance. After this, `use()` and `mixin()` are rejected.
-- **Compile**: `compile(server)` builds a `Deployment` and returns its
-  `manifest` record without linking to the server.
+  - **Compile**: `compile(server)` builds a `Deployment` and returns it
+    without linking to the server; `deployment.manifest` holds the
+    declared materials.
 - **Deploy**: `deploy(server)` builds the deployment, then calls
   `deployment.link()` to wire the server via the composed linker chain.
 
@@ -589,8 +590,8 @@ deploy(server) / withDeployer(Deployer).deploy(server)
   └─ 9. deployment.link() — the linker chain runs (deploy only)
 ```
 
-`compile()` stops after step 8 and returns `manifest`. `deploy()`
-continues through step 9.
+`compile()` stops after step 8 and returns the deployment; its `manifest`
+carries the declared materials. `deploy()` continues through step 9.
 
 ## Deployment Paths
 
@@ -599,7 +600,7 @@ Three deployment paths serve different scenarios:
 | Property        | `deploy(server)`                        | `compile(server)`                       | `withDeployer(Deployer)`                               |
 | --------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
 | Deployer source | Global registry (by server constructor) | Global registry (by server constructor) | Inline `options` (per-instance override)               |
-| Links server    | Yes (`link` called)                     | No (returns raw manifest)               | `compile` or `deploy`                                  |
+| Links server    | Yes (`link` called)                     | No (returns the deployment)             | `compile` or `deploy`                                  |
 | Reusability     | Unlimited calls                         | Unlimited calls                         | Single-use; exactly one of `compile`/`deploy` per call |
 | Timing          | No constraint                           | No constraint                           | Must be consumed synchronously (microtask-guarded)     |
 

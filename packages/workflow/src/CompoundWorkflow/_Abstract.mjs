@@ -91,12 +91,7 @@ class CompoundWorkflow extends Workflow.Abstract {
 
     queueMicrotask(() => (expired = true));
 
-    function consumeBy(context, server) {
-      // TODO dead
-      if (context !== deployer) {
-        Ow.Error.Common('Must consume through its deployer.');
-      }
-
+    function consumeBy(server) {
       if (!(server instanceof Server)) {
         ThrowTypeError('args[0] as server', Server.name);
       }
@@ -115,17 +110,12 @@ class CompoundWorkflow extends Workflow.Abstract {
 
     const deployer = Object.freeze({
       compile: async (server) => {
-        consumeBy(deployer, server);
+        consumeBy(server);
 
-        const deployment = await this[WORKFLOW.$I.COMPILE](
-          server,
-          DeploymentKitName,
-        );
-
-        return deployment.manifest;
+        return this[WORKFLOW.$I.COMPILE](server, DeploymentKitName);
       },
       deploy: async (server) => {
-        consumeBy(deployer, server);
+        consumeBy(server);
         await this[WORKFLOW.$I.DEPLOY](server, DeploymentKitName);
       },
     });

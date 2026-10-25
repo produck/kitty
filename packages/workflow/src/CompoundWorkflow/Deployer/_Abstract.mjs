@@ -112,7 +112,7 @@ class Deployer {
       const Exchange = this[SYMBOL.CONSTRUCTOR][_S.EXCHANGE_CTOR.WEB_SOCKET];
 
       if (Exchange === undefined) {
-        P.Throw('It MUST implement a WebSocket exchange.');
+        Ow.Error.Common('It MUST implement a WebSocket exchange.');
       }
 
       await this[I.DEPLOYMENT][DEPLOYMENT.$I.HANDLE_EXCHANGE](

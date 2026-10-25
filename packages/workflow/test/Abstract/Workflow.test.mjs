@@ -108,7 +108,7 @@ describe('Workflow', () => {
   });
 
   describe('.compile()', () => {
-    it('should return the manifest record of the deployment', async () => {
+    it('should return the deployment of the compile phase', async () => {
       const fixture = Baseline.createDeployer({
         declare: (kit) => {
           kit.declare('request', (_req, _res) => {});
@@ -119,7 +119,8 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      const manifest = await workflow.compile(new fixture.Server());
+      const deployment = await workflow.compile(new fixture.Server());
+      const { manifest } = deployment;
 
       assert.equal(typeof manifest, 'object');
       assert.deepEqual(Object.keys(manifest).sort(), ['options', 'request']);
@@ -133,9 +134,23 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      const manifest = await workflow.compile(new fixture.Server());
+      const deployment = await workflow.compile(new fixture.Server());
 
-      assert.deepEqual(manifest, {});
+      assert.deepEqual(deployment.manifest, {});
+    });
+
+    it('should link the returned deployment only once', async () => {
+      const fixture = Baseline.createDeployer({ linkers: ['only'] });
+      const workflow = Baseline.createWorkflow();
+
+      workflow.finalize();
+
+      const deployment = await workflow.compile(new fixture.Server());
+
+      deployment.link();
+
+      assert.throws(() => deployment.link());
+      assert.deepEqual(fixture.linkLog, ['only']);
     });
 
     it('should reject before finalization', async () => {
@@ -190,9 +205,23 @@ describe('Workflow', () => {
       workflow.finalize();
 
       const handle = workflow.withDeployer(fixture.Deployer);
-      const manifest = await handle.compile(new fixture.Server());
+      const { manifest } = await handle.compile(new fixture.Server());
 
       assert.deepEqual(Object.keys(manifest), ['request']);
+    });
+
+    it('should deploy through a one-time deployer', async () => {
+      const fixture = Baseline.createDeployer({ linkers: ['only'] });
+      const workflow = Baseline.createWorkflow();
+
+      workflow.finalize();
+
+      const handle = workflow.withDeployer(fixture.Deployer);
+
+      await handle.deploy(new fixture.Server());
+
+      assert.equal(fixture.installLog.length, 1);
+      assert.deepEqual(fixture.linkLog, ['only']);
     });
 
     it('should reject a second consumption', async () => {

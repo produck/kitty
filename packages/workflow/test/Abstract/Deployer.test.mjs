@@ -69,7 +69,7 @@ async function run(hook) {
   workflow.finalize();
 
   const server = new fixture.Server();
-  const manifest = await workflow.compile(server);
+  const { manifest } = await workflow.compile(server);
 
   return { errors, fixture, manifest, server, workflow };
 }
@@ -95,7 +95,7 @@ describe('Deployer', () => {
 
       workflow.finalize();
 
-      const manifest = await workflow.compile(new fixture.Server());
+      const { manifest } = await workflow.compile(new fixture.Server());
 
       assert.deepEqual(Object.keys(manifest).sort(), ['options', 'request']);
       assert.deepEqual(manifest.options, { timeout: 1 });

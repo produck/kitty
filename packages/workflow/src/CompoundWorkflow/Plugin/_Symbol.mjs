@@ -18,13 +18,9 @@ export const I = deepFreeze({
   },
 });
 
-const $I_KIT = Symbol('.$kit');
-const $I_WORKFLOW = Symbol('.$workflow');
 const $I_INSTALL = Symbol('.$install()');
 
 export const $I = deepFreeze({
-  KIT: $I_KIT,
-  WORKFLOW: $I_WORKFLOW,
   INSTALL: $I_INSTALL,
 });
 

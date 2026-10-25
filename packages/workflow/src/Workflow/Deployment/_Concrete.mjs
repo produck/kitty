@@ -1,5 +1,4 @@
-import { Ow, ThrowTypeError } from '@produck/argot';
-import * as Kit from '@produck/kit';
+import { Ow } from '@produck/argot';
 import { compose } from '@produck/compose';
 
 import * as Exchange from '../Exchange/index.mjs';
@@ -20,11 +19,6 @@ export default class Deployment {
   [I.EXCHANGE_ATTACHER_LIST] = [];
 
   constructor(WorkflowKit, workflow, options) {
-    // TODO dead
-    if (!Kit.isKit(WorkflowKit)) {
-      ThrowTypeError('args[0] as WorkflowKit', 'Kit');
-    }
-
     const { server, kitName = 'Kitty<Deployment>' } = options;
 
     this[I.KIT] = WorkflowKit(kitName);
@@ -51,11 +45,6 @@ export default class Deployment {
 
   get [$I.COMMITTED]() {
     return this[I.COMMITTED];
-  }
-
-  // TODO dead
-  get [$I.LINKED]() {
-    return this[I.LINKED];
   }
 
   [$I.COMMIT]() {
@@ -115,7 +104,6 @@ export default class Deployment {
   }
 
   link() {
-    // TODO dead
     if (this[I.LINKED]) {
       Ow.Error.Common('Deployment has already been linked.');
     }

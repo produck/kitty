@@ -26,7 +26,6 @@ const $I_KIT = Symbol('.$kit');
 const $I_WORKFLOW = Symbol('.$workflow');
 const $I_SERVER = Symbol('.$server');
 const $I_COMMITTED = Symbol('.$committed');
-const $I_LINKED = Symbol('.$linked');
 const $I_COMMIT = Symbol('.$commit()');
 const $I_DECLARE = Symbol('.$declare()');
 const $I_SET_LINKER = Symbol('.$setLinker()');
@@ -41,7 +40,6 @@ export const $I = deepFreeze({
   WORKFLOW: $I_WORKFLOW,
   SERVER: $I_SERVER,
   COMMITTED: $I_COMMITTED,
-  LINKED: $I_LINKED,
   COMMIT: $I_COMMIT,
   DECLARE: $I_DECLARE,
   SET_LINKER: $I_SET_LINKER,

@@ -100,7 +100,8 @@ implementation class; the deployer tag describes the protocol bridge.
 ## Compile
 
 `compile(server)` uses the same registered deployer source as
-`deploy()`, but stops before the link phase.
+`deploy()`, but stops before the link phase and returns the deployment;
+`deployment.manifest` carries the validated materials.
 
 It is useful when the caller wants Kitty to produce validated manifest
 materials but wants to wire them manually. This is the exposed-materials

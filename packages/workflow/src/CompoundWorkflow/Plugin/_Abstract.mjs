@@ -24,16 +24,6 @@ class Plugin {
     this[I.ATTACH.PREFIX_HANDLER]();
   }
 
-  // TODO dead
-  get [$I.KIT]() {
-    return this[I.KIT];
-  }
-
-  // TODO dead
-  get [$I.WORKFLOW]() {
-    return this[I.WORKFLOW];
-  }
-
   [I.ATTACH.WORKFLOW]() {
     this[I.KIT].attachWorkflow = (name, value) => {
       const workflow = this[I.WORKFLOW];

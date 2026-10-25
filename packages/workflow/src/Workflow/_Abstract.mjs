@@ -89,9 +89,7 @@ class Workflow {
   async compile(server) {
     this[$I.ASSERT.FINALIZED]();
 
-    const deployment = await this[$I.COMPILE](server);
-
-    return deployment.manifest;
+    return this[$I.COMPILE](server);
   }
 
   async deploy(server) {

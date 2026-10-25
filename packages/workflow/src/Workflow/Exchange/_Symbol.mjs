@@ -14,12 +14,10 @@ export const I = deepFreeze({
   RESPONSE: I_RESPONSE,
 });
 
-const $I_DEPLOYMENT = Symbol('.$deployment');
 const $I_INTERNAL = Symbol('.$internal');
 const $I_KIT = Symbol('.$kit');
 
 export const $I = deepFreeze({
-  DEPLOYMENT: $I_DEPLOYMENT,
   INTERNAL: $I_INTERNAL,
   KIT: $I_KIT,
 });
