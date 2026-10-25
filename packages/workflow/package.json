@@ -1,5 +1,8 @@
 {
   "author": "ChaosLee",
+  "bugs": {
+    "url": "https://github.com/produck/kitty/issues"
+  },
   "dependencies": {
     "@produck/argot": "^0.3.1",
     "@produck/compose": "^0.3.0",
@@ -11,15 +14,32 @@
     "@produck/kit": "^0.4.1",
     "is-plain-object": "^5.1.0"
   },
-  "description": "Web application using kit.",
+  "description": "Handler pipeline orchestration over kit scopes, HTTP and WebSocket exchanges included.",
   "exports": {
     ".": {
       "import": "./src/index.mjs",
       "types": "./src/index.d.mts"
     }
   },
+  "files": [
+    "src/**/*.mjs",
+    "src/**/*.d.mts"
+  ],
+  "homepage": "https://github.com/produck/kitty/tree/main/packages/workflow#readme",
+  "keywords": [
+    "kit",
+    "kitty",
+    "middleware",
+    "pipeline",
+    "workflow"
+  ],
   "license": "MIT",
   "name": "@produck/kitty-workflow",
+  "repository": {
+    "directory": "packages/workflow",
+    "type": "git",
+    "url": "git+https://github.com/produck/kitty.git"
+  },
   "scripts": {
     "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
     "test": "node test/index.mjs"
