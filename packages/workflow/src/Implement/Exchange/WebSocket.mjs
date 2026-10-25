@@ -42,10 +42,9 @@ export function WebSocket(options) {
   } = Normalize.WebSocket(options);
 
   class ImplWebSocketRequestHeader extends Exchange.Request.Header.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -62,10 +61,9 @@ export function WebSocket(options) {
   }
 
   class ImplWebSocketResponseHeader extends Exchange.Response.Header.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -82,10 +80,9 @@ export function WebSocket(options) {
   }
 
   class ImplWebSocketController extends WebSocketExchange.Controller.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -106,10 +103,9 @@ export function WebSocket(options) {
   }
 
   class ImplWebSocketRequest extends Exchange.Request.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -130,10 +126,9 @@ export function WebSocket(options) {
   }
 
   class ImplWebSocketResponse extends WebSocketExchange.Response.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -154,10 +149,9 @@ export function WebSocket(options) {
   }
 
   class ImplWebSocketExchange extends WebSocketExchange.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[EXCHANGE.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[EXCHANGE.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);

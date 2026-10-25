@@ -53,10 +53,9 @@ export function Http(options) {
   } = Normalize.Http(options);
 
   class ImplHttpRequestHeader extends Exchange.Request.Header.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -73,10 +72,9 @@ export function Http(options) {
   }
 
   class ImplHttpRequestBody extends HttpExchange.Request.Body.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -91,10 +89,9 @@ export function Http(options) {
   class ImplHttpResponseHeader
     extends Exchange.Response.MutableHeader.Abstract
   {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -119,10 +116,9 @@ export function Http(options) {
   }
 
   class ImplHttpResponseBody extends HttpExchange.Response.Body.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -135,10 +131,9 @@ export function Http(options) {
   }
 
   class ImplHttpRequest extends HttpExchange.Request.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -163,10 +158,9 @@ export function Http(options) {
   }
 
   class ImplHttpResponse extends HttpExchange.Response.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[PART.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[PART.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
@@ -203,10 +197,9 @@ export function Http(options) {
   }
 
   class ImplHttpExchange extends HttpExchange.Abstract {
-    [I_OPTIONS_CONTEXT] = Object.freeze({
-      self: this,
-      internal: this[EXCHANGE.$I.INTERNAL],
-    });
+    get [I_OPTIONS_CONTEXT]() {
+      return { self: this, internal: this[EXCHANGE.$I.INTERNAL] };
+    }
 
     constructor(...args) {
       super(...args);
