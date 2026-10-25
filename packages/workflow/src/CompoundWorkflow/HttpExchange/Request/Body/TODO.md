@@ -107,3 +107,12 @@ body，所有 handler 就永久失去 `RAW`。这是要暴露给团队的反模�
   标准流 +35%~232%（小 chunk 最贵）。
 - 结论：小 chunk 才是主要成本来源；`RAW` 的价值在于给极端场景一条
   明确出口，而不是普遍提速。
+
+水标相关（来自 `logs/probe-hwm.ign.mjs`，未入库）：
+
+- `http.createServer({ highWaterMark })` 只改
+  `req.readableHighWaterMark`（16 KB → 256 KB 实测生效），**不改变
+  chunk 大小**：1 MiB 请求体在两种设置下都是 32 段、单段最大 65440。
+- chunk 边界由 TCP 到达节奏与 HTTP parser 决定，不是水标参数。
+- `Readable.toWeb()` 在无人读取时会预拉 **2 个 chunk**。
+- `net.Socket` 默认读写水标均为 16384。
