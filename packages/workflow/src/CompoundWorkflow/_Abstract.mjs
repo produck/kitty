@@ -92,6 +92,7 @@ class CompoundWorkflow extends Workflow.Abstract {
     queueMicrotask(() => (expired = true));
 
     function consumeBy(context, server) {
+      // TODO dead
       if (context !== deployer) {
         Ow.Error.Common('Must consume through its deployer.');
       }

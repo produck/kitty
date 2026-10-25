@@ -298,7 +298,7 @@ what the deployment needs; the instance owns the deployment state.
 
 | Member                        | Level              | Meaning                                                  |
 | ----------------------------- | ------------------ | -------------------------------------------------------- |
-| `_S.NAME`                     | static, abstract   | Logical deployer name                                    |
+| `_S.TAG`                      | static, abstract   | Logical deployer tag                                     |
 | `_S.SERVER_CTOR`              | static, abstract   | Targeted `net.Server` subclass; also the registry key    |
 | `_S.EXCHANGE_CTOR.HTTP`       | static, abstract   | HTTP exchange class; required                            |
 | `_S.EXCHANGE_CTOR.WEB_SOCKET` | static, abstract   | WebSocket exchange class, or `undefined`; optional       |
@@ -370,14 +370,14 @@ All methods guard against post-compilation calls via an internal
 ```js
 registry.set(Constructor, {
   Exchange: Http1Exchange,
-  name: 'http',
+  tag: 'http',
   install(DeployerKit) {
     /* ... */
   },
 });
 ```
 
-`Exchange`, `install`, and `name` are stored. `manifest` and `link`
+`Exchange`, `install`, and `tag` are stored. `manifest` and `link`
 are produced at compile time by executing the `install` function
 against a `DeployerKit`.
 

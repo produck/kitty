@@ -20,6 +20,7 @@ export default class Deployment {
   [I.EXCHANGE_ATTACHER_LIST] = [];
 
   constructor(WorkflowKit, workflow, options) {
+    // TODO dead
     if (!Kit.isKit(WorkflowKit)) {
       ThrowTypeError('args[0] as WorkflowKit', 'Kit');
     }
@@ -52,6 +53,7 @@ export default class Deployment {
     return this[I.COMMITTED];
   }
 
+  // TODO dead
   get [$I.LINKED]() {
     return this[I.LINKED];
   }
@@ -113,6 +115,7 @@ export default class Deployment {
   }
 
   link() {
+    // TODO dead
     if (this[I.LINKED]) {
       Ow.Error.Common('Deployment has already been linked.');
     }

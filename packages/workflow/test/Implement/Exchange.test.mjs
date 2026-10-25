@@ -340,7 +340,7 @@ async function dispatchImplemented() {
   );
   let kit = null;
   const Deployer = Baseline.Kitty.Implement.Deployer({
-    name: 'implemented',
+    tag: 'implemented',
     server: ProbeServer,
     exchange: { http, webSocket },
     install: (port) => {

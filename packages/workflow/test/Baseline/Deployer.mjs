@@ -9,7 +9,7 @@ import WebSocketExchange from './WebSocketExchange.mjs';
 
 export function createDeployer(options = {}) {
   const {
-    name = 'baseline',
+    tag = 'baseline',
     declare = null,
     linkers = [],
     install = null,
@@ -23,12 +23,8 @@ export function createDeployer(options = {}) {
 
   const Deployer = SCP(
     class extends Abstract.Deployer {
-      static get name() {
-        return name;
-      }
-
-      static get [SYMBOL.DEPLOYER._S.NAME]() {
-        return name;
+      static get [SYMBOL.DEPLOYER._S.TAG]() {
+        return tag;
       }
 
       static get [SYMBOL.DEPLOYER._S.SERVER_CTOR]() {

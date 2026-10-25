@@ -5,15 +5,11 @@ import * as DEPLOYER from '../../CompoundWorkflow/Deployer/_Symbol.mjs';
 import Normalize from './Normalize.mjs';
 
 export function Deployer(_options) {
-  const { name, server, exchange, install } = Normalize(_options);
+  const { tag, server, exchange, install } = Normalize(_options);
 
   class ImplDeployer extends DeployerAbstract {
-    static get name() {
-      return name;
-    }
-
-    static get [DEPLOYER._S.NAME]() {
-      return name;
+    static get [DEPLOYER._S.TAG]() {
+      return tag;
     }
 
     static get [DEPLOYER._S.SERVER_CTOR]() {

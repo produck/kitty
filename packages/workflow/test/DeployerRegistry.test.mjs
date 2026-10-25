@@ -5,15 +5,11 @@ import { Abstract, SYMBOL } from '@produck/kitty-workflow';
 
 import * as Baseline from './Baseline/index.mjs';
 
-function createDeployerOn(Server, name) {
+function createDeployerOn(Server, tag) {
   return Baseline.SCP(
     class extends Abstract.Deployer {
-      static get name() {
-        return name;
-      }
-
-      static get [SYMBOL.DEPLOYER._S.NAME]() {
-        return name;
+      static get [SYMBOL.DEPLOYER._S.TAG]() {
+        return tag;
       }
 
       static get [SYMBOL.DEPLOYER._S.SERVER_CTOR]() {

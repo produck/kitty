@@ -11,7 +11,7 @@ const HTTP_EXCHANGE = Baseline.HttpExchange;
 
 function createOptions(patch = {}) {
   const options = {
-    name: 'probe',
+    tag: 'probe',
     server: class ProbeServer extends net.Server {},
     exchange: { http: HTTP_EXCHANGE },
     install: () => {},
@@ -27,9 +27,9 @@ describe('Deployer()', () => {
       assert.throws(() => Baseline.Kitty.Implement.Deployer('probe'));
     });
 
-    it('should require the name option', () => {
+    it('should require the tag option', () => {
       assert.throws(() =>
-        Baseline.Kitty.Implement.Deployer(createOptions({ name: undefined })),
+        Baseline.Kitty.Implement.Deployer(createOptions({ tag: undefined })),
       );
     });
 
@@ -75,11 +75,11 @@ describe('Deployer()', () => {
       assert.ok(Deployer.prototype instanceof Abstract.Deployer);
     });
 
-    it('should expose the name through both the getter and the slot', () => {
+    it('should expose the tag through both the getter and the slot', () => {
       const Deployer = Baseline.Kitty.Implement.Deployer(createOptions());
 
-      assert.equal(Deployer.name, 'probe');
-      assert.equal(Deployer[SYMBOL.DEPLOYER._S.NAME], 'probe');
+      assert.equal(Deployer.tag, 'probe');
+      assert.equal(Deployer[SYMBOL.DEPLOYER._S.TAG], 'probe');
     });
 
     it('should expose the server constructor through the static slot', () => {

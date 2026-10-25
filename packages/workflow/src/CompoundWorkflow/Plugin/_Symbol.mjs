@@ -34,8 +34,8 @@ export const _I = deepFreeze({
   INSTALL: _I_INSTALL,
 });
 
-const _S_NAME = Symbol('._name');
+const _S_TAG = Symbol('._tag');
 
 export const _S = deepFreeze({
-  NAME: _S_NAME,
+  TAG: _S_TAG,
 });

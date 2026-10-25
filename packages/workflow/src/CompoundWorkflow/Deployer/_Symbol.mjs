@@ -10,7 +10,6 @@ const I_ATTACH_HANDLER_HTTP = Symbol('.#attachHttpHandler()');
 const I_ATTACH_HANDLER_WEB_SOCKET = Symbol('.#attachWebSocketHandler()');
 const I_ASSERT_NOT_COMMITTED = Symbol('.#assertNotCommitted()');
 
-const $I_KIT = Symbol('.$kit');
 const $I_INSTALL = Symbol('.$install()');
 
 const _I_INSTALL = Symbol('._install()');
@@ -34,7 +33,6 @@ export const I = deepFreeze({
 });
 
 export const $I = deepFreeze({
-  KIT: $I_KIT,
   INSTALL: $I_INSTALL,
 });
 
@@ -42,13 +40,13 @@ export const _I = deepFreeze({
   INSTALL: _I_INSTALL,
 });
 
-const _S_NAME = Symbol('._name');
+const _S_TAG = Symbol('._tag');
 const _S_SERVER_CTOR = Symbol('._serverCtor');
 const _S_HTTP_EXCHANGE_CTOR = Symbol('._httpExchangeCtor');
 const _S_WEB_SOCKET_EXCHANGE_CTOR = Symbol('._webSocketExchangeCtor');
 
 export const _S = deepFreeze({
-  NAME: _S_NAME,
+  TAG: _S_TAG,
   SERVER_CTOR: _S_SERVER_CTOR,
   EXCHANGE_CTOR: {
     HTTP: _S_HTTP_EXCHANGE_CTOR,

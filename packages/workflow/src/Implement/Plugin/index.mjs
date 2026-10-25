@@ -5,15 +5,11 @@ import * as PLUGIN from '../../CompoundWorkflow/Plugin/_Symbol.mjs';
 import Normalize from './Normalize.mjs';
 
 export function Plugin(_options) {
-  const { name, install } = Normalize(_options);
+  const { tag, install } = Normalize(_options);
 
   class ImplPlugin extends PluginAbstract {
-    static get name() {
-      return name;
-    }
-
-    static get [PLUGIN._S.NAME]() {
-      return name;
+    static get [PLUGIN._S.TAG]() {
+      return tag;
     }
 
     [PLUGIN._I.INSTALL](kit) {

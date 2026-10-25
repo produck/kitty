@@ -6,6 +6,7 @@ export function ThrowDeployer(message, options) {
   Ow.Error.Common(`${DEPLOYER_ERROR_PREFIX} ${message}`, options);
 }
 
+// TODO dead
 export function DeployerGuard({ message, member }) {
   const finalName = `deployer$${member.description}`;
 

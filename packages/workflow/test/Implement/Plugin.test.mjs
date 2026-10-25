@@ -10,35 +10,35 @@ describe('Plugin()', () => {
     it('should reject options that are not a plain object', () => {
       assert.throws(() => Baseline.Kitty.Implement.Plugin('probe'));
     });
-    it('should require the name option', () => {
+    it('should require the tag option', () => {
       assert.throws(() =>
-        Baseline.Kitty.Implement.Plugin({ name: undefined, install: () => {} }),
+        Baseline.Kitty.Implement.Plugin({ tag: undefined, install: () => {} }),
       );
     });
 
     it('should require the install option', () => {
-      assert.throws(() => Baseline.Kitty.Implement.Plugin({ name: 'probe' }));
+      assert.throws(() => Baseline.Kitty.Implement.Plugin({ tag: 'probe' }));
     });
   });
 
   describe('>class', () => {
     it('should derive from the plugin abstraction', () => {
       const Plugin = Baseline.Kitty.Implement.Plugin({
-        name: 'probe',
+        tag: 'probe',
         install: () => {},
       });
 
       assert.ok(Plugin.prototype instanceof Abstract.Plugin);
     });
 
-    it('should expose the name through both the getter and the slot', () => {
+    it('should expose the tag through both the getter and the slot', () => {
       const Plugin = Baseline.Kitty.Implement.Plugin({
-        name: 'probe',
+        tag: 'probe',
         install: () => {},
       });
 
-      assert.equal(Plugin.name, 'probe');
-      assert.equal(Plugin[SYMBOL.PLUGIN._S.NAME], 'probe');
+      assert.equal(Plugin.tag, 'probe');
+      assert.equal(Plugin[SYMBOL.PLUGIN._S.TAG], 'probe');
     });
   });
 
@@ -47,7 +47,7 @@ describe('Plugin()', () => {
       const seen = [];
       const workflow = Baseline.createWorkflow();
       const Plugin = Baseline.Kitty.Implement.Plugin({
-        name: 'probe',
+        tag: 'probe',
         install: (kit) => seen.push(kit),
       });
 

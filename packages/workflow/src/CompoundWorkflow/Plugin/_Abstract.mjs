@@ -7,8 +7,8 @@ import { _A, WORKFLOW } from './_Borrow.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 
 class Plugin {
-  static get name() {
-    return this[_S.NAME];
+  static get tag() {
+    return this[_S.TAG];
   }
 
   constructor(WorkflowKit, workflow) {
@@ -24,10 +24,12 @@ class Plugin {
     this[I.ATTACH.PREFIX_HANDLER]();
   }
 
+  // TODO dead
   get [$I.KIT]() {
     return this[I.KIT];
   }
 
+  // TODO dead
   get [$I.WORKFLOW]() {
     return this[I.WORKFLOW];
   }
@@ -77,6 +79,6 @@ export default Abstract(
     [_I.INSTALL]: M.Method().args(P.Kit),
   }),
   Abstract.Static({
-    [_S.NAME]: M.String,
+    [_S.TAG]: M.String,
   }),
 );

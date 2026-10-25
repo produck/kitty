@@ -83,19 +83,19 @@ materials may happen before the class is chosen.
    capture the server and handler references via closure during install,
    so no arguments are needed.
 
-The registry entry stores both a logical deployer name and the deployer
+The registry entry stores both a logical deployer tag and the deployer
 function:
 
 ```js
 {
-  name,
+  tag,
   install,
 }
 ```
 
-The logical deployer name is not the same concept as
+The logical deployer tag is not the same concept as
 `server.constructor.name`. The constructor name describes the server
-implementation class; the deployer name describes the protocol bridge.
+implementation class; the deployer tag describes the protocol bridge.
 
 ## Compile
 

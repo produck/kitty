@@ -10,7 +10,7 @@ function runInstall(install) {
   const result = { error: null, workflow };
 
   try {
-    workflow.mixin(Baseline.createPlugin({ name: 'probe', install }));
+    workflow.mixin(Baseline.createPlugin({ tag: 'probe', install }));
     workflow.finalize();
   } catch (error) {
     result.error = error;
@@ -20,14 +20,14 @@ function runInstall(install) {
 }
 
 describe('Plugin', () => {
-  describe('::name', () => {
-    it('should return the configured name', () => {
+  describe('::tag', () => {
+    it('should return the configured tag', () => {
       const Plugin = Baseline.createPlugin({
-        name: 'probe',
+        tag: 'probe',
         install: () => {},
       });
 
-      assert.equal(Plugin.name, 'probe');
+      assert.equal(Plugin.tag, 'probe');
     });
   });
 
@@ -88,7 +88,7 @@ describe('Plugin', () => {
 
       workflow.mixin(
         Baseline.createPlugin({
-          name: 'probe',
+          tag: 'probe',
           install: (kit) => {
             kit.appendDeploymentAttacher((DeploymentKit) =>
               seen.push(DeploymentKit),
@@ -121,7 +121,7 @@ describe('Plugin', () => {
 
       workflow.mixin(
         Baseline.createPlugin({
-          name: 'probe',
+          tag: 'probe',
           install: (kit) => {
             kit.appendExchangeAttacher((ExchangeKit) => seen.push(ExchangeKit));
           },
@@ -156,7 +156,7 @@ describe('Plugin', () => {
       });
       workflow.mixin(
         Baseline.createPlugin({
-          name: 'probe',
+          tag: 'probe',
           install: (kit) => {
             kit.appendPrefixHandler((_ctx, next) => {
               order.push('prefix');

@@ -26,6 +26,7 @@ export function HTTPStatusCode(value) {
 }
 
 export function Iterable(value) {
+  // TODO dead
   if (value == null || typeof value[Symbol.iterator] !== 'function') {
     ThrowTypeError('member', 'iterable');
   }
@@ -48,6 +49,7 @@ const MODES = Object.freeze(['http', 'websocket']);
 const MODES_TAG = MODES.map((v) => `'${v}'`).join(' | ');
 
 export function ExchangeMode(value) {
+  // TODO dead
   if (typeof value !== 'string' || !MODES.includes(value)) {
     ThrowTypeError('member', `an exchange mode (${MODES_TAG})`);
   }

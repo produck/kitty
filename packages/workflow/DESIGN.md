@@ -897,7 +897,7 @@ member-level API requirements:
 - **Workflow**: The composed handler pipeline, produced by
   `Composer.compose()`.
 - **Deployer**: A mapping between a server constructor and its
-  deployer entry `{ name, install }`. Works only on the deployment-level
+  deployer entry `{ tag, install }`. Works only on the deployment-level
   kit (`Kitty<Deployment>`); has no effect on the Workflow-level kit.
 - **Kit Recipe**: Describes dependencies to install into a kit.
   Deployer functions may still use recipes, but registry deployers are

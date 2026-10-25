@@ -6,14 +6,14 @@ export default function normalizePlugin(_options) {
     ThrowTypeError('args[0]', 'plain object');
   }
 
-  const { name: _name, install: _install } = _options;
+  const { tag: _tag, install: _install } = _options;
 
   const options = {};
 
-  if (typeof _name === 'string' && _name.length > 0) {
-    options.name = _name;
+  if (typeof _tag === 'string' && _tag.length > 0) {
+    options.tag = _tag;
   } else {
-    ThrowTypeError('args[0].name', 'non-empty string');
+    ThrowTypeError('args[0].tag', 'non-empty string');
   }
 
   if (typeof _install === 'function') {

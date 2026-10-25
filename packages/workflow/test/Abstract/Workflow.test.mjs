@@ -78,7 +78,7 @@ describe('Workflow', () => {
     it('should reject after finalization', () => {
       const workflow = Baseline.createWorkflow();
       const Plugin = Baseline.Kitty.Implement.Plugin({
-        name: 'probe',
+        tag: 'probe',
         install: () => {},
       });
 
@@ -238,7 +238,7 @@ describe('Workflow', () => {
       const fixture = Baseline.createDeployer();
       const workflow = Baseline.createWorkflow();
       const Plugin = Baseline.Kitty.Implement.Plugin({
-        name: 'probe',
+        tag: 'probe',
         install: () => {},
       });
 

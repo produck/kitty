@@ -12,7 +12,7 @@ class MinimalServer extends net.Server {}
 function createMinimalDeployer() {
   return Baseline.SCP(
     class extends Abstract.Deployer {
-      static get [SYMBOL.DEPLOYER._S.NAME]() {
+      static get [SYMBOL.DEPLOYER._S.TAG]() {
         return 'minimal';
       }
 
@@ -32,7 +32,7 @@ function createMinimalDeployer() {
 function createInvalidWebSocketDeployer() {
   return Baseline.SCP(
     class extends Abstract.Deployer {
-      static get [SYMBOL.DEPLOYER._S.NAME]() {
+      static get [SYMBOL.DEPLOYER._S.TAG]() {
         return 'invalid-web-socket';
       }
 
@@ -75,11 +75,11 @@ async function run(hook) {
 }
 
 describe('Deployer', () => {
-  describe('::name', () => {
-    it('should return the configured name', () => {
-      const { Deployer } = Baseline.createDeployer({ name: 'probe' });
+  describe('::tag', () => {
+    it('should return the configured tag', () => {
+      const { Deployer } = Baseline.createDeployer({ tag: 'probe' });
 
-      assert.equal(Deployer.name, 'probe');
+      assert.equal(Deployer.tag, 'probe');
     });
   });
 

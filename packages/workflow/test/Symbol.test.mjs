@@ -76,18 +76,18 @@ describe('SYMBOL', () => {
       ]);
       assert.deepEqual(Object.keys(Baseline.Kitty.SYMBOL.DEPLOYER._S).sort(), [
         'EXCHANGE_CTOR',
-        'NAME',
         'SERVER_CTOR',
+        'TAG',
       ]);
     });
   });
 
   describe('::PLUGIN', () => {
-    it('should expose the install slot and the name slot', () => {
+    it('should expose the install slot and the tag slot', () => {
       assert.deepEqual(Object.keys(Baseline.Kitty.SYMBOL.PLUGIN._I), [
         'INSTALL',
       ]);
-      assert.deepEqual(Object.keys(Baseline.Kitty.SYMBOL.PLUGIN._S), ['NAME']);
+      assert.deepEqual(Object.keys(Baseline.Kitty.SYMBOL.PLUGIN._S), ['TAG']);
     });
   });
 });

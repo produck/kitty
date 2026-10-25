@@ -209,7 +209,7 @@
   `Implement/Exchange/` 与 `Workflow`、`CompoundWorkflow` 平级，因为它不依赖 Deployer、 只依赖
   协议族。
 - 静态抽象（派生用 `static get`）：
-  - `_S.NAME`（`M.String`）：部署器名字。
+  - `_S.TAG`（`M.String`）：部署器标签。
   - `_S.SERVER_CTOR`（`SubConstructorOf(net.Server)`）：注册表的键。
   - `_S.EXCHANGE_CTOR.HTTP`：**必选**，`M_Sub(HttpExchange.Abstract)`。基类不给默认
     值，所以缺了就是抽象层的 `must be implemented`，核心不另做存在性检查。

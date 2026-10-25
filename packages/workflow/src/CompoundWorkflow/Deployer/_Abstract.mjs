@@ -30,8 +30,8 @@ function M_SubWebSocketExchangeOrUndefined(value) {
 }
 
 class Deployer {
-  static get name() {
-    return this[_S.NAME];
+  static get tag() {
+    return this[_S.TAG];
   }
 
   static get [_S.EXCHANGE_CTOR.WEB_SOCKET]() {
@@ -52,10 +52,6 @@ class Deployer {
     this[I.ATTACH.DEPLOYMENT]();
     this[I.ATTACH.HANDLER.HTTP]();
     this[I.ATTACH.HANDLER.WEB_SOCKET]();
-  }
-
-  get [$I.KIT]() {
-    return this[I.KIT];
   }
 
   [I.ATTACH.MANIFEST]() {
@@ -144,7 +140,7 @@ export default Abstract(
     [_I.INSTALL]: M.Method().args(P.Kit),
   }),
   Abstract.Static({
-    [_S.NAME]: M.String,
+    [_S.TAG]: M.String,
     [_S.SERVER_CTOR]: M_Sub(net.Server),
     [_S.EXCHANGE_CTOR.HTTP]: M_Sub(HttpExchange.Abstract),
     [_S.EXCHANGE_CTOR.WEB_SOCKET]: M_SubWebSocketExchangeOrUndefined,
