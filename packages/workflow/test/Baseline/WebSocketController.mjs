@@ -1,11 +1,18 @@
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
-import { Abstract, SYMBOL } from '@produck/kitty-workflow';
+import {
+  Abstract,
+  SYMBOL,
+  WebSocketControllerEvent,
+} from '@produck/kitty-workflow';
 
 export default SCP(
   class WebSocketController extends Abstract.WebSocketController {
     [SYMBOL.WEB_SOCKET_CONTROLLER._I.READY_STATE.GET](internal) {
-      return internal.socket.readyState;
+      const { readyState = WebSocketControllerEvent.READY_STATE.OPEN } =
+        internal.socket;
+
+      return readyState;
     }
 
     [SYMBOL.WEB_SOCKET_CONTROLLER._I.SEND](internal, data) {
@@ -14,6 +21,8 @@ export default SCP(
 
     [SYMBOL.WEB_SOCKET_CONTROLLER._I.CLOSE](internal, code, reason) {
       internal.socket.closed = { code, reason };
+
+      this.dispatchEvent(new WebSocketControllerEvent.Close(code, reason));
     }
   },
 );

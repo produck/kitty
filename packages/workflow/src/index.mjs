@@ -102,6 +102,7 @@ export const SYMBOL = deepFreeze({
 });
 
 export const DeployerRegistry = _Deployer.Registry;
+export * as WebSocketControllerEvent from './CompoundWorkflow/WebSocketExchange/Controller/Event.mjs';
 export * from './Capability.mjs';
 export * as Implement from './Implement/index.mjs';
 export const { Tune, Get } = _CompoundWorkflow.Configuration;

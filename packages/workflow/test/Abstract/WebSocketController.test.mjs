@@ -49,5 +49,27 @@ describe('WebSocketController', () => {
 
       assert.deepEqual(socket.closed, { code: 1000, reason: 'done' });
     });
+
+    it('should dispatch the close event', async () => {
+      const { state } = await dispatchWithSocket();
+      const received = [];
+
+      state.exchange.controller.addEventListener('close', (event) => {
+        received.push(event);
+      });
+      state.exchange.controller.close(1000, 'done');
+
+      assert.equal(received.length, 1);
+
+      const [event] = received;
+
+      assert.ok(event instanceof Baseline.Kitty.WebSocketControllerEvent.Close);
+      assert.equal(
+        event.type,
+        Baseline.Kitty.WebSocketControllerEvent.TYPE.CLOSE,
+      );
+      assert.equal(event.code, 1000);
+      assert.equal(event.reason, 'done');
+    });
   });
 });
