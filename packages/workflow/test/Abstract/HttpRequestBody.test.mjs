@@ -3,6 +3,8 @@ import { Readable } from 'node:stream';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import * as Fugue from '@produck/fugue';
+
 import * as Baseline from '../Baseline/index.mjs';
 
 const BODY_TYPES = [
@@ -165,6 +167,23 @@ describe('HttpRequestBody', () => {
       await drain(state.request.body.data);
 
       assert.equal(state.internal.status, 413);
+    });
+  });
+
+  describe('>metric', () => {
+    it('should ignore a metric outside the source consumption code', async () => {
+      const state = await Baseline.dispatch({
+        internal: { method: 'POST', body: new OpenSource() },
+        config: { MaxBodySize: 1 },
+        setup: recordBodyEvents,
+      });
+      const { distributor } = state.request.body;
+
+      distributor.dispatchEvent(new Fugue.Event.Metric('probe-metric', 1024));
+
+      assert.deepEqual(bodyEvents(state), []);
+      assert.equal(distributor.terminated, false);
+      assert.equal(state.internal.status, 200);
     });
   });
 });

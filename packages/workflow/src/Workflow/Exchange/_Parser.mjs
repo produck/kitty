@@ -26,7 +26,6 @@ export function HTTPStatusCode(value) {
 }
 
 export function Iterable(value) {
-  // TODO dead
   if (value == null || typeof value[Symbol.iterator] !== 'function') {
     ThrowTypeError('member', 'iterable');
   }
@@ -40,18 +39,6 @@ const PROTOCOLS_TAG = PROTOCOLS.map((v) => `'${v}'`).join(' | ');
 export function ServerProtocol(value) {
   if (typeof value !== 'string' || !PROTOCOLS.includes(value)) {
     ThrowTypeError('member', `a server protocol (${PROTOCOLS_TAG})`);
-  }
-
-  return value;
-}
-
-const MODES = Object.freeze(['http', 'websocket']);
-const MODES_TAG = MODES.map((v) => `'${v}'`).join(' | ');
-
-export function ExchangeMode(value) {
-  // TODO dead
-  if (typeof value !== 'string' || !MODES.includes(value)) {
-    ThrowTypeError('member', `an exchange mode (${MODES_TAG})`);
   }
 
   return value;

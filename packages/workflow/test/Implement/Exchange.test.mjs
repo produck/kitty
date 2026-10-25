@@ -328,13 +328,17 @@ function createWebSocketAccessors(state) {
   };
 }
 
-async function dispatchImplemented() {
+async function dispatchImplemented(patchHttpAccessors = null) {
   class ProbeServer extends net.Server {}
 
   const state = createState(ProbeServer);
-  const http = Baseline.Kitty.Implement.Exchange.Http(
-    createHttpAccessors(state),
-  );
+  const httpAccessors = createHttpAccessors(state);
+
+  if (patchHttpAccessors !== null) {
+    patchHttpAccessors(httpAccessors);
+  }
+
+  const http = Baseline.Kitty.Implement.Exchange.Http(httpAccessors);
   const webSocket = Baseline.Kitty.Implement.Exchange.WebSocket(
     createWebSocketAccessors(state),
   );
@@ -436,6 +440,18 @@ describe('implemented exchange', () => {
       state.finished = true;
 
       assert.equal(state.exchange.response.isFinished, true);
+    });
+
+    it('should reject a header key list that is not iterable', async () => {
+      const { kit, state } = await dispatchImplemented((accessors) => {
+        accessors.request.header.keys = () => 1;
+        accessors.response.header.keys = () => 1;
+      });
+
+      await kit.handleHttpExchange({});
+
+      assert.throws(() => state.exchange.request.header.keys());
+      assert.throws(() => state.exchange.response.header.keys());
     });
   });
 

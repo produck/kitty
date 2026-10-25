@@ -116,7 +116,7 @@ export default Abstract(
   Exchange,
   Abstract({
     [_I.HTTP_VERSION]: M.Method().args(M.Any).returns(P.HttpVersion),
-    [_I.MODE]: M.Method().args(M.Any).returns(P.ExchangeMode),
+    [_I.MODE]: M.Method().args(M.Any).returns(M.String),
     [_I.SERVER.GET]: M.Method().args(M.Any).returns(M.Instance(net.Server)),
     [_I.SERVER.PROTOCOL.GET]: M.Method().args(M.Any).returns(P.ServerProtocol),
   }),

@@ -263,8 +263,8 @@
 ### Adapter → Deployer 更名
 
 抽象层的内涵是"对**部署阶段**的适配"，不是对协议的适配；叫 Adapter 会让人以为它适
-配连接或消息。更名覆盖目录、`DeployerKit`、`registerDeployer`、`ThrowDeployer` /
-`DeployerGuard`、包出口。
+适配连接或消息。更名覆盖目录、`DeployerKit`、`registerDeployer`、`ThrowDeployer`、
+包出口。
 
 ### Implement/Exchange
 

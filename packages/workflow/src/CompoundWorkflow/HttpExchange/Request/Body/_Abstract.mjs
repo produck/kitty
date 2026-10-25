@@ -50,7 +50,6 @@ class HttpRequestBody extends Workflow.Exchange.Part.Concrete {
     distributor.addEventListener('metric', (event) => {
       const { code, delta } = event.detail;
 
-      // TODO dead
       if (distributor.terminated || code !== 'source-consumed-byte-length') {
         return;
       }

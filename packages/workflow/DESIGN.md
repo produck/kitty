@@ -624,9 +624,9 @@ Goal:
 
 After `exchange.isFinished` is true, any further writes through
 `response.body.data` setter or `setStatus()` must be rejected.
-This guard is enforced at the Exchange layer via `Guard` delegates
-— Deployer-origin errors are unified under `[DeployerImplementationError]`
-with `DeployerGuard`.
+This requirement is checked at the write site of each exchange part;
+implementation-side failures are reported through `ThrowDeployer`, which
+prefixes them with `[DeployerImplementationError]`.
 
 Handler execution timeout is configurable via `Configuration.Tune.MaxExchangeTimeout(workflow, milliseconds)`.
 The timeout is armed at Exchange construction against the `close` event
@@ -917,8 +917,6 @@ member-level API requirements:
   workflow identity through a private `WeakMap`.
 - **EventTarget**: Platform primitive. `KittyExchange` extends it to
   dispatch lifecycle events (`close`, `timeout`, etc.).
-- **Guard**: Module-level delegate Record that wraps `_I` abstraction
-  access through `DeployerGuard` for error-domain unification.
 
 ## Open Design Questions
 

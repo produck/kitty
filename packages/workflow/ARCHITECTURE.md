@@ -438,9 +438,9 @@ Response concepts    → KittyExchangeResponse
 
 1. **Abstract proxy**: Parser guards (e.g. `P.HTTPStatusCode`) validate
    types at construction time via `es-abstract`.
-2. **Deployer error guard**: `Guard` delegates wrap every `_I` delegation
-   through `DeployerGuard({ message, member })`. Deployer-origin exceptions
-   are rethrown with `[DeployerImplementationError]` prefix.
+2. **Deployer error domain**: Failures raised on the implementation side go
+   through `ThrowDeployer(message, options)`, which prefixes the message with
+   `[DeployerImplementationError]` and forwards `{ cause }`.
 3. **Public method self-check**: Runtime type assertions
    (`Assert.HeaderName`, `Assert.HeaderValue`, `Assert.HTTPStatusCode`)
    on method arguments independent of the Abstract proxy.
