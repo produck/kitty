@@ -13,6 +13,7 @@ const PIPELINE_TYPES = [
   'exchange-pipeline-done',
   'exchange-pipeline-error',
   'exchange-pipeline-finish',
+  'http-exchange-timeout',
 ];
 
 export async function dispatch(options = {}) {
@@ -24,6 +25,7 @@ export async function dispatch(options = {}) {
     handler = null,
     timeout = 500,
     config = {},
+    normalize = undefined,
   } = options;
 
   const state = {
@@ -65,7 +67,7 @@ export async function dispatch(options = {}) {
     },
   });
 
-  const workflow = createWorkflow();
+  const workflow = createWorkflow(normalize === undefined ? {} : { normalize });
 
   Tune.MaxExchangeTimeout(workflow, timeout);
 
