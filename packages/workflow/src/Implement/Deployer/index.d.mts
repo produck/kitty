@@ -1,4 +1,3 @@
-import type * as Kit from '@produck/kit';
 import type * as net from 'node:net';
 
 import type * as DeployerSubject from '../../CompoundWorkflow/Deployer/index.d.mts';
@@ -26,7 +25,7 @@ export interface Options {
    *
    * @param deployerKit - Kit the deployer writes its definitions into.
    */
-  install(deployerKit: Kit.KitProvider): void;
+  install(deployerKit: DeployerSubject.DeployerKit): void;
 }
 
 /**

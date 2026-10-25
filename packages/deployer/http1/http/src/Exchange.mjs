@@ -2,9 +2,9 @@ import { Readable } from 'node:stream';
 
 import { Implement } from '@produck/kitty-workflow';
 
-const PROTOCOL = 'http:';
+import { markWritten } from './_patch.mjs';
 
-export const WRITING = new WeakSet();
+const PROTOCOL = 'http:';
 
 function toHeaderValue(value) {
   return value === undefined ? undefined : String(value);
@@ -75,16 +75,14 @@ export default Implement.Exchange.Http({
         set: function writeBody({ internal }, { stream, length }) {
           const { res } = internal;
 
-          WRITING.add(res);
+          markWritten(res);
 
           if (length !== null) {
             res.setHeader('content-length', length);
           }
 
           if (stream === null) {
-            res.end();
-
-            return;
+            return void res.end();
           }
 
           Readable.fromWeb(stream).pipe(res);

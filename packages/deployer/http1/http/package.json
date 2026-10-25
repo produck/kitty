@@ -4,7 +4,6 @@
     "url": "https://github.com/produck/kitty/issues"
   },
   "dependencies": {
-    "@produck/es-abstract": "^0.4.2",
     "@produck/kitty-workflow": "*"
   },
   "description": "HTTP/1.x deployer over a plaintext node:http server.",

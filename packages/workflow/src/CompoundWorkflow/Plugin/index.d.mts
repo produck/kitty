@@ -3,6 +3,25 @@ import type * as Kit from '@produck/kit';
 import type * as Workflow from '../index.d.mts';
 import type * as _Symbol from './_Symbol.d.mts';
 
+/** Kit the plugin attaches its capabilities through. */
+export interface PluginKit extends Kit.KitProvider {
+  /** Attaches a named value to the workflow kit, before finalize. */
+  attachWorkflow(name: string, value: unknown): void;
+
+  /** Registers an attacher invoked with each DeploymentKit. */
+  appendDeploymentAttacher(
+    attacher: (DeploymentKit: Kit.KitProvider) => void,
+  ): void;
+
+  /** Registers an attacher invoked with each ExchangeKit at request time. */
+  appendExchangeAttacher(
+    attacher: (ExchangeKit: Kit.KitProvider) => void,
+  ): void;
+
+  /** Prepends handlers to the pipeline. */
+  appendPrefixHandler(...handlerList: Workflow.Handler[]): void;
+}
+
 /**
  * Plugin: attaches capabilities (dependencies, attachments, prefix handlers) to
  * the workflow kit before finalize.
@@ -25,7 +44,7 @@ declare abstract class Plugin {
    *
    * @param workflowKit - Kit the plugin attaches capabilities to.
    */
-  [_Symbol._I.INSTALL](workflowKit: Kit.KitProvider): void;
+  [_Symbol._I.INSTALL](workflowKit: PluginKit): void;
 }
 
 /** Shape of a plugin class, used by `mixin()`. */

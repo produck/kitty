@@ -1,5 +1,3 @@
-import type * as Kit from '@produck/kit';
-
 import type * as PluginSubject from '../../CompoundWorkflow/Plugin/index.d.mts';
 
 /** Plugin implementation options. */
@@ -12,7 +10,7 @@ export interface Options {
    *
    * @param workflowKit - Kit the plugin attaches capabilities to.
    */
-  install(workflowKit: Kit.KitProvider): void;
+  install(workflowKit: PluginSubject.PluginKit): void;
 }
 
 /**
