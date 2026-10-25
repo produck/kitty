@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Abstract, SYMBOL } from '@produck/kitty-workflow';
+
 import * as Baseline from '../Baseline/index.mjs';
 
 describe('Plugin()', () => {
   describe('contract', () => {
+    it('should reject options that are not a plain object', () => {
+      assert.throws(() => Baseline.Kitty.Implement.Plugin('probe'));
+    });
     it('should require the name option', () => {
       assert.throws(() =>
         Baseline.Kitty.Implement.Plugin({ name: undefined, install: () => {} }),
@@ -23,7 +28,7 @@ describe('Plugin()', () => {
         install: () => {},
       });
 
-      assert.ok(Plugin.prototype instanceof Baseline.Kitty.Abstract.Plugin);
+      assert.ok(Plugin.prototype instanceof Abstract.Plugin);
     });
 
     it('should expose the name through both the getter and the slot', () => {
@@ -33,7 +38,7 @@ describe('Plugin()', () => {
       });
 
       assert.equal(Plugin.name, 'probe');
-      assert.equal(Plugin[Baseline.Kitty.SYMBOL.PLUGIN._S.NAME], 'probe');
+      assert.equal(Plugin[SYMBOL.PLUGIN._S.NAME], 'probe');
     });
   });
 

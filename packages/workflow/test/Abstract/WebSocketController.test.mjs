@@ -23,6 +23,14 @@ describe('WebSocketController', () => {
 
       assert.equal(state.exchange.controller.readyState, 3);
     });
+
+    it('should reject a ready state outside the WebSocket states', async () => {
+      const { state, socket } = await dispatchWithSocket();
+
+      socket.readyState = 9;
+
+      assert.throws(() => state.exchange.controller.readyState);
+    });
   });
 
   describe('.send()', () => {

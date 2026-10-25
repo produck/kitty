@@ -39,5 +39,67 @@ describe('HttpResponseBody', () => {
         state.response.body.data = { stream: null, length: 0 };
       });
     });
+
+    it('should reject a normalizer result that is not a record', async () => {
+      const state = await Baseline.dispatch({ normalize: () => 'probe' });
+
+      assert.throws(() => {
+        state.response.body.data = { stream: null, length: 0 };
+      });
+    });
+
+    it('should reject a null stream with a non-zero length', async () => {
+      const state = await Baseline.dispatch({
+        normalize: () => ({ stream: null, length: 1 }),
+      });
+
+      assert.throws(() => {
+        state.response.body.data = { stream: null, length: 0 };
+      });
+    });
+
+    it('should reject a stream that is not a ReadableStream', async () => {
+      const state = await Baseline.dispatch({
+        normalize: () => ({ stream: 'probe', length: 0 }),
+      });
+
+      assert.throws(() => {
+        state.response.body.data = { stream: null, length: 0 };
+      });
+    });
+
+    it('should reject a locked stream', async () => {
+      const stream = new ReadableStream();
+
+      stream.getReader();
+
+      const state = await Baseline.dispatch({
+        normalize: () => ({ stream, length: 0 }),
+      });
+
+      assert.throws(() => {
+        state.response.body.data = { stream: null, length: 0 };
+      });
+    });
+
+    it('should reject a negative stream length', async () => {
+      const state = await Baseline.dispatch({
+        normalize: () => ({ stream: new ReadableStream(), length: -1 }),
+      });
+
+      assert.throws(() => {
+        state.response.body.data = { stream: null, length: 0 };
+      });
+    });
+
+    it('should reject a stream length that is not an integer', async () => {
+      const state = await Baseline.dispatch({
+        normalize: () => ({ stream: new ReadableStream(), length: 1.5 }),
+      });
+
+      assert.throws(() => {
+        state.response.body.data = { stream: null, length: 0 };
+      });
+    });
   });
 });

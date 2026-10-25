@@ -3,6 +3,8 @@ import * as net from 'node:net';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Abstract, SYMBOL } from '@produck/kitty-workflow';
+
 import * as Baseline from '../Baseline/index.mjs';
 
 const HTTP_EXCHANGE = Baseline.HttpExchange;
@@ -21,6 +23,10 @@ function createOptions(patch = {}) {
 
 describe('Deployer()', () => {
   describe('contract', () => {
+    it('should reject options that are not a plain object', () => {
+      assert.throws(() => Baseline.Kitty.Implement.Deployer('probe'));
+    });
+
     it('should require the name option', () => {
       assert.throws(() =>
         Baseline.Kitty.Implement.Deployer(createOptions({ name: undefined })),
@@ -46,35 +52,46 @@ describe('Deployer()', () => {
         ),
       );
     });
+
+    it('should reject an exchange record that is not a plain object', () => {
+      assert.throws(() =>
+        Baseline.Kitty.Implement.Deployer(createOptions({ exchange: null })),
+      );
+    });
+
+    it('should reject a web socket exchange outside the contract', () => {
+      assert.throws(() =>
+        Baseline.Kitty.Implement.Deployer(
+          createOptions({ exchange: { http: HTTP_EXCHANGE, webSocket: 1 } }),
+        ),
+      );
+    });
   });
 
   describe('>class', () => {
     it('should derive from the deployer abstraction', () => {
       const Deployer = Baseline.Kitty.Implement.Deployer(createOptions());
 
-      assert.ok(Deployer.prototype instanceof Baseline.Kitty.Abstract.Deployer);
+      assert.ok(Deployer.prototype instanceof Abstract.Deployer);
     });
 
     it('should expose the name through both the getter and the slot', () => {
       const Deployer = Baseline.Kitty.Implement.Deployer(createOptions());
 
       assert.equal(Deployer.name, 'probe');
-      assert.equal(Deployer[Baseline.Kitty.SYMBOL.DEPLOYER._S.NAME], 'probe');
+      assert.equal(Deployer[SYMBOL.DEPLOYER._S.NAME], 'probe');
     });
 
     it('should expose the server constructor through the static slot', () => {
       const options = createOptions();
       const Deployer = Baseline.Kitty.Implement.Deployer(options);
 
-      assert.equal(
-        Deployer[Baseline.Kitty.SYMBOL.DEPLOYER._S.SERVER_CTOR],
-        options.server,
-      );
+      assert.equal(Deployer[SYMBOL.DEPLOYER._S.SERVER_CTOR], options.server);
     });
 
     it('should expose the exchange constructors through the static slots', () => {
       const Deployer = Baseline.Kitty.Implement.Deployer(createOptions());
-      const slots = Baseline.Kitty.SYMBOL.DEPLOYER._S.EXCHANGE_CTOR;
+      const slots = SYMBOL.DEPLOYER._S.EXCHANGE_CTOR;
 
       assert.equal(Deployer[slots.HTTP], HTTP_EXCHANGE);
       assert.equal(Deployer[slots.WEB_SOCKET], undefined);

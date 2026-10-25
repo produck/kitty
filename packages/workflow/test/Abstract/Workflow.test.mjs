@@ -207,6 +207,30 @@ describe('Workflow', () => {
 
       await assert.rejects(() => handle.deploy(new fixture.Server()));
     });
+
+    it('should reject a server outside the deployer server contract', async () => {
+      const fixture = Baseline.createDeployer();
+      const workflow = Baseline.createWorkflow();
+
+      workflow.finalize();
+
+      const handle = workflow.withDeployer(fixture.Deployer);
+
+      await assert.rejects(() => handle.compile({}));
+    });
+
+    it('should reject a consumption after the current tick', async () => {
+      const fixture = Baseline.createDeployer();
+      const workflow = Baseline.createWorkflow();
+
+      workflow.finalize();
+
+      const handle = workflow.withDeployer(fixture.Deployer);
+
+      await Promise.resolve();
+
+      await assert.rejects(() => handle.compile(new fixture.Server()));
+    });
   });
 
   describe('integration', () => {

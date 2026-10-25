@@ -37,6 +37,12 @@ describe('ExchangeRequest', () => {
 
       assert.equal(state.request.url.href, 'http://baseline.test/probe');
     });
+
+    it('should reject a relative url without a host header', async () => {
+      const state = await Baseline.dispatch({ internal: { url: '/probe' } });
+
+      assert.throws(() => state.request.url);
+    });
   });
 
   describe('.header', () => {

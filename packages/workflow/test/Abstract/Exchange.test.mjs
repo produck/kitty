@@ -4,6 +4,14 @@ import { describe, it } from 'node:test';
 import * as Baseline from '../Baseline/index.mjs';
 
 describe('Exchange', () => {
+  describe('construction', () => {
+    it('should reject a deployment kit that is not a kit', () => {
+      assert.throws(
+        () => new Baseline.HttpExchange({}, null, { internal: {} }),
+      );
+    });
+  });
+
   describe('.method', () => {
     it('should forward the request method', async () => {
       const state = await Baseline.dispatch({ internal: { method: 'POST' } });
@@ -93,6 +101,14 @@ describe('Exchange', () => {
 
       assert.equal(state.exchange.protocol, 'https:');
     });
+
+    it('should reject a protocol outside the server protocols', async () => {
+      const state = await Baseline.dispatch({
+        internal: { protocol: 'ftp:' },
+      });
+
+      assert.throws(() => state.exchange.protocol);
+    });
   });
 
   describe('.mode', () => {
@@ -110,6 +126,22 @@ describe('Exchange', () => {
       });
 
       assert.equal(state.exchange.httpVersion, '2.0');
+    });
+
+    it('should read an absent http version as null', async () => {
+      const state = await Baseline.dispatch({
+        internal: { httpVersion: null },
+      });
+
+      assert.equal(state.exchange.httpVersion, null);
+    });
+
+    it('should reject a http version outside the known versions', async () => {
+      const state = await Baseline.dispatch({
+        internal: { httpVersion: '9.9' },
+      });
+
+      assert.throws(() => state.exchange.httpVersion);
     });
   });
 

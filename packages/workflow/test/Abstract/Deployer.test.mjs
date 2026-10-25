@@ -1,7 +1,57 @@
+import * as net from 'node:net';
+
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Abstract, SYMBOL } from '@produck/kitty-workflow';
+
 import * as Baseline from '../Baseline/index.mjs';
+
+class MinimalServer extends net.Server {}
+
+function createMinimalDeployer() {
+  return Baseline.SCP(
+    class extends Abstract.Deployer {
+      static get [SYMBOL.DEPLOYER._S.NAME]() {
+        return 'minimal';
+      }
+
+      static get [SYMBOL.DEPLOYER._S.SERVER_CTOR]() {
+        return MinimalServer;
+      }
+
+      static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.HTTP]() {
+        return Baseline.HttpExchange;
+      }
+
+      [SYMBOL.DEPLOYER._I.INSTALL]() {}
+    },
+  );
+}
+
+function createInvalidWebSocketDeployer() {
+  return Baseline.SCP(
+    class extends Abstract.Deployer {
+      static get [SYMBOL.DEPLOYER._S.NAME]() {
+        return 'invalid-web-socket';
+      }
+
+      static get [SYMBOL.DEPLOYER._S.SERVER_CTOR]() {
+        return class InvalidServer extends net.Server {};
+      }
+
+      static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.HTTP]() {
+        return Baseline.HttpExchange;
+      }
+
+      static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
+        return 1;
+      }
+
+      [SYMBOL.DEPLOYER._I.INSTALL]() {}
+    },
+  );
+}
 
 async function run(hook) {
   const errors = [];
@@ -169,6 +219,33 @@ describe('Deployer', () => {
       assert.throws(() => captured.setServerLinker(() => {}));
       assert.throws(() => captured.appendExchangeAttacher(() => {}));
       assert.throws(() => captured.attachDeployment('late', 1));
+    });
+  });
+
+  describe('construction', () => {
+    it('should reject a deployment kit that is not a kit', () => {
+      const Deployer = createMinimalDeployer();
+
+      assert.throws(() => new Deployer({}, {}));
+    });
+  });
+
+  describe('::[EXCHANGE_CTOR.WEB_SOCKET]', () => {
+    it('should default to undefined', () => {
+      const Deployer = createMinimalDeployer();
+
+      assert.equal(
+        Deployer[SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET],
+        undefined,
+      );
+    });
+
+    it('should reject a constructor outside the web socket contract', () => {
+      const Deployer = createInvalidWebSocketDeployer();
+
+      assert.throws(
+        () => Deployer[SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET],
+      );
     });
   });
 });

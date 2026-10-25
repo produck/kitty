@@ -4,9 +4,10 @@ import { Readable } from 'node:stream';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Abstract, SYMBOL } from '@produck/kitty-workflow';
+
 import * as Baseline from '../Baseline/index.mjs';
 
-const { Abstract, SYMBOL } = Baseline.Kitty;
 const noop = () => {};
 
 function createBaseOptions() {
@@ -423,6 +424,19 @@ describe('implemented exchange', () => {
       assert.equal(state.responseBody.length, 1);
       assert.equal(state.exchange.response.body.data.stream, stream);
     });
+
+    it('should drive the response read accessors', async () => {
+      const { kit, state } = await dispatchImplemented();
+
+      await kit.handleHttpExchange({});
+
+      assert.equal(state.exchange.response.header.get('x-absent'), undefined);
+      assert.equal(state.exchange.response.isFinished, false);
+
+      state.finished = true;
+
+      assert.equal(state.exchange.response.isFinished, true);
+    });
   });
 
   describe('>web socket', () => {
@@ -441,6 +455,8 @@ describe('implemented exchange', () => {
       assert.equal(state.exchange.httpVersion, state.httpVersion);
       assert.equal(state.exchange.response.isFinished, true);
       assert.equal(state.exchange.request.header.get('X-Probe'), 'yes');
+      assert.deepEqual(state.exchange.request.header.keys(), ['x-probe']);
+      assert.equal(state.exchange.response.header.get('x-absent'), undefined);
       assert.deepEqual(state.exchange.response.header.keys(), []);
     });
 

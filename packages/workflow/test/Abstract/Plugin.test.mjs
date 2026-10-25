@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { SYMBOL } from '@produck/kitty-workflow';
+
 import * as Baseline from '../Baseline/index.mjs';
 
 function runInstall(install) {
@@ -26,6 +28,23 @@ describe('Plugin', () => {
       });
 
       assert.equal(Plugin.name, 'probe');
+    });
+  });
+
+  describe('construction', () => {
+    it('should reject a workflow kit that is not a kit', () => {
+      const Plugin = Baseline.createPlugin();
+
+      assert.throws(() => new Plugin({}, Baseline.createWorkflow()));
+    });
+  });
+
+  describe('[INSTALL]', () => {
+    it('should reject an install argument that is not a kit', () => {
+      const Plugin = Baseline.createPlugin();
+      const plugin = new Plugin(Baseline.Kit.global, Baseline.createWorkflow());
+
+      assert.throws(() => plugin[SYMBOL.PLUGIN._I.INSTALL]({}));
     });
   });
 
