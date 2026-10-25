@@ -15,3 +15,6 @@ export declare const Exchange: Readonly<{
   /** Creates a WebSocket exchange class. */
   WebSocket: typeof import('./Exchange/index.d.mts').WebSocket;
 }>;
+
+/** Normalizes implementation options; mirrors the factories above. */
+export declare const Normalize: typeof import('./Normalize/index.d.mts');

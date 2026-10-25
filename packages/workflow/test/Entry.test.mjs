@@ -90,6 +90,7 @@ describe('package entry', () => {
       assert.deepEqual(Object.keys(Baseline.Kitty.Implement).sort(), [
         'Deployer',
         'Exchange',
+        'Normalize',
         'Plugin',
         'Workflow',
       ]);
@@ -97,6 +98,19 @@ describe('package entry', () => {
         'Http',
         'WebSocket',
       ]);
+    });
+
+    it('should expose the normalizer namespace', () => {
+      assert.deepEqual(Object.keys(Baseline.Kitty.Implement.Normalize).sort(), [
+        'Deployer',
+        'Exchange',
+        'Plugin',
+        'Workflow',
+      ]);
+      assert.deepEqual(
+        Object.keys(Baseline.Kitty.Implement.Normalize.Exchange).sort(),
+        ['Base', 'Http', 'WebSocket'],
+      );
     });
   });
 

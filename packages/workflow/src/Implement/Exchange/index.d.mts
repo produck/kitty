@@ -243,25 +243,7 @@ export interface WebSocketController {
 }
 
 /** Everything needed to build an HTTP exchange class. */
-export interface HttpOptions {
-  /** Identity source. */
-  identity: Identity;
-
-  /** Server accessors. */
-  server: Server;
-
-  /** HTTP version accessor. */
-  httpVersion: HttpVersion;
-
-  /** Request accessors. */
-  request: HttpRequest;
-
-  /** Writable response accessors. */
-  response: HttpResponse;
-}
-
-/** Everything needed to build a WebSocket exchange class. */
-export interface WebSocketOptions {
+export interface BaseOptions {
   /** Identity source. */
   identity: Identity;
 
@@ -273,7 +255,19 @@ export interface WebSocketOptions {
 
   /** Request accessors. */
   request: Request;
+}
 
+/** Everything needed to build an HTTP exchange class. */
+export interface HttpOptions extends BaseOptions {
+  /** Request accessors, including the body source. */
+  request: HttpRequest;
+
+  /** Writable response accessors. */
+  response: HttpResponse;
+}
+
+/** Everything needed to build a WebSocket exchange class. */
+export interface WebSocketOptions extends BaseOptions {
   /** Response accessors. */
   response: Response;
 
