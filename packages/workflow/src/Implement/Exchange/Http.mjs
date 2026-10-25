@@ -60,7 +60,7 @@ export function Http(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     [REQUEST_HEADER._I.GET](_internal, key) {
@@ -80,7 +80,7 @@ export function Http(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     [HTTP_REQUEST_BODY._I.SOURCE.GET](_internal) {
@@ -98,7 +98,7 @@ export function Http(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     [RESPONSE_HEADER._I.GET](_internal, key) {
@@ -126,7 +126,7 @@ export function Http(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     [HTTP_RESPONSE_BODY._I.DATA.SET](_internal, value) {
@@ -142,7 +142,7 @@ export function Http(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     static get [REQUEST._S.HEADER_CTOR]() {
@@ -170,7 +170,7 @@ export function Http(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     static get [RESPONSE._S.HEADER_CTOR]() {
@@ -210,7 +210,7 @@ export function Http(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     static get [EXCHANGE._S.REQUEST_CTOR]() {

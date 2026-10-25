@@ -49,7 +49,7 @@ export function WebSocket(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     [REQUEST_HEADER._I.GET](_internal, key) {
@@ -69,7 +69,7 @@ export function WebSocket(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     [RESPONSE_HEADER._I.GET](_internal, key) {
@@ -89,7 +89,7 @@ export function WebSocket(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     [CONTROLLER._I.READY_STATE.GET](_internal) {
@@ -113,7 +113,7 @@ export function WebSocket(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     static get [REQUEST._S.HEADER_CTOR]() {
@@ -137,7 +137,7 @@ export function WebSocket(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     static get [RESPONSE._S.HEADER_CTOR]() {
@@ -161,7 +161,7 @@ export function WebSocket(options) {
 
     constructor(...args) {
       super(...args);
-      Object.freeze(this);
+      Object.seal(this);
     }
 
     static get [EXCHANGE._S.REQUEST_CTOR]() {

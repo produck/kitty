@@ -18,9 +18,10 @@ class HttpResponseBody extends Workflow.Exchange.Part.Concrete {
 
   set data(value) {
     const result = this.workflow[_A.COMPOUND.A.$I.NORMALIZE_DATA](value);
+    const data = { stream: result.stream, length: result.length };
 
-    this[I.DATA] = { stream: result.stream, length: result.length };
-    this[_I.DATA.SET](this[PART.$I.INTERNAL], { ...this[I.DATA] });
+    this[I.DATA] = data;
+    this[_I.DATA.SET](this[PART.$I.INTERNAL], { ...data });
   }
 }
 
