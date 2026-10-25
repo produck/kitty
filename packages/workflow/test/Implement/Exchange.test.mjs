@@ -461,3 +461,104 @@ describe('implemented exchange', () => {
     });
   });
 });
+
+const HTTP_REJECTIONS = [
+  ['a non-object argument', 'root'],
+  ['a non-object identity', (o) => (o.identity = 'probe')],
+  ['an identity without get', (o) => (o.identity = {})],
+  ['a non-object server', (o) => (o.server = 'probe')],
+  ['a server without get', (o) => (o.server = {})],
+  ['a non-object protocol', (o) => (o.server.protocol = 'probe')],
+  ['a protocol without get', (o) => (o.server.protocol = {})],
+  ['a non-object http version', (o) => (o.httpVersion = 'probe')],
+  ['a http version without get', (o) => (o.httpVersion = {})],
+  ['a non-object request', (o) => (o.request = 'probe')],
+  ['a non-object request method', (o) => (o.request.method = 'probe')],
+  ['a request method without get', (o) => (o.request.method = {})],
+  ['a non-object request url', (o) => (o.request.URL = 'probe')],
+  ['a request url without get', (o) => (o.request.URL = {})],
+  ['a non-object request header', (o) => (o.request.header = 'probe')],
+  ['a request header without get', (o) => (o.request.header = { keys: noop })],
+  ['a request header without keys', (o) => (o.request.header = { get: noop })],
+  ['a non-object request body', (o) => (o.request.body = 'probe')],
+  ['a request body without source', (o) => (o.request.body = {})],
+  ['a request body source without get', (o) => (o.request.body.source = {})],
+  ['a non-object response', (o) => (o.response = 'probe')],
+  ['a non-object response status', (o) => (o.response.status = 'probe')],
+  ['a response status without get', (o) => (o.response.status = { set: noop })],
+  ['a response status without set', (o) => (o.response.status = { get: noop })],
+  [
+    'a non-object response status text',
+    (o) => (o.response.statusText = 'probe'),
+  ],
+  [
+    'a response status text without get',
+    (o) => (o.response.statusText = { set: noop }),
+  ],
+  [
+    'a response status text without set',
+    (o) => (o.response.statusText = { get: noop }),
+  ],
+  ['a non-object response finished', (o) => (o.response.finished = 'probe')],
+  ['a response finished without is', (o) => (o.response.finished = {})],
+  ['a non-object response header', (o) => (o.response.header = 'probe')],
+  [
+    'a response header without get',
+    (o) => (o.response.header = { keys: noop, set: noop, delete: noop }),
+  ],
+  [
+    'a response header without keys',
+    (o) => (o.response.header = { get: noop, set: noop, delete: noop }),
+  ],
+  [
+    'a response header without set',
+    (o) => (o.response.header = { get: noop, keys: noop, delete: noop }),
+  ],
+  [
+    'a response header without delete',
+    (o) => (o.response.header = { get: noop, keys: noop, set: noop }),
+  ],
+  ['a non-object response body', (o) => (o.response.body = 'probe')],
+  ['a response body without data', (o) => (o.response.body = {})],
+  ['a response body data without set', (o) => (o.response.body.data = {})],
+];
+
+describe('Http() rejections', () => {
+  for (const [label, mutate] of HTTP_REJECTIONS) {
+    it(`should reject ${label}`, () => {
+      if (mutate === 'root') {
+        assert.throws(() => Baseline.Kitty.Implement.Exchange.Http('probe'));
+
+        return;
+      }
+
+      const options = createHttpOptions();
+
+      mutate(options);
+
+      assert.throws(() => Baseline.Kitty.Implement.Exchange.Http(options));
+    });
+  }
+});
+
+const WEB_SOCKET_REJECTIONS = [
+  ['a non-object controller', (o) => (o.controller = 'probe')],
+  ['a non-object ready state', (o) => (o.controller.readyState = 'probe')],
+  ['a ready state without get', (o) => (o.controller.readyState = {})],
+  ['a non-object send', (o) => (o.controller.send = 'probe')],
+  ['a send without send', (o) => (o.controller.send = {})],
+  ['a non-object close', (o) => (o.controller.close = 'probe')],
+  ['a close without close', (o) => (o.controller.close = {})],
+];
+
+describe('WebSocket() rejections', () => {
+  for (const [label, mutate] of WEB_SOCKET_REJECTIONS) {
+    it(`should reject ${label}`, () => {
+      const options = createWebSocketOptions();
+
+      mutate(options);
+
+      assert.throws(() => Baseline.Kitty.Implement.Exchange.WebSocket(options));
+    });
+  }
+});
