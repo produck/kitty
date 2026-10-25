@@ -1,27 +1,21 @@
-# KittyWorkflow Design Conventions
+# KittyWorkflow Design
 
 ## Document Scope
 
-DESIGN.md is the working draft for AI collaboration and exploration.
-Stable conclusions should be moved into ARCHITECTURE.md.
+`DESIGN.md` is the single design document for `packages/workflow`
+(`@produck/kitty-workflow`). It records the philosophy, the settled
+contracts, and the questions that are still open. It is a near-final
+draft: a settled statement changes only by a deliberate decision, not by
+drift while an extension or integration package is being built.
 
-> **AI session note**: Tests in this repository are design sandboxes,
-> not hardened regression suites. Focus changes on `src/`. Do not
-> expand test coverage or fix test issues unless explicitly requested.
-> When source changes break tests, update only the minimal surface to
-> keep the suite executable.
+`src/` is the behavioural source of truth. When this document and the
+code disagree, the code is right and this document is a defect.
 
-Deployment paths are discussed in more detail in
-[DEPLOYMENT.md](DEPLOYMENT.md).
+## Terminology
 
-Attachment ports are discussed in more detail in
-[ATTACHMENT-PORTS.md](ATTACHMENT-PORTS.md).
-
-## Terminology: Attachment
-
-**Attachment** is a key term in KittyWorkflow. At the kit level, it
-names the act of appending a dependency or capability to a `Kit`, which
-acts as the domain tracker for that part of the assembled program.
+**Attachment** — at kit level, the act of appending a dependency or
+capability to a `Kit`, which acts as the domain tracker for that part of
+the assembled program.
 
 In KittyWorkflow, attachment is narrowed into a controlled structural
 write. An attachment may install a workflow-static dependency, register
@@ -30,44 +24,54 @@ term **attacher** means a function recorded by one domain and later run
 to attach dependencies into another kit scope.
 
 The important property in workflow assembly is control. Attachment is
-not arbitrary mutation of `WorkflowKit`; it is a lifecycle-guarded
-structural write performed through an authorized surface. In this
-vocabulary, `MixinKit` and `DeployerKit` are attachment ports:
-supplier-facing facades that expose specific attachment abilities
-without exposing the full workflow authority behind them.
+not arbitrary mutation of the kit; it is a lifecycle-guarded structural
+write performed through an authorized surface. **PluginKit** and
+**DeployerKit** are attachment ports: supplier-facing facades that
+expose specific attachment abilities without exposing the workflow
+authority behind them.
+
+| Term     | Meaning                                                                 |
+| -------- | ----------------------------------------------------------------------- |
+| subject  | One directory under `src/` holding one class and its own symbols.       |
+| part     | A member of the `ExchangePart` family: Request, Response, Header, Body. |
+| slot     | A `_S` symbol whose value is a class reference supplied downstream.     |
+| internal | The connection-time record a deployer passes to the dispatch.           |
+| identity | One native object per logical exchange, used to reject double dispatch. |
+| manifest | A deployer-declared record of named materials for the compile path.     |
+| link     | A plain function `(…)` that wires a compiled deployment to a server.    |
+| compile  | Build a deployment from a workflow and a server; do not link.           |
+| deploy   | Compile, then link.                                                     |
+| tune     | Adjust a supplier-owned runtime parameter on a workflow.                |
+| attach   | Install a capability or register an attacher.                           |
+| fork     | Take a fresh, from-byte-0 copy out of a `Distributor`.                  |
 
 ## Philosophy
 
-Kitty shares a similar core design with Koa — middleware pipeline
-orchestration — but targets more complex layering and division of
-labor.
+Kitty shares a core design with Koa — middleware pipeline orchestration —
+but targets more complex layering and division of labour.
 
 In Koa, every new capability is abstracted as middleware, yet some
-high-frequency features remain hardcoded (e.g. response body detection
-and content negotiation). These work well for common scenarios, but
-become constraining when the pipeline needs to diverge — WebSocket
-passthrough, custom upload handling, or protocol-specific
-optimisations. There is no clean way to strip unwanted built-in
-behaviour.
+high-frequency features remain hardcoded (response body detection,
+content negotiation). These work well for common scenarios, but become
+constraining when the pipeline needs to diverge — WebSocket passthrough,
+custom upload handling, protocol-specific optimisation. There is no clean
+way to strip unwanted built-in behaviour.
 
-Kitty addresses this by treating features as **composable building
-blocks**: capabilities are added to the pipeline in an orderly,
-predictable, and observable way. Nothing is hardcoded — every feature
-must be explicitly composed, and every layer has a well-defined
-boundary (Kit → Workflow → Deployment → Exchange). This makes the
-system adaptable to scenarios Koa's monolithic middleware model
-handles poorly, while keeping the core simple and the extension path
-clear.
+Kitty treats features as **composable building blocks**: capabilities are
+added to the pipeline in an orderly, predictable, observable way. Nothing
+is hardcoded — every feature must be explicitly composed, and every layer
+has a well-defined boundary (Kit → Workflow → Deployment → Exchange).
+This keeps the core simple and the extension path clear.
 
-`KittyWorkflow` is the central design object for orchestrating HTTP
+`@produck/kitty-workflow` is the central design object for orchestrating
 server handlers under this philosophy.
 
 ## Kit As Scope Inheritance
 
 `@produck/kit` is best understood here as a scope-inheritance mechanism
 for program assembly. It models capability distribution as inheritance
-between explicit runtime scopes, rather than as parameter passing,
-global registries, or call-frame context.
+between explicit runtime scopes, rather than as parameter passing, global
+registries, or call-frame context.
 
 The tracked unit is a structural scope, not a call frame. A frame may be
 where a child kit is physically created, but the design intent is to
@@ -79,35 +83,35 @@ WorkflowKit -> DeploymentKit -> ExchangeKit -> Handler child kits
 
 This keeps the main composition question small: which scope should own
 this capability? Once installed at the right scope, the capability is
-distributed downward by normal kit inheritance and can be accessed with
+distributed downward by normal kit inheritance and is readable with
 ordinary property syntax.
 
 `WorkflowKit` also carries the workflow instance itself as a stable
-identity capability. Downstream code may read that identity via
-`useWorkflow(kit)` and use it as a `WeakMap` key, but it does not receive
-direct write access to `WorkflowKit`. Structural writes remain behind
-guarded attachment-port methods.
+identity capability (`K_WORKFLOW`). Downstream code reads it through
+`useWorkflow(kit)` and may use it as a `WeakMap` key, but never receives
+write access to `WorkflowKit`. Structural writes stay behind guarded
+attachment-port methods.
 
 Kitty is a concrete use of this mechanism. It does not try to model all
-program effects as typed computations. Instead, it uses kit inheritance
-to assemble workflow, deployment, deployer, exchange, and handler
+program effects as typed computations. It uses kit inheritance to
+assemble workflow, deployment, deployer, exchange, and handler
 capabilities at the layers where they belong.
 
 ## Core As Authority Boundary
 
 > Kitty core is "dividing territory and assigning authority".
 
-This is an intuitive way to describe the core responsibility. Kitty core
-does not own downstream feature grammar, but it does own the authority
-model: which runtime scopes exist, which attachment ports are issued,
-which structural writes are allowed, and when those writes expire.
+The core does not own downstream feature grammar, but it does own the
+authority model: which runtime scopes exist, which attachment ports are
+issued, which structural writes are allowed, and when those writes
+expire.
 
 In engineering terms, core is responsible for:
 
 - dividing the kit hierarchy into workflow, deployment, deployer,
   exchange, and handler scopes;
 - owning the workflow assembly surface and granting attachment ports
-  such as `MixinKit` and `DeployerKit` as facades to that surface;
+  such as `PluginKit` and `DeployerKit` as facades to that surface;
 - keeping structural writes behind guarded methods;
 - defining lifecycle windows such as finalization, deployment artifact
   construction, and per-exchange runtime scope;
@@ -115,8 +119,8 @@ In engineering terms, core is responsible for:
   `WorkflowKit` surface.
 
 Downstream suppliers own feature grammar and runtime policy. Handler
-authors consume inherited capabilities. Core's job is to keep those
-roles from accidentally receiving each other's authority.
+authors consume inherited capabilities. Core's job is to keep those roles
+from accidentally receiving each other's authority.
 
 ### Workflow Assembly Surface
 
@@ -128,324 +132,454 @@ The assembly surface consists of three controlled capability classes,
 distributed across the supplier-facing kits that own each attachment
 phase:
 
-- **Workflow-static dependencies**: attached via `attachWorkflow(key, value)`.
-  Available on `WorkflowKit` and inherited by all downstream kits.
-  Exposed through `MixinKit` as a facade.
+- **Workflow-static dependencies**: attached via
+  `attachWorkflow(name, value)`. Written to `WorkflowKit`, inherited by
+  all downstream kits. Exposed through `PluginKit`.
 - **Deployment attachers**: functions recorded during the installation
   phase and run during compile-time `DeploymentKit` preparation. Exposed
-  through `MixinKit` only — DeployerKit provides direct `DeploymentKit`
-  writes via `attachDeployment(key, value)`.
+  through `PluginKit` only — `DeployerKit` writes `DeploymentKit`
+  directly via `attachDeployment(name, value)`.
 - **Exchange attachers**: functions recorded during the installation or
   compile phase and run when an `ExchangeKit` is prepared. Exposed
-  through both `MixinKit` and `DeployerKit`, each with its own lifecycle
+  through both `PluginKit` and `DeployerKit`, each with its own lifecycle
   window.
 
-`MixinKit` and `DeployerKit` are supplier-facing facades over subsets of
+`PluginKit` and `DeployerKit` are supplier-facing facades over subsets of
 the workflow assembly surface. Each port exposes only the abilities
 relevant to its role and lifecycle phase. After `finalize()`, structural
 additions to the assembly surface are closed.
 
-## Architecture Overview
+## Architecture Layering
 
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#architecture-layering).
+`KittyWorkflow` is split into two layers.
+
+- **Abstract layer** (`Workflow/`): the lifecycle template —
+  `constructor(ExternalKit)` → `use(handler)` → `finalize()` →
+  `compile(server)` / `deploy(server)`. It exposes extension hooks
+  (`_I.COMPOSE.EXTEND`, `_I.COMPILE_DEPLOYMENT`) for subclasses to fill,
+  and installs the `useWorkflow` identity capability on `WorkflowKit`.
+  It knows nothing about plugins, the deployer registry, or one-time
+  deployers — it is a purely extensible skeleton. It does not install
+  configuration and does not recognise `Configuration`.
+
+- **Composition layer** (`CompoundWorkflow/`): extends the abstract layer
+  and implements two orthogonal domains — **Plugin** and **Deployer** —
+  each responsible for a distinct kind of capability injection. It owns
+  `mixin()`, `withDeployer()`, and the default configuration record.
+
+Extension hooks:
+
+| Hook                    | Implemented by    | Called at                                        |
+| ----------------------- | ----------------- | ------------------------------------------------ |
+| `_I.COMPOSE.EXTEND`     | Composition layer | `finalize()` — prepends prefix handlers          |
+| `_I.COMPILE_DEPLOYMENT` | Composition layer | `compile()` / `deploy()` — builds the deployment |
 
 ## Lifecycle
 
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#lifecycle).
+### Abstract layer
 
-## Mixin Domain
+```text
+constructor(kit) -> use(handler)* -> finalize()
+  -> compile(server) / deploy(server)
+  -> (request) -> ExchangeKit
+```
 
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#mixin-domain).
+- **Construction**: accepts a kit (default `Kit.global`), derives
+  `WorkflowKit` via `ExternalKit('Kitty<Workflow>')`, stores the
+  workflow identity on `WorkflowKit`.
+- **Orchestration**: `use(handler)` appends handlers to the handler
+  list and returns `this`. Handlers must be functions with arity ≤ 2.
+- **Finalization**: `finalize()` freezes the handler list, prepends it
+  to the pipeline through `Composer.compose`, runs the composition
+  extension, then freezes the instance. After that, `use()` and
+  `mixin()` are rejected.
+- **Compile**: `compile(server)` builds a `Deployment` and returns it
+  without linking; `deployment.manifest` holds declared materials.
+- **Deploy**: `deploy(server)` builds the deployment, then calls
+  `deployment.link()` to wire the server through the composed linker
+  chain.
 
-### Design notes on kit layering
+### Composition layer
 
-1. **No lazy installation**: Kit is designed as "not installed, not
-   available". If a capability is needed, install it explicitly on the
-   target kit layer. There is no lazy/proxy mechanism — the cost of
-   `onDeploy` recipes is simply installing function references,
-   not executing business logic.
-2. **Asymmetric cross-layer access**: A child kit inherits capabilities
-   from its parent (e.g. ExchangeKit can access DeploymentKit's
-   APIs), but a parent kit **cannot** reach into a child kit's context.
-   This is a feature that enforces layer boundaries — DeploymentKit
-   definitions cannot depend on ExchangeKit-level data.
-3. **Explicit composition**: Knowing a kit has a capability is
-   sufficient to use it (`kit[key]`). No dynamic discovery or
-   runtime injection is needed.
+```text
+constructor(kit) -> mixin(PluginClass)* -> use(handler)* -> finalize()
+  -> deploy(server) / compile(server) / withDeployer(DeployerClass)
+  -> Deployer.Registry lookup -> DeploymentKit prepared
+  -> deployer[$I.INSTALL]() -> exchange attachers registered
+  -> deployment[$I.COMMIT]() -> link() -> server wired
+  -> (request) -> ExchangeKit -> Exchange constructed -> pipeline
+```
+
+The composition layer also owns deployment-scoped workflow state: the
+request body distributor class. `deploy()` refuses to run while that
+class is unset; `compile()` is not gated.
+
+## Kit Hierarchy
+
+```mermaid
+classDiagram
+  class ExternalKit {
+    <<external>>
+    ...
+  }
+  class WorkflowKit {
+    <<scope: Kitty~Workflow~>>
+    ...
+  }
+  class PluginKit["⚙️PluginKit"] {
+    +attachWorkflow(name, value)
+    +appendDeploymentAttacher(attacher)
+    +appendExchangeAttacher(attacher)
+    +appendPrefixHandler(...handler)
+  }
+  class DeploymentKit {
+    <<scope: Kitty~Deployment~>>
+    ...
+  }
+  class DeployerKit["⚙️DeployerKit"] {
+    +declare(name, value)
+    +setServerLinker(link)
+    +attachDeployment(name, value)
+    +appendExchangeAttacher(attacher)
+    +handleHttpExchange(internal)
+    +handleWebSocketExchange(internal)
+  }
+  class ExchangeKit["⚡ExchangeKit"] {
+    ...
+  }
+  class HandlerKit["⚡HandlerKit"] {
+    <<optional>>
+    ...
+  }
+
+  ExternalKit <|-- WorkflowKit
+  WorkflowKit <|-- PluginKit
+  WorkflowKit <|-- DeploymentKit
+  DeploymentKit <|-- ExchangeKit
+  DeploymentKit <|-- DeployerKit
+  ExchangeKit .. HandlerKit
+```
+
+This diagram is also an authority boundary. Handler code travels through
+the `ExchangeKit` branch and does not naturally receive `PluginKit` or
+`DeployerKit`. Those kits are attachment ports managed by their
+suppliers. If a supplier wants handler code to adjust a feature, it
+exports an adjustment function that accepts workflow identity. Handler
+code reads that identity with `useWorkflow(ExchangeKit)` and calls the
+supplier API; no kit-visible adjuster path is needed.
+
+The full hierarchy is a core-level view, not a required mental model for
+every downstream role. Handler authors normally see only their current
+kit and supplier-provided `use*()` functions. Plugin suppliers work with
+`PluginKit` and guarded writes toward `WorkflowKit`. Deployer suppliers
+work with `DeployerKit`, `DeploymentKit`, and `ExchangeKit` because they
+own the protocol bridge.
+
+### Kittable Items
+
+| Kit             | Derived from                       | Lifetime              |
+| --------------- | ---------------------------------- | --------------------- |
+| `ExternalKit`   | caller (default `Kit.global`)      | application           |
+| `WorkflowKit`   | `ExternalKit('Kitty<Workflow>')`   | one per workflow      |
+| `PluginKit`     | `WorkflowKit('Kitty<Plugin>')`     | one per `mixin()`     |
+| `DeploymentKit` | `WorkflowKit('Kitty<Deployment>')` | one per compile       |
+| `DeployerKit`   | `DeploymentKit('Kitty<Deployer>')` | one per deployment    |
+| `ExchangeKit`   | `DeploymentKit('Kitty<Exchange>')` | one per exchange      |
+| `HandlerKit`    | handler's own discretion           | optional, per handler |
+
+- A one-time deployment (`withDeployer()`) names its kit
+  `Kitty<Deployment:OneTime>`.
+- `ExchangeKit` and `HandlerKit` are created **per request**; the parent
+  kits are created once at setup.
+- `HandlerKit` may not exist at all — a handler that neither derives a
+  child kit nor passes one to `next()` simply never creates that layer.
+
+### Capability getters
+
+The package exports strict getters, each wrapping one symbol key:
+
+| Getter         | Key                   | Answers                      |
+| -------------- | --------------------- | ---------------------------- |
+| `useWorkflow`  | `K_WORKFLOW`          | the workflow instance        |
+| `useServer`    | `K_DEPLOYMENT_SERVER` | the server of the deployment |
+| `useExchange`  | `K_EXCHANGE`          | the current `Exchange`       |
+| `useRequest`   | `K_REQUEST`           | the current request part     |
+| `useResponse`  | `K_RESPONSE`          | the current response part    |
+| `useWebSocket` | `K_CONTROLLER`        | the WebSocket controller     |
+
+## Plugin Domain
+
+A plugin is a **class**, not a plain installer function: it may hold
+instance-level context for as long as the workflow lives. The workflow
+entry point is still named `mixin()`.
+
+`mixin(PluginClass)` validates that the argument is a `Plugin`
+subclass, constructs it with `(WorkflowKit, workflow)`, and immediately
+runs `$I.INSTALL()` against its own `PluginKit`. There is no deferral
+queue, and no single-install enforcement — duplicate detection is the
+plugin's own decision.
+
+### PluginKit API
+
+`PluginKit` is derived via `WorkflowKit('Kitty<Plugin>')`, one kit per
+`mixin()` call. All methods target the workflow the plugin belongs to and
+guard against post-finalization calls.
+
+| Method                                      | Behavior                                                    |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| `pluginKit.attachWorkflow(name, value)`     | Writes onto `WorkflowKit`; inherited by all downstream kits |
+| `pluginKit.appendDeploymentAttacher(fn)`    | Runs `fn(DeploymentKit)` at compile time                    |
+| `pluginKit.appendExchangeAttacher(fn)`      | Runs `fn(ExchangeKit)` for every exchange                   |
+| `pluginKit.appendPrefixHandler(...handler)` | Prepends handler(s) to the pipeline at `finalize()`         |
+
+`_I.INSTALL(PluginKit)` and `_S.TAG` are the plugin contract.
+
+### Execution order at deploy
+
+```text
+1. Create the Deployment, deriving DeploymentKit from WorkflowKit
+2. Plugin deployment attachers run on DeploymentKit, in registration order
+3. Look up the deployer (registry, or the one-time association)
+4. Derive DeployerKit from DeploymentKit; construct the deployer with
+   (DeployerKit, deployment)
+5. deployer[$I.INSTALL](DeployerKit) — declares manifest entries,
+   linkers, exchange attachers and deployment content
+6. Plugin exchange attachers are appended to the deployment
+7. deployment[$I.COMMIT]() — the definition surface closes
+8. deployment.link() — the linker chain runs (deploy only)
+```
+
+### Runtime exchange attacher execution order
+
+```text
+1. Identity resolved from the exchange class, deduplicated
+2. Exchange constructed — it derives ExchangeKit itself
+3. ExchangeKit carries K_EXCHANGE, K_REQUEST, K_RESPONSE
+4. Exchange attachers run in registration order:
+   deployer attachers first, then plugin attachers
+5. Workflow handler pipeline runs
+6. Lifecycle events: done | error, then finish
+```
+
+### Relationship with `use()`
+
+`use(handler)` adds handlers to the **main handler sequence**.
+`pluginKit.appendPrefixHandler(handler)` adds to the **prefix handler
+sequence**. Both are composed at `finalize()` — prefix first, then main.
+
+`PluginKit` does not offer a `use()` shortcut: plugin-supplied handlers
+belong outside the business pipeline, and restricting the port to
+`appendPrefixHandler` makes the wrapping order explicit.
 
 ## Deployer Domain
 
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#deployer-domain).
-
-## Typed Capability Accessors
-
-Kit provides `Getter`, a small utility that wraps a property lookup
-into a typed accessor function:
-
-```js
-import { Getter } from '@produck/kit';
-
-// Returns { use: fn, touch: fn }
-const { use, touch } = Getter('body');
-```
-
-### Recommended export pattern
-
-Each plugin or deployer package exports its Getter with a semantic
-name, controlling the strictness its consumers experience:
-
-```js
-// packages/kitty-body/src/accessors.mjs
-import { Getter } from '@produck/kit';
-
-// Only export `use` — consumers must ensure the capability is
-// installed, or get an immediate ReferenceError at runtime.
-export const { use: useBody } = Getter('body');
-export const { use: useJson } = Getter('body:json');
-
-// packages/kitty-cookie/src/accessors.mjs
-import { Getter } from '@produck/kit';
-
-export const { use: useCookie } = Getter('cookie');
-```
-
-### Symbol keys
-
-Kit accepts `Symbol` as a property key, which brings additional
-benefits over plain strings when used for internal capability keys:
-
-```js
-// Internal symbol — not exported
-const K_COOKIE = Symbol('cookie');
-
-// Plugin installs under the symbol
-kit[K_COOKIE] = { parse, serialize };
-
-// Getter wraps the symbol
-export const { use: useCookie } = Getter(K_COOKIE);
-```
-
-Advantages of Symbol keys:
-
-- **Collision-free**: Two plugins can never accidentally use the same
-  key name, even if they coincidentally choose the same description.
-- **Consumer-proof**: Consumers cannot construct the Symbol from
-  outside the module — they **must** use the exported accessor. This
-  prevents bypass patterns like `kit['cookie']` and ensures all
-  capability access goes through the intended typed accessor.
-- **Debugging aid**: The Symbol's description (`Symbol(cookie)`)
-  appears in stack traces and error messages, giving readable hints
-  without exposing the internal key as a magic string.
-
-(The Kit Proxy already prevents capability discovery via enumeration
-— `ownKeys` and `enumerate` traps are not provided. Consumers must
-"know it's installed, so they can use it". Symbol keys reinforce this
-contract at the module boundary.)
-
-Consumer usage:
-
-```js
-import { useBody } from '@produck/kitty-body';
-import { useCookie } from '@produck/kitty-cookie';
-
-// TypeScript: body is inferred as Body — no `?` needed
-// Runtime:   throws immediately if body plugin is missing
-const body = useBody(kit);
-const cookie = useCookie(kit);
-```
-
-### Strict vs tolerant access
-
-|           | `use(kit)`                                           | `touch(kit)`                                              |
-| --------- | ---------------------------------------------------- | --------------------------------------------------------- |
-| Behaviour | Throws `ReferenceError` if key not found             | Returns `undefined` if key not found                      |
-| Export    | Public, the primary API                              | Internal or unexported; if not exported, rots away via GC |
-| Use case  | Production code, where missing deps should fail fast | Migration, optional features, probing                     |
-
-The accessor author decides what to export. `touch` can be kept
-internal for the plugin's own optional probing, while consumers only
-see `use` — guaranteeing they either get the capability or fail
-immediately.
-
-### Comparison with Koa
-
-|                     | Koa `ctx.body`                                           | Kitty `useBody(kit)`                                      |
-| ------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
-| Type safety         | `ctx.body?` (may not exist, TS needs augmentation)       | `Body` (guaranteed, or throws)                            |
-| Runtime feedback    | Silent `undefined`                                       | Immediate `ReferenceError` with kit chain trace           |
-| Dependency tracking | Implicit — no way to know which middleware provides what | Explicit — import statement makes dependency visible      |
-| Composability       | All middleware share one flat `ctx`                      | Each capability is a separate import, composed explicitly |
-
-This pattern is the counterpart to `"not installed, not available"`:
-consumers also declare their dependencies by importing the
-corresponding accessor — making the capability graph visible in both
-directions.
-
-## Performance Considerations
-
-Kit was originally designed as a **cold-path facility assembly layer**
-— a scaffolding for runtime bootstrapping that installs tooling
-objects once or a few times during startup. After startup, those
-objects are destructured into constants above hot business code and
-cached. Since Kit property access was not on the hot path, JIT
-optimisation was not a concern.
-
-Kitty extends Kit's role into **hot-path (per-request) territory**
-via `onExchange` hooks.
-
-### Actual cost model
-
-Kit uses **Proxy + plain object** (`Object.create(null)`), not a Map:
-
-- Property access (`kit.cookies`) goes through a Proxy `get` trap.
-- On **happy path** (property found in local dependencies), the trap
-  checks `property in dependencies` and returns immediately — a fast
-  constant-time operation.
-- On **miss** (property not local), it recurses up the parent chain
-  via `parent[property]` — O(D) where D is the chain depth (typical
-  4–5 layers; with nested containers up to 9–10).
-- Property assignment (`kit.cookies = value`) goes through Proxy
-  `set` trap — validates uniqueness and writes to the local
-  dependencies object.
-
-The cost of 20 plugin `use()` handlers (each with ~3 `set()`
-calls) plus handler-time property accesses via Proxy is estimated at
-~20μs per request — negligible alongside typical I/O (5–100ms).
-
-### JIT optimisation potential
-
-Since dependencies are stored as **fixed named properties** on a
-plain object (not Map entries), V8 can generate hidden classes. If
-`onExchange` recipes consistently set the same set of properties
-in the same order across requests, the shape stabilises and Proxy
-`get` can be JIT-optimised as monomorphic.
-
-### Recommended access pattern
-
-Direct `kit.property` access is available, but the recommended
-pattern is using `Injector.bind(recipe)`:
-
-```js
-// Recommended: bound recipe receives kit as first arg
-const handler = injector.bind((kit, args) => {
-  // kit is pre-injected — no Proxy traversal needed at call site
-});
-```
-
-`use` (bound recipe) ensures dependencies are explicit and correct,
-especially when handlers are composed via `Composer.compose()` —
-where the onion-shaped control flow reduces observability of
-implicit kit lookups. The `touch` API exists but `use` is preferred
-for production code.
-
-### Mitigations in recipe design
-
-- Keep `onExchange` recipes lean: only install getters / method
-  references, never pre-compute values.
-- Minimise the number of `set()` calls per plugin — batch related
-  capabilities into fewer installs (namespace bundling).
-- Limit N (total plugins with `onExchange`) to a reasonable
-  ceiling (typical production applications: 3–8).
-
-### When it matters
-
-For most real-world workloads (API servers, SSR, database-backed
-apps), the handler's own I/O and business logic dominate the latency
-budget — Kit's per-request overhead is negligible.
-
-This becomes a genuine concern only in **ultra-low-latency hot paths**
-such as reverse proxies, request routers, or transparent gateways
-where handler logic itself is near-zero. For those scenarios,
-avoiding `onExchange` and accessing DeploymentKit-level utilities
-directly from handlers is the recommended escape hatch.
-
-### Mitigations in recipe packaging
-
-A practical way to reduce `set()` calls without changing the Kit
-API is **namespace bundling**: group related capabilities under a
-single key rather than installing them individually.
-
-```js
-// Instead of:
-kit['cookies'] = cookies;
-kit['session'] = session;
-kit['body'] = bodyParser;
-
-// Bundle under a namespace:
-kit['http'] = { cookies, session, bodyParser };
-// Or: kit['@cookie'] = { parse, serialize };
-```
-
-Benefits:
-
-- **Fewer `set()` calls** — each plugin installs 2–3 namespaces
-  instead of 10+ individual entries, reducing hidden class transitions
-  on the Kit store.
-- **Cleaner Kit surface** — consumers find related capabilities under
-  a predictable key instead of scanning flat keys.
-- **Reusability** — a namespace bundle can be shared across recipes
-  and layers.
-
-The per-request overhead of 20 `onExchange` recipes is estimated
-at ~20μs. Compared against typical handler I/O (5–100ms), this is
-<0.5% of total latency — acceptable for the vast majority of use
-cases.
-
-### Value proposition
-
-Even with the per-request overhead, Kit's scope chain provides
-significant advantages that justify the cost:
-
-- **Predictable capability visibility**: A handler receives exactly
-  the kit its layer provides — no surprise prototypes or implicit
-  globals.
-- **Defence in depth**: Capabilities must be explicitly installed
-  before use. "Not installed, not available" prevents accidental
-  leakage of cross-layer state.
-- **Readability**: The scope chain makes it clear where each
-  capability comes from — `kit['http']` vs `this.something` on a
-  flat context.
-- **Adaptive composition**: Adding or removing a plugin changes the
-  capability set uniformly across all handlers in the workflow,
-  without touching handler code.
-
-These properties make the O(N) per-request installation a worthwhile
-tradeoff for codebases that value predictability and composability
-over raw throughput.
-
-## Governance
-
-> Stable rules moved to [ARCHITECTURE.md](ARCHITECTURE.md#governance).
-
-### Recommended dedup pattern
-
-If a mixin should only be installed once, use `attachWorkflow` with a
-Symbol flag:
-
-```js
-import { Getter, isKit } from '@produck/kit';
-
-const K_INSTALLED = Symbol('my-mixin:installed');
-const { touch } = Getter(K_INSTALLED);
-
-workflow.mixin((mixinKit) => {
-  if (touch(mixinKit) !== undefined) {
-    throw new Error('MyMixin has already been installed.');
-  }
-
-  mixinKit.attachWorkflow(K_INSTALLED, true);
-  // ... install logic ...
-});
-```
+The deployer domain is responsible for **server-type-specific protocol
+bridging** — translating raw events of a particular server
+implementation into the uniform `Exchange` abstraction.
+
+**The definition surface is a class, not an options record**, and it is
+instance-level: a deployer may hold context with the same lifetime as
+the workflow instance.
+
+### Deployer registration
+
+A deployer is registered once per server constructor through
+`DeployerRegistry.registerDeployer(DeployerClass)`.
+
+| Member                        | Level              | Meaning                                                |
+| ----------------------------- | ------------------ | ------------------------------------------------------ |
+| `_S.TAG`                      | static, abstract   | Logical deployer tag                                   |
+| `_S.SERVER_CTOR`              | static, abstract   | Targeted `net.Server` subclass; also the registry key  |
+| `_S.EXCHANGE_CTOR.HTTP`       | static, abstract   | HTTP exchange class; required                          |
+| `_S.EXCHANGE_CTOR.WEB_SOCKET` | static, abstract   | WebSocket exchange class, or `undefined`; optional     |
+| `_I.INSTALL(DeployerKit)`     | instance, abstract | The single entry point where deployment behavior lives |
+
+Both exchange slots stay declared, so both keep their type: a value that
+is not a derivation of the expected `Exchange` is rejected on read. They
+differ in whether absence is legal. The base answers `undefined` for the
+WebSocket slot and the member parser accepts it, so a deployer that
+serves no WebSocket is valid; `handleWebSocketExchange` reports that
+absence as a deployer error. The HTTP slot has no such default, so the
+abstract layer itself answers for its absence.
+
+Because `Deployer.Abstract` declares static members, every derivation
+must be wrapped in `SubConstructorProxy`. The base constructor receives
+`(DeployerKit, deployment)`; `SYMBOL.CONSTRUCTOR = new.target` is the
+only way to read the static slots.
+
+### Lookup
+
+Deployer resolution is two-level:
+
+1. **Instance level**: a class explicitly associated with one server
+   instance. `withDeployer()` sets this.
+2. **Constructor level**: the class registered for the server's
+   constructor.
+
+`getByServer(server)` checks the instance map first, then
+`Object.getPrototypeOf(server).constructor` in the registry.
+
+- **Framework-level distribution**: library authors register deployers
+  for standard server constructors; `deploy(server)` then finds the
+  right one.
+- **Per-instance override**: `withDeployer()` binds one deployer to one
+  server instance, bypassing registration.
+
+The registry stores the **class only**, keyed by
+`DeployerClass[_S.SERVER_CTOR]`. `registerDeployer` asserts only that
+the class is a `Deployer` subclass; the static slots validate themselves
+on read. The deployment instance is created later, during
+`_I.COMPILE_DEPLOYMENT`, once a `DeployerKit` exists. Without the
+explicit `SubConstructorOf(Deployer)` assertion, a plain class would
+register silently as `undefined`.
+
+### DeployerKit API
+
+`DeployerKit` is derived via `DeploymentKit('Kitty<Deployer>')` and is
+the deployer's whole capability surface. A deployer cannot mutate
+`DeploymentKit` directly.
+
+| Method                                          | Behavior                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------ |
+| `deployerKit.declare(name, value)`              | Declares a named manifest entry for the compile path         |
+| `deployerKit.setServerLinker(link)`             | Pushes a linker onto a LIFO stack                            |
+| `deployerKit.attachDeployment(name, value)`     | Attaches a value onto `DeploymentKit` for downstream use     |
+| `deployerKit.appendExchangeAttacher(fn)`        | Registers an attacher for every `ExchangeKit`                |
+| `deployerKit.handleHttpExchange(internal)`      | Dispatches using `[_S.EXCHANGE_CTOR.HTTP]` + `internal`      |
+| `deployerKit.handleWebSocketExchange(internal)` | Same with the WebSocket slot; throws when the slot is absent |
+
+All methods guard against post-commit calls through the deployment's
+single `COMMITTED` flag. The deployer keeps no install marker of its
+own, so there is no "installed but not committed" intermediate state.
+
+### Deployment fill and artifact split
+
+The deployer **writes into the deployment** and keeps no artifact state
+itself. Everything the deployment later exposes comes through the
+deployer:
+
+| Deployment state   | Written by               | Read by              |
+| ------------------ | ------------------------ | -------------------- |
+| manifest           | `declare`                | `get manifest`       |
+| linker list        | `setServerLinker`        | `link()`             |
+| exchange attachers | `appendExchangeAttacher` | `$I.ATTACH_EXCHANGE` |
+| deployment kit     | `attachDeployment`       | downstream consumers |
+
+`manifest` entries are named materials with unconstrained values;
+`link` functions are plain `(…) => unknown` attachments. The compile path
+consumes the manifest; the deploy path additionally runs the linkers.
+
+### Protocol resources on ExchangeKit
+
+The deployer owns the `stream` / `request` event and is responsible for
+creating the `internal` record and calling the dispatch.
+
+> **Open**: protocol-specific resources (`stream`, `session`, trailers,
+> push, reset) can no longer be installed onto `ExchangeKit` from the
+> deployer's listener, because the dispatch derives that kit. They must
+> either travel inside the `internal` record (readable only by the
+> deployer's own Exchange and parts) or be installed by an exchange
+> attacher that runs before the handler pipeline. Which route is
+> intended is not settled.
+
+These resources are **deployer-specific** and not part of the core
+Exchange Template. They follow the same "not installed, not available"
+contract as any other kit capability.
 
 ## Deployer/Workflow Bridge Protocol
 
-> Stable contract, protocol invariant, guardrails, and deployment flow
-> moved to [ARCHITECTURE.md](ARCHITECTURE.md#deployerworkflow-bridge-protocol).
+The dispatch — `[I.HANDLE_EXCHANGE]` on the deployment — is the sole
+bridge between the deployer layer (protocol-specific) and the workflow
+layer (application logic, server-agnostic).
 
-### Motivation
+### Contract
 
-Different server types expose fundamentally different event models:
+The deployer receives a `DeployerKit`. It must:
+
+1. Declare protocol-specific entry points through `declare` and wire the
+   server through `setServerLinker`.
+2. On each incoming exchange, build the per-exchange `internal` record
+   its own Exchange class needs and call `handleHttpExchange(internal)`
+   or `handleWebSocketExchange(internal)`.
+
+The **kit entry** picks the exchange class from the deployer class and
+hands it to the dispatch with `internal`. The **dispatch** reads the
+identity, rejects a repeat, constructs the Exchange (which derives the
+`ExchangeKit`), runs the exchange attachers, then executes the composed
+pipeline.
+
+### Protocol invariant
+
+- The deployer does not know what handlers were registered via `use()`
+  or which plugins are installed. It interacts only with
+  `DeploymentKit` and the dispatch entries.
+- The workflow does not know the server type, event model, or transport
+  protocol. It interacts only with capabilities installed on its kit.
+- Protocol selection happens **before** construction: the two exchange
+  families share no `internal` shape, and `mode` only exists after
+  construction. Splitting by protocol turns the pairing into a named
+  fact written on the port instead of a runtime guess.
+
+### Deployment flow
+
+```text
+deploy(server) / withDeployer(DeployerClass).deploy(server)
+  │
+  ├─ 1. Create the Deployment (DeploymentKit + server + workflow)
+  ├─ 2. Run plugin deployment attachers on DeploymentKit
+  ├─ 3. Look up the deployer (registry or instance association)
+  ├─ 4. Derive DeployerKit; construct the deployer
+  ├─ 5. deployer[$I.INSTALL](DeployerKit)
+  ├─ 6. Append plugin exchange attachers to the deployment
+  ├─ 7. deployment[$I.COMMIT]() — the definition surface closes
+  └─ 8. deployment.link() — the linker chain runs (deploy only)
+```
+
+`compile()` stops after step 7 and returns the deployment; its `manifest`
+carries the declared materials. `deploy()` continues through step 8.
+
+### Dispatch guardrails
+
+The dispatch must reject bad deployer input before any handler runs.
+
+- The deployer must be registered with an `Exchange` class per protocol;
+  that pairing is checked at registration time with
+  `SubConstructorOf(HttpExchange.Abstract)` (and the WebSocket
+  equivalent).
+- `internal` is passed straight to the Exchange constructor and stored
+  by the Exchange; the core never inspects its shape.
+- The Exchange is constructed **here**, from the registered class and the
+  `DeploymentKit` — not installed by the deployer beforehand — and the
+  `ExchangeKit` it derives carries `K_EXCHANGE`, `K_REQUEST`,
+  `K_RESPONSE`. `useExchange` / `useRequest` / `useResponse` are their
+  readers.
+- A repeated identity is rejected before any object graph is built: no
+  half-constructed exchange, no stray timer.
+- Dispatch failures are deployer errors, not handler errors. `.use()`
+  handlers may assume a validated `ExchangeKit` once the pipeline starts.
+- The deployer's listener still decides whether an event produces an
+  exchange at all; the dispatch owns construction, installation, and the
+  guards.
+
+### Exchange identity and duplicate consumption
+
+Identity is resolved **before** the exchange is constructed:
+`TargetExchange[$S.IDENTITY](internal)` forwards to the abstract static
+slot every concrete Exchange must implement. The dispatch records the
+result in the deployment's `WeakSet`.
+
+The model layer exposes identity; the bridge layer owns consumption. That
+is not two guards but two responsibilities — the model answers, the
+bridge decides. The exchange instance never answers identity, so it keeps
+only the protected `$I.INTERNAL` record getter that its parts read.
+
+A duplicate is reported as a neutral error
+(`The Exchange has already been dispatched.`) with no
+`[DeployerImplementationError]` prefix: the deployment cannot import the
+deployer error helper without creating a cycle, and attribution is the
+price of that rule.
+
+### Motivation: server event models differ
 
 | Server type    | Key events                            |
 | -------------- | ------------------------------------- |
@@ -453,379 +587,265 @@ Different server types expose fundamentally different event models:
 | `http2.Server` | `session`, `stream`, `goaway`         |
 | `net.Server`   | `connection`, `close`                 |
 
-A unified lifecycle management object at the Workflow level would
-either need to abstract all these into a lowest-common-denominator
-interface (losing type-specific capabilities) or leak server-type
-knowledge into Workflow. The Bridge Protocol avoids both by keeping
-the Deployer as the sole owner of protocol semantics.
+A unified lifecycle object at workflow level would either abstract these
+into a lowest common denominator (losing type-specific capability) or
+leak server-type knowledge into the workflow. The bridge protocol avoids
+both by keeping the deployer the sole owner of protocol semantics.
 
-### Protocol correctness is the Deployer author's responsibility
+## Exchange Template
 
-The Bridge Protocol is a **documented contract**, not a machine-enforced
-constraint. Workflow cannot verify at definition time that an Deployer
-recipe calls `handle` in the right place, or calls it at all — that is
-a runtime behaviour that only emerges when the server processes actual
-requests.
+### The three families
 
-Workflow does not provide test helpers for this verification. The
-Deployer author chooses their own method to prove correctness (unit
-tests, integration tests, manual verification, etc.). This is
-consistent with the project's MIT licensing philosophy — the framework
-defines the protocol; deployer authors are responsible for their own
-implementations.
+The exchange family has three layers, each answering only its own layer:
 
-Downstream consumers (application developers) select an Deployer based
-on trust or demonstrated quality. If an Deployer fails to call `handle`,
-the symptom is clear at runtime (requests hang or error), and the
-consumer can switch to a different Deployer.
+- **`Exchange`** (shell, `Workflow/Exchange/`): protocol-common facts —
+  `identity`, `server`, `protocol`, `mode`, `httpVersion`, `workflow`,
+  plus `request` and `response`. Abstract members: `_I.HTTP_VERSION`,
+  `_I.MODE`, `_I.SERVER.GET`, `_I.SERVER.PROTOCOL.GET`; static slots
+  `_S.IDENTITY`, `_S.REQUEST_CTOR`, `_S.RESPONSE_CTOR`.
+- **`HttpExchange`** (protocol family, `CompoundWorkflow/HttpExchange/`):
+  adds the two body parts and the timeout arming; `_I.MODE` answers
+  `'http'`.
+- **`WebSocketExchange`** (`CompoundWorkflow/WebSocketExchange/`): the
+  **whole connection**, not the handshake moment; its main subject is the
+  controller. `_I.MODE` answers `'websocket'`; `_S.CONTROLLER_CTOR` is
+  its static slot.
 
-### Logical exchange identity getter
+Directions follow the dispatcher: the shell's deployment reads identity,
+the protocol families read the compound workflow's state. The shell does
+not recognise workflow types — `workflow` goes through the deployment.
 
-Implemented as a deployer contract extension, and still a deployer
-responsibility boundary.
+Abstract members are pushed down to the owning part; `Exchange` is not a
+member bus. `Part` is a **concrete** base class. The `internal` record
+is the deployer-supplied connection-time record; it is passed as the
+first argument of every `_I` member and is never put on the kit.
 
-- `I.INTERNAL` holds the per-exchange record the deployer hands in as the
-  Exchange constructor's second argument. It never leaves the package.
-- That record is readable through the protected `$I.INTERNAL` getter on
-  `ExchangePart`, so every subject inherits it and a part implementation
-  can reach the record as `this[$I.INTERNAL]`.
-- Deployer implementations answer identity through the protected
-  `$I.IDENTITY` getter, which receives that record as its argument and
-  returns one native object per logical exchange (for example a req/res
-  pair, or a stream).
-- Identity consumption is enforced in the dispatch, not in Exchange
-  construction: the dispatch reads `Exchange[$I.IDENTITY]` once and
-  records it in the workflow's own set.
-- The dispatch therefore enforces both identity-exchange binding and
-  exchange-workflow execution binding, in one place and one read.
+Freezing happens at each concrete implementation point, at the end of its
+constructor; base classes never freeze themselves.
 
-### Exchange Template
+### Public API
 
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#exchange-template).
-
-### Body scope
-
-Kitty core is responsible for memory safety. The first-class body
-interface is always stream-based:
-
-```js
-tx.request.body.data; // Readable | null
-tx.response.body.data; // the handler sets it — see the sink contract below
+```text
+exchange.request         → ExchangeRequest       (readonly)
+exchange.response        → ExchangeResponse      (readonly)
+exchange.workflow        → Workflow              (readonly)
+exchange.method          → string                (readonly, shortcut)
+exchange.url             → URL                   (readonly, shortcut)
+exchange.statusCode      → number                (readonly, shortcut)
+exchange.statusText      → string                (readonly, shortcut)
+exchange.setStatus(code[, text]) → void          (write)
+exchange.server          → net.Server            (readonly)
+exchange.protocol        → 'http:' | 'https:'    (readonly)
+exchange.mode            → 'http' | 'websocket'  (readonly)
+exchange.httpVersion     → string                (readonly)
+exchange.toJSON()        → always throws         (exchange is not data)
 ```
 
-- **Readable**: Always stream. Never auto-drains to Buffer. Consumers
-  pipe or read chunks as needed.
-- **null**: No body.
+`WebSocketExchange` adds `controller → WebSocketController`.
+`HttpExchange` adds the body parts through its request and response.
 
-#### Response body data: the sink contract (draft, 2026-10-15)
+### Member ownership
 
-The request side is a source; the response side is a **sink**. The
-handler hands a value to `response.body.data` and the deployer writes it
-out. This package normalizes that value into one record shape:
+Primitive members live on the object with the highest conceptual
+relevance. The exchange exposes unambiguous high-frequency shortcuts;
+ambiguous names must be reached through `request.*` / `response.*`.
+
+```text
+Exchange-owned concepts
+├── server, protocol, mode, httpVersion, workflow
+
+Request concepts     → ExchangeRequest
+├── method, url, header, body.data
+
+Response concepts    → ExchangeResponse
+├── statusCode, statusText, header, body.data, setStatus, isFinished
+```
+
+### Part families
+
+| Part                      | Owner         | Public members                                      |
+| ------------------------- | ------------- | --------------------------------------------------- |
+| `ExchangeRequest`         | shell         | `header`, `method`, `url`                           |
+| `ExchangeRequestHeader`   | request       | `get`, `has`, `keys`, `entries`                     |
+| `ExchangeResponse`        | shell         | `header`, `statusCode`, `statusText`, `isFinished`  |
+| `ExchangeResponseHeader`  | response      | `get`, `has`, `keys`, `entries`                     |
+| `ExchangeMutableResponse` | shell         | `setStatus(code[, text])`                           |
+| `ExchangeMutableHeader`   | response      | `set`, `delete`, `clear`                            |
+| `HttpRequestBody`         | http exchange | `data` (stream), `distributor`                      |
+| `HttpResponseBody`        | http exchange | `data` (sink record)                                |
+| `WebSocketController`     | ws exchange   | `readyState`, `send(data)`, `close([code, reason])` |
+| `WebSocketResponse`       | ws exchange   | `isFinished` is always `true`                       |
+
+Mutable parts extend their read-only counterpart, so a deployer that has
+no write path can hand out the read-only type. A header write is
+validated strictly (name and value parsers), while a header read answers
+`HeaderValueOrUndefined` — read loose, write tight.
+
+### Defense layers
+
+1. **Abstract proxy**: parsers validate types at construction and at
+   every `_I` read (`P.HTTPStatusCode`, `P.HttpMethod`, …).
+2. **Deployer error domain**: failures raised on the implementation side
+   go through `ThrowDeployer(message, options)`, which prefixes
+   `[DeployerImplementationError]` and forwards `{ cause }`.
+3. **Public method self-check**: runtime assertions on method arguments
+   independent of the abstract proxy (`Assert.HeaderName`,
+   `Assert.HeaderValue`, `Assert.HTTPStatusCode`).
+
+### Exchange factory
+
+`Implement.Exchange.Http(options)` and `Implement.Exchange.WebSocket(
+options)` build a whole set at once — the exchange plus every part — from
+one normalised options record. They are packaging entry points, not
+subjects: one call hands over a coherent family, and splitting it into
+subjects would break the "delivered as a set" property.
+
+### Events
+
+The exchange is an `EventTarget`. Events carry **decisions and
+lifecycle**, never data: data belongs to streams, and re-emitting it over
+an event opens a second IO channel with a second set of backpressure
+semantics.
+
+Each event must answer: who dispatches, when, with what payload, in what
+order, how many times.
+
+| Event                          | Dispatched by        | Payload                           |
+| ------------------------------ | -------------------- | --------------------------------- |
+| `exchange-pipeline-done`       | dispatch, on success | none                              |
+| `exchange-pipeline-error`      | dispatch, on failure | `detail.error`                    |
+| `exchange-pipeline-finish`     | dispatch `finally`   | none                              |
+| `http-exchange-timeout`        | `HttpExchange` timer | `detail.timeout`                  |
+| `http-request-body-data-end`   | request body         | none                              |
+| `http-request-body-data-close` | request body         | none                              |
+| `http-request-body-data-error` | request body         | `detail.error`                    |
+| `http-request-body-data-limit` | request body         | `detail.limit`, `detail.consumed` |
+| `close` (controller)           | WebSocket controller | `code`, `reason`                  |
+
+Ordering rule: exactly one of `done` / `error` is dispatched first, then
+`error` is rethrown unchanged, and `finish` is always last, exactly once,
+from a `finally` block. Deleting `finish` would push the cleanup duty onto
+every deployer and would leak the `HttpExchange` timeout timer.
+
+Only forward an event when downstream cannot reach the original object.
+`distributor` is exposed as-is, so fugue events are not re-emitted. The
+node `Readable` is wrapped by `Readable.toWeb()` and becomes
+unreachable, so the body forwards its `end`, `close`, `error`, `limit`
+events.
+
+**Listener exceptions are not shielded.** Node rethrows a listener error
+on `nextTick` as `uncaughtException`, at which point process state is
+undefined. The library installs no global handler and wraps no
+`dispatchEvent` in `try/catch`; the process manager restarts.
+
+## Request, Response and Body
+
+### Request URL
+
+An absolute URL is used as-is. A relative one is resolved against
+`exchange.protocol` plus the `host` header; a missing host raises a
+deployer error, because RFC 7230 requires it for HTTP/1.1 origin-form
+requests.
+
+### Request body: a source
+
+```text
+node Readable
+  → Readable.toWeb()
+  → Distributor (deployment-scoped class)
+  → data: a fresh WHATWG ReadableStream per access
+```
+
+- `data` answers a **fork**: a fresh copy from byte 0 on every access.
+- `distributor` is exposed unchanged, so a handler may tune per-exchange
+  differences itself. The framework offers no second configuration entry
+  point and tracks no changes.
+- Body size is accumulated from the distributor's `metric` events
+  (`source-consumed-byte-length`). Over `MaxBodySize`, the body
+  dispatches `limit`, destroys the distributor, and sets `413` when the
+  response is still open.
+- The distributor class is deployment-scoped workflow state, set with
+  `setRequestBodyDistributorConstructor(Ctor)` and validated as a
+  `Fugue.Distributor` derivation. It may be replaced at any time,
+  including after `finalize()`.
+- The 12 fugue options are proxied as `Configuration` items (PascalCase)
+  and applied once, when the body builds its distributor. They express
+  the layer's **baseline expectation** of downstream, not a "freely
+  overridable default".
+- The degraded-chunk reader is **not shipped here**: the integration layer
+  supplies it through the distributor's static slot.
+- Stream teardown prefers `terminate()` (synchronous, closes the gate
+  only) over `destroy()` (errors already-issued copies and cancels the
+  source).
+
+### Response body: a sink
+
+The handler hands a value to `response.body.data`; the deployer writes it
+out. This package normalises that value into one record shape:
 
 ```js
 {
   stream: ReadableStream | null, // null = no body
-  length: number | null, // known byte count, or null when unknown
+  length: number | null,         // known byte count, or unknown
 }
 ```
 
-`length` is always present and explicit: a non-negative byte count, or
-`null` when the count is unknown. A string or a byte array has a known
-length, a stream does not. `null` means exactly "unknown" and nothing is
-inferred from it. The two sides must agree: a `null` stream means no body,
-so its length is exactly `0`, never `null`.
-
-Built-in presets, implemented **only** in this package:
-
-| Value                  | Result                                        |
-| ---------------------- | --------------------------------------------- |
-| `null`, `undefined`    | `{ stream: null, length: 0 }`                 |
-| `string`               | UTF-8 `ReadableStream`, `length` = byte count |
-| `Uint8Array`, `Buffer` | `ReadableStream`, `length` = `byteLength`     |
-| `ReadableStream`       | as given, `length` = `null`                   |
-| node `Readable`        | `Readable.toWeb(value)`, `length` = `null`    |
-
-- The `string` length must be the **byte** count (`Buffer.byteLength`),
-  never `.length`.
-- A preset is a `ResponseBodyDataNormalizer` derivation: its matcher is the
-  static `test()` it declares, its converter is its `normalize()`. The
-  registry holds the registered instances, deduplicated by their
-  constructor, and **keeps them in registration order — the first match
-  wins**, so registration order is the declared precedence. A value that
-  matches nothing is rejected with the registered names in the error. This
-  is a declared set, not a probe: it never asks the value what it is (no
-  `toJSON`-style duck typing), and a workflow carries the set.
-- The default assembly is not core's job: this package ships the built-in
-  presets, while `@produck/kitty` composes the default set (and may add
-  downstream ones, such as JSON) when the packages are put together.
+`length` is always present and explicit. A string or a byte array has a
+known length; a stream does not. `null` means exactly "unknown", and
+nothing is inferred from it. The two sides agree: a `null` stream means no
+body, so its length is exactly `0`, never `null`.
 
 Responsibility split:
 
-- **This package**: the record shape, the built-in presets, the
-  normalization at the setter, and the declared set.
-- **The deployer, downstream**: everything protocol-specific. That
-  includes `Content-Length` versus `Transfer-Encoding` — and the
-  h1/h2 difference in particular: HTTP/1.1 may chunk, HTTP/2 has no
-  `Transfer-Encoding` at all. The framework never sets either header; it
-  only says what is known about the body.
+- **This package**: the record shape, the normalisation call at the
+  setter, and the guard that the setter is still open.
+- **The implementer**: the normalisation function itself. It is an
+  abstract member (`_I.NORMALIZE_HTTP_RESPONSE_BODY_DATA`), so
+  `CompoundWorkflow` cannot be used until it is supplied;
+  `Implement.Workflow({ normalizeHttpResponseBodyData })` is the factory
+  form.
+- **The integration package**: the default preset set (string,
+  `Uint8Array`/`Buffer`, `ReadableStream`, node `Readable`, no body) and
+  any downstream additions such as JSON. Presets are a declared set, not
+  a probe: nothing asks the value what it is.
+- **The deployer**: everything protocol-specific, including
+  `Content-Length` versus `Transfer-Encoding`, and the h1/h2 difference —
+  HTTP/1.1 may chunk, HTTP/2 has no `Transfer-Encoding` at all. The
+  framework sets neither header; it only states what is known.
 
-`get data` answers a copy of the record: the body keeps the record in a
-private slot of its own, so reading never calls back into the deployer, and
-a body nobody set reads the no-body record, `{ stream: null, length: 0 }`.
-The setter picks the two contract fields, so a preset that returns extra
-ones never gets them into the body nor to the deployer.
+`get data` answers a copy of the record: the body keeps it in a private
+slot, so reading never calls back into the deployer, and a body nobody set
+reads the no-body record `{ stream: null, length: 0 }`. The setter picks
+the two contract fields, so extra fields from a normaliser never reach the
+body nor the deployer.
 
-Still open: the programming names (the reader of the declared set; the
-concept name `ResponseBodyDataValue` is for prose only) and whether
-`Uint8Array`/`Buffer` stays in the built-in set.
+### Finished guards and timeout
 
-Core may provide a default caching strategy (threshold → temp file)
-with a policy controller installed on `DeploymentKit`. The
-configuration entry point for that policy is still open; it is not a
-generic `deploy(server, options)` pass-through.
+Once `response.isFinished` is true, further `setStatus()` and
+`response.body.data = …` writes are rejected at the write site of each
+part; implementation-side failures surface through `ThrowDeployer`.
 
-```js
-// Handler can adjust per-request via inherited policy
-workflow.use(async (kit, next) => {
-  const policy = kit['body.policy'];
-  policy.threshold = '500MB'; // this request allows larger body
-  return next();
-});
-```
+Handler timeout is configured with
+`Tune.MaxExchangeTimeout(workflow, milliseconds)`. The timer is armed at
+`HttpExchange` construction and cleared on
+`exchange-pipeline-finish`. On expiry it dispatches
+`http-exchange-timeout` and sets `503` if the response is still open.
 
-The policy controller is accessible from `ExchangeKit` via kit
-inheritance — no extra installation needed. This keeps the default
-safe while allowing handlers to opt into different behavior.
+> **Open**: the timeout currently changes status only. It neither
+> destroys the request body, nor `unref()`s the timer, nor prevents a
+> handler's already-written status from being overwritten by `503`.
 
-This illustrates a broader design advantage: in traditional frameworks
-(cache size, body limit, timeouts) are usually locked at middleware
-initialization time. Changing them per-request requires awkward
-workarounds or global state mutation. Kitty's `DeploymentKit` →
-`ExchangeKit` inheritance chain makes per-request policy
-adjustment a natural pattern — the controller is installed once and
-inherited by every request, and handlers can tune it without
-affecting others.
+## Protocol-aware routing
 
-Buffer-style convenience (`body.json()`, `body.text()`, etc.) is a
-**plugin-level** concern built on top of the stream interface.
-
-Payload consumption is managed by Kitty core. Once consumed, payload
-data follows core policy (memory threshold with temp-file fallback) so
-downstream handlers can re-access it transparently as stream-based data
-or via one-shot fan-in accessors built on top of the same policy.
-
-Goal:
-
-- Keep memory safety and temporary storage lifecycle in core.
-- Keep handler consumption behavior transparent and consistent.
-- Avoid forcing downstream code to manually coordinate finished-state
-  edge cases for common payload reads.
-
-After `exchange.isFinished` is true, any further writes through
-`response.body.data` setter or `setStatus()` must be rejected.
-This requirement is checked at the write site of each exchange part;
-implementation-side failures are reported through `ThrowDeployer`, which
-prefixes them with `[DeployerImplementationError]`.
-
-Handler execution timeout is configurable via `Configuration.Tune.MaxExchangeTimeout(workflow, milliseconds)`.
-The timeout is armed at Exchange construction against the `close` event
-dispatched by the dispatch `finally` block.
-
-## Supplier Configuration (`tune` Pattern)
-
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#supplier-configuration-tune-pattern).
-
-## Server Lifecycle Ownership
-
-> Stable conclusion moved to [ARCHITECTURE.md](ARCHITECTURE.md#server-lifecycle-ownership).
-
-### Rationale
-
-1. **Server is caller-owned**: The caller constructed or acquired the
-   server before passing it in. It can (and should) manage
-   `server.listen()`, `server.close()`, error handling, and address
-   queries directly.
-
-2. **Protocol diversity**: Different server types have different
-   lifecycle semantics (e.g., HTTP/2 has session lifecycle, HTTP/1.1
-   has keep-alive). A Workflow-level abstraction would either be too
-   thin to be useful or too leaky to be clean.
-
-3. **Separation of concerns**: "How to close a server" is an Deployer
-   concern; "what to do with each request" is a Workflow concern.
-   Mixing them in a single return value conflates the two layers.
-
-### What the caller controls
-
-```js
-const server = http.createServer();
-const app = new Kitty.Workflow(kit);
-
-app.finalize();
-await app.deploy(server); // attaches middleware, does NOT listen
-server.listen(3000); // caller starts accepting
-
-// Later:
-server.close(); // caller stops accepting
-```
-
-### Graceful shutdown
-
-Since Workflow does not track active exchanges, a graceful shutdown
-requires the caller to coordinate at the server level:
-
-```js
-server.close(async () => {
-  // All connections drained.
-  // Workflow handlers are no longer invoked.
-});
-```
-
-For more sophisticated draining (e.g., waiting for in-flight
-ExchangeKit promises), the Deployer recipe can expose a drain
-capability on `DeploymentKit`:
-
-```js
-// Deployer recipe:
-kit['drain'] = async () => {
-  // Wait for all tracked ExchangeKit promises
-  await Promise.all(activeExchanges);
-});
-```
-
-This stays at the Deployer level — Workflow never needs to know about
-it.
-
-## Event & Cross-Cutting Concerns
-
-Kitty does not provide a built-in event bus, pub/sub mechanism, or
-application-level hook system. These are **user-managed
-cross-cutting concerns** placed in the ExternalKit.
-
-### Pattern
-
-1. **User** constructs an ExternalKit with the desired event/capability
-   infrastructure:
-
-   ```js
-   import { EventEmitter } from 'node:events';
-   import * as Kit from '@produck/kit';
-
-   const EVENT_BUS = Symbol('app.eventBus');
-   const kit = Kit.derive(Kit.global, (parent) => {
-     parent[EVENT_BUS] = new EventEmitter();
-   });
-   ```
-
-2. **User** passes it to `KittyWorkflow`:
-
-   ```js
-   const app = new Kitty.Workflow(kit);
-   ```
-
-3. **External code** subscribes via the same kit:
-
-   ```js
-   kit[EVENT_BUS].on('user.login', data => { ... });
-   ```
-
-4. **Business handler** accesses the bus via the kit inheritance chain
-   (ExternalKit → KitWorkflow → DeploymentKit → ExchangeKit):
-
-   ```js
-   // Inside a handler registered via use():
-   function handler(ExchangeKit, next) {
-     ExchangeKit[EVENT_BUS].emit('user.login', { userId });
-     return next();
-   }
-   ```
-
-### Why not built-in
-
-- **Type diversity**: Users may want `EventEmitter`, `EventTarget`,
-  Redis pub/sub, or a custom message bus. Workflow should not mandate
-  one.
-- **Zero-dependency principle**: Adding built-in events would make
-  Kitty depend on `node:events` even for users who do not need events.
-- **Kit is already the extension channel**: The ExternalKit user
-  provides at construction time serves as the natural carrier for
-  cross-cutting concerns. No additional framework concepts needed.
-- **Consistency**: If events are just another kit capability, they
-  follow the same "not installed, not available" contract as
-  everything else — no special treatment.
-
-### What this means for the dispatch
-
-The dispatch does not need to wire up events.
-Events flow through the kit chain automatically: anything installed
-on ExternalKit is reachable from ExchangeKit. The Deployer recipe
-does not need to propagate events — it only creates the
-ExchangeKit, and kit inheritance does the rest.
-
-## Design Constraints
-
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#design-constraints).
-
-> **Note**: The freezing claim in DESIGN.md previously stated
-> `Object.freeze(this)` is called immediately after construction.
-> This was incorrect — freezing happens at `finalize()`, not
-> construction. ARCHITECTURE.md records the correct behavior.
-
-## Deployer Artifact Split
-
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#deployer-artifact-split).
-
-### Protocol resources on ExchangeKit
-
-The deployer owns the `stream` / `request` event and is responsible
-for creating `ExchangeKit` inside it. At that point it can install
-protocol-specific resources directly onto `ExchangeKit`:
-
-```js
-(
-  server: object,
-  listeners: Record<string | symbol, (...args: any[]) => any>,
-) => unknown
-  const ExchangeKit = DeploymentKit('Kitty<Exchange>');
-  kit[K_STREAM] = stream;
-  kit[K_SESSION] = stream.session;
-  // ... install Exchange Template, then handle
-  handle(ExchangeKit);
-});
-```
-
-> **Affected by the construction move**: the deployer no longer derives
-> `ExchangeKit` — the dispatch does, from its own `DeploymentKit`. So
-> protocol resources cannot be installed on the kit from the deployer's
-> listener any more; they would travel in the `internal` record instead
-> (readable by the deployer's own Exchange and parts), or be installed by
-> an exchange attacher that runs before the handler pipeline. Which of
-> the two is the intended route is still open.
-
-- `stream` gives access to stream-level features (trailers, push,
-  reset).
-- `stream.session` gives access to session-level features (settings,
-  ping, goaway) — available without a separate `session` listener.
-- Handlers import typed accessors (`useStream`, `useSession`) to
-  consume these resources.
-
-These protocol resources are **deployer-specific** and not part of the
-core Exchange Template. They follow the same
-"not installed, not available" contract as any other kit capability.
-
-### Protocol-aware routing
-
-Because all entry points (http1 request, http1 upgrade, http2 stream)
-flow into the same workflow pipeline via `ExchangeKit`, the
-protocol becomes a dimension at the handler layer — not an
-infrastructure concern.
+All entry points (http1 `request`, http1 `upgrade`, http2 `stream`) flow
+into the same pipeline through `ExchangeKit`, so protocol becomes a
+dimension at the handler layer rather than an infrastructure concern.
 
 ```js
 workflow.use((kit, next) => {
   const exchange = useExchange(kit);
 
-  if (exchange.protocol === 'ws') {
+  if (exchange.mode === 'websocket') {
     return handleWebSocket(kit);
   }
 
@@ -833,99 +853,420 @@ workflow.use((kit, next) => {
 });
 ```
 
-This is a novel capability — existing frameworks treat WebSocket and
-other non-HTTP protocols as "exceptions" handled outside the
-middleware pipeline. Kitty's `ExchangeKit` unification makes
-protocol a first-class routing dimension.
+Existing frameworks treat WebSocket and other non-HTTP protocols as
+exceptions handled outside the middleware pipeline. The unified
+`ExchangeKit` makes protocol a first-class routing dimension.
 
-> **Note (external, to be moved out)**: The semantics of `protocol`
-> and `method` may overlap in ambiguous ways — e.g. `POST` is a
-> method, `ws` is a protocol upgrade, `sse` is content negotiation.
-> A future router module must decide how to express these dimensions
-> without conflating them. The core layer intentionally stays out of
-> this decision.
+> **Open**: `protocol` / `mode` / `method` may overlap in ambiguous ways —
+> `POST` is a method, `ws` is a protocol upgrade, `sse` is content
+> negotiation. A future router must express these dimensions without
+> conflating them; the core stays out of that decision.
 
-## Deployer Compliance Baseline (Draft)
+## Typed Capability Accessors
 
-This section captures a practical compliance baseline for deployer
-authors. It is intentionally split into current requirements and
-planned requirements that are still under design.
+`@produck/kit` provides `Getter`, which wraps a property lookup into a
+typed accessor:
 
-### Current required behaviors
+```js
+import { Getter } from '@produck/kit';
 
-- Register a concrete `Exchange` subclass alongside the server
-  constructor; the pairing is validated at registration time.
-- Build the per-exchange `internal` record and call
-  `handleHttpExchange(internal)` / `handleWebSocketExchange(internal)`
-  for each incoming logical exchange.
-- Answer `$I.IDENTITY` with one native object per logical exchange, and
-  never let two exchanges answer the same identity.
-- Answer each `_I` member from the first argument it receives: every
-  `_I` member — a part's and the Exchange's alike — is called with the
-  connection-time record as its first argument.
-- Treat bridge errors as deployer implementation errors and fail fast.
+const { use, touch } = Getter('body');
+```
 
-> Superseded behaviors: building `ExchangeKit`, installing the `Exchange`
-> instance on it, and linking the Exchange to the deployment's server are
-> no longer deployer duties. The dispatch derives the kit and constructs
-> the Exchange from the class the kit entry picked.
+### Export pattern
 
-### Planned deployer contract extensions
+Each package exports the accessor with a semantic name, controlling the
+strictness its consumers experience:
 
-The following are directionally agreed but not finalized as complete
-member-level API requirements:
+```js
+import { Getter } from '@produck/kit';
 
-- Keep `$I.INTERNAL` as the internal object group surface (for example,
-  req/res, stream/session, socket, parser state, etc.).
-- Add an additional identity-specific symbol/getter (separate from
-  `$I.INTERNAL`) for logical exchange deduplication.
-- Identity getter should return a stable marker for one logical
-  exchange in the underlying protocol runtime.
-- Exchange construction should validate identity semantics to ensure
-  identity-exchange strong binding.
-- Core bridge keeps Exchange-instance duplicate-dispatch checks; it
-  does not consume identity for logical deduplication.
+// Only `use` — a missing capability throws at once.
+export const { use: useBody } = Getter('body');
 
-### Non-goal at this layer
+// Symbol keys keep the capability private to the module.
+const K_COOKIE = Symbol('cookie');
+export const { use: useCookie } = Getter(K_COOKIE);
+```
+
+Symbol keys give three properties:
+
+- **Collision-free**: two plugins cannot accidentally share a key, even
+  with the same description.
+- **Consumer-proof**: the symbol cannot be rebuilt outside the module, so
+  `kit['cookie']` style bypasses are impossible; access must go through
+  the exported accessor.
+- **Debuggable**: the description appears in stack traces and error
+  messages without becoming a magic string in consumer code.
+
+Kit's proxy exposes no discovery traps, so consumers must "know it is
+installed, then use it". Symbol keys reinforce that contract at the module
+boundary.
+
+### Strict vs tolerant access
+
+|           | `use(kit)`                                     | `touch(kit)`                          |
+| --------- | ---------------------------------------------- | ------------------------------------- |
+| Behaviour | Throws `ReferenceError` when the key is absent | Returns `undefined` when absent       |
+| Export    | Public; the primary API                        | Internal or unexported                |
+| Use case  | Production code that must fail fast            | Migration, optional features, probing |
+
+The accessor author decides what to export. `touch` stays internal for
+optional probing while consumers only see `use` — they either get the
+capability or fail immediately.
+
+### Comparison with Koa
+
+|                     | Koa `ctx.body`                            | Kitty `useBody(kit)`                      |
+| ------------------- | ----------------------------------------- | ----------------------------------------- |
+| Type safety         | `ctx.body?`; TS needs module augmentation | `Body`; guaranteed or throws              |
+| Runtime feedback    | Silent `undefined`                        | Immediate `ReferenceError` with kit trace |
+| Dependency tracking | Implicit                                  | Explicit through the import               |
+| Composability       | All middleware share one flat `ctx`       | Each capability is a separate import      |
+
+This pattern is the counterpart to "not installed, not available":
+consumers declare their dependencies by importing the accessor, so the
+capability graph is visible in both directions.
+
+## Supplier Configuration (`tune` Pattern)
+
+Suppliers (plugin, deployer, exchange) own their configuration grammar.
+There is no central options bag and no `configure(workflow, patch)`
+protocol. Each supplier exposes named `tune*` functions keyed by workflow
+identity; core keys into a private `WeakMap`, a supplier keys into its
+own.
+
+Core publishes the generated `Tune` and `Get` records. Each configuration
+item is a record `{ key, default, assert }`, from which one tuner and one
+reader are generated.
+
+```js
+import { Tune, Get } from '@produck/kitty-workflow';
+
+Tune.MaxExchangeTimeout(workflow, 2 * 60 * 1000);
+Get.AllowedBodyMethods(workflow);
+```
+
+| Group       | Items                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Exchange    | `MaxExchangeTimeout`, `MaxBodySize`, `AllowedBodyMethods`                                                                                                                                                                                                                                                                                                                                                                            |
+| Distributor | `MaxChunkStashByteLength`, `MaxTransferrerBacklogWarningByteLength`, `DegradeOnChunkStashFullAndDone`, `ForkedReadableStreamHighWaterMark`, `MaxChunkReaderInitializeRetryCount`, `ChunkReaderInitializeRetryInterval`, `MaxTransferrerInitializeRetryCount`, `TransferrerInitializeRetryInterval`, `MaxTransferrerDumpRetryCount`, `TransferrerDumpRetryInterval`, `MaxTransferrerDrainRetryCount`, `TransferrerDrainRetryInterval` |
+
+Supplier template:
+
+```js
+const map = new WeakMap();
+
+export function install(WorkflowKit, workflow) {
+  const config = new Config();
+  WorkflowKit[CAP] = config; // kit-chain access for handlers
+  map.set(workflow, config); // weak-map access for tuning
+}
+
+export function tuneFoo(workflow, value) {
+  const config = map.get(workflow);
+
+  if (config === undefined) {
+    throw new Error('Feature has not been installed on this workflow.');
+  }
+
+  config.foo = value;
+}
+```
+
+Rationale:
+
+- **Supplier-owned grammar**: each supplier defines its own `tune*`
+  signatures; unrelated domains need no shared option shape.
+- **WeakMap identity guard**: a proxied workflow wrapper maps to no
+  installed config, so no extra brand check is needed.
+- **Core ignorance**: the workflow core never inspects supplier options.
+
+Configuration is installed by the composition layer, keyed off the same
+shadow stored in the kit, so `Tune.<key>`/`Get.<key>` use exactly the keys
+the installation wrote. A derivation without that record throws on read.
+
+## Performance Considerations
+
+Kit was designed as a **cold-path facility assembly layer**: objects are
+installed once at startup, then destructured into constants above hot
+business code. Kitty extends kit usage into **hot-path (per-request)**
+territory through exchange attachers and per-request kit derivation.
+
+### Cost model
+
+Kit is **Proxy over a plain object** (`Object.create(null)`), not a Map:
+
+- A property read goes through the `get` trap. On the happy path it checks
+  `property in dependencies` and returns — constant time.
+- On a miss it recurses up the parent chain: O(D), with D typically 4–5
+  and up to 9–10 with nested containers.
+- A write goes through the `set` trap, which validates uniqueness and
+  writes locally.
+
+Twenty plugin attachers (about three writes each) plus handler-time reads
+are estimated at ~20μs per request — negligible beside typical handler IO
+(5–100ms).
+
+### JIT potential
+
+Dependencies are fixed named properties on a plain object, so V8 can
+create hidden classes. If per-request installation consistently writes the
+same properties in the same order, the shape stabilises and the proxy
+`get` can be optimised as monomorphic.
+
+### When it matters
+
+For API servers, SSR, and database-backed apps, handler IO dominates the
+latency budget. It becomes a genuine concern only in ultra-low-latency
+hot paths (reverse proxies, request routers, transparent gateways) where
+handler logic is near zero; there, reading deployment-level utilities
+directly instead of installing per-request capabilities is the escape
+hatch.
+
+## Design Constraints
+
+### Handler signature
+
+Handlers registered through `use()` must be functions with arity ≤ 2:
+
+```js
+handler: ([kit[, next]]) => any
+```
+
+A handler with `length > 2` is rejected at registration.
+
+### Immutability and freezing
+
+- Instances are **not** frozen at construction.
+- `finalize()` freezes the handler list, composes the pipeline, and then
+  freezes the instance.
+- `isFinalized` answers `Object.isFrozen(this)`.
+
+### State guards
+
+- `finalize()`, `compile()`, `deploy()`, `withDeployer()`, `use()`, and
+  `mixin()` check `isFinalized`. Repeated finalization throws.
+- `withDeployer()` guards the synchronous consumption window with
+  `queueMicrotask`.
+- Dispatch mutations guard on the deployment's `COMMITTED` flag.
+
+### Non-goals at this layer
 
 - Business-level idempotency is not a deployer responsibility.
-- Deployer compliance focuses on protocol mapping correctness and bridge
-  invariants only.
+- The core does not choose default deployers, default presets, or default
+  protocol policy; the integration package does.
+
+## Server Lifecycle Ownership
+
+The server passed to `deploy()` or `withDeployer().deploy()` stays under
+the caller's control at all times. The workflow does not start or stop it,
+does not track connections or exchanges, and exposes no management handle.
+
+```js
+const server = http.createServer();
+const app = new Kitty.Workflow(kit);
+
+app.finalize();
+await app.deploy(server); // wires middleware; does not listen
+server.listen(3000); // caller starts accepting
+
+server.close(); // caller stops accepting
+```
+
+Rationale:
+
+1. **The server is caller-owned**: the caller constructed or acquired it.
+2. **Protocol diversity**: HTTP/2 has session lifecycle, HTTP/1.1 has
+   keep-alive; a workflow-level abstraction would be either too thin or
+   too leaky.
+3. **Separation of concerns**: "how to close a server" is a deployer
+   concern; "what to do with each request" is a workflow concern.
+
+For graceful draining, a deployer can expose a drain capability on
+`DeploymentKit`; the workflow never needs to know about it.
+
+## Deployment
+
+A deployment is the result of compiling a workflow against one server. It
+is a concrete subject (`Workflow/Deployment/`), created by
+`Workflow[$I.COMPILE]` and filled in by the deployer before it is sealed.
+
+| State                | Written by                 | Read by              |
+| -------------------- | -------------------------- | -------------------- |
+| `KIT`                | constructor                | package siblings     |
+| `SERVER`             | constructor                | package siblings     |
+| `WORKFLOW`           | constructor                | `$I.HANDLE_EXCHANGE` |
+| `MANIFEST`           | `$I.DECLARE`               | `get manifest`       |
+| `LINK_LIST`          | `$I.SET_LINKER`            | `link()`             |
+| exchange attachers   | `$I.ADD_EXCHANGE_ATTACHER` | `$I.ATTACH_EXCHANGE` |
+| handled identity set | `$I.REGISTER_EXCHANGE`     | `$I.HAS_EXCHANGE`    |
+| `COMMITTED`          | `$I.COMMIT`                | `$I.COMMITTED`       |
+| `LINKED`             | `link()`                   | `$I.LINKED`          |
+
+Every piece of state is a private slot. Only two members are public:
+`manifest` and `link()`.
+
+- **Dispatch belongs here.** `$I.HANDLE_EXCHANGE` reads the identity,
+  rejects a repeat, constructs the exchange (which derives the
+  `ExchangeKit`), applies the attachers, runs the pipeline, and
+  dispatches `finish` in a `finally` block. It reads exactly one member
+  from the workflow: `workflow[$I.PIPELINE]`.
+- **Because dispatch lives here, deployers need no third constructor
+  argument**: they call `deployment[$I.HANDLE_EXCHANGE](ExchangeClass,
+internal)` through the kit entries.
+- **Closing is called commit, not compile**: compiling defines the
+  deployment once; later writes are refused. "Compile" already names the
+  workflow → deployment action.
+- **`link()` is single-use**: it runs the composed linker chain once and
+  rejects a second call. The linker stack is LIFO — every
+  `setServerLinker` unshifts, and `link()` composes the result, so a
+  later layer wraps an earlier one.
+- **The duplicate-identity set is per deployment**: one deployment is one
+  dispatch scope.
+
+## Deployment Paths
+
+Three paths serve different scenarios:
+
+| Property        | `deploy(server)`               | `compile(server)`              | `withDeployer(DeployerClass)`            |
+| --------------- | ------------------------------ | ------------------------------ | ---------------------------------------- |
+| Deployer source | Registry by server constructor | Registry by server constructor | Instance association, bypassing registry |
+| Links server    | Yes                            | No (returns the deployment)    | `compile` or `deploy`                    |
+| Reusability     | Unlimited                      | Unlimited                      | Single-use per call                      |
+| Timing          | No constraint                  | No constraint                  | Must be consumed in the same microtask   |
+
+### `withDeployer()` single-use contract
+
+The returned handle enforces:
+
+- `queueMicrotask` expires the availability window: either call must
+  happen synchronously at the call site.
+- A `consumed` flag rejects a second call.
+- `compile` and `deploy` share one execution lock: exactly one may be
+  called per invocation.
+
+## Package Surface
+
+```js
+import {
+  Abstract,
+  SYMBOL,
+  DeployerRegistry,
+  Tune,
+  Get,
+  Implement,
+  WebSocketControllerEvent,
+  useWorkflow,
+  useServer,
+  useExchange,
+  useRequest,
+  useResponse,
+  useWebSocket,
+} from '@produck/kitty-workflow';
+```
+
+### `Abstract`
+
+One frozen record naming every extension base class:
+
+| Group     | Members                                                                                                                                                  |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workflow  | `Workflow` (the compound workflow), `Plugin`, `Deployer`                                                                                                 |
+| Exchange  | `Exchange`, `ExchangeRequest`, `ExchangeRequestHeader`, `ExchangeResponse`, `ExchangeResponseHeader`, `ExchangeMutableResponse`, `ExchangeMutableHeader` |
+| HTTP      | `HttpExchange`, `HttpRequest`, `HttpRequestBody`, `HttpResponse`, `HttpResponseBody`                                                                     |
+| WebSocket | `WebSocketExchange`, `WebSocketController`, `WebSocketResponse`                                                                                          |
+
+### `SYMBOL`
+
+The declaration and implementation surfaces, grouped by subject:
+
+```text
+WORKFLOW._I
+DEPLOYER.{_I, _S}
+PLUGIN.{_I, _S}
+EXCHANGE.{_I, _S}
+EXCHANGE_REQUEST.{_I, _S}
+EXCHANGE_REQUEST_HEADER._I
+EXCHANGE_RESPONSE.{_I, _S}
+EXCHANGE_RESPONSE_HEADER._I
+EXCHANGE_RESPONSE_MUTABLE_HEADER._I
+EXCHANGE_MUTABLE_RESPONSE._I
+HTTP_REQUEST._S
+HTTP_REQUEST_BODY._I
+HTTP_RESPONSE._S
+HTTP_RESPONSE_BODY._I
+WEB_SOCKET_EXCHANGE._S
+WEB_SOCKET_CONTROLLER._I
+```
+
+`_I` groups are implementation duties (a deployer must answer them);
+`_S` groups are declaration slots (a deployer must provide them).
+
+### `Implement`
+
+Factories that turn one options record into a whole class (or class set):
+
+| Entry                                                        | Accepts                                                 |
+| ------------------------------------------------------------ | ------------------------------------------------------- |
+| `Implement.Workflow(options)`                                | `normalizeHttpResponseBodyData`                         |
+| `Implement.Deployer(options)`                                | `tag`, `server`, `exchange.{http,webSocket}`, `install` |
+| `Implement.Plugin(options)`                                  | `tag`, `install`                                        |
+| `Implement.Exchange.Http(options)`                           | the full HTTP exchange set                              |
+| `Implement.Exchange.WebSocket(options)`                      | the full WebSocket exchange set                         |
+| `Implement.Normalize.{Workflow, Deployer, Plugin, Exchange}` | the option normalisers behind those factories           |
 
 ## Glossary
 
-- **Workflow**: The composed handler pipeline, produced by
+- **Workflow**: the composed handler pipeline, produced by
   `Composer.compose()`.
-- **Deployer**: A mapping between a server constructor and its
-  deployer entry `{ tag, install }`. Works only on the deployment-level
-  kit (`Kitty<Deployment>`); has no effect on the Workflow-level kit.
-- **Kit Recipe**: Describes dependencies to install into a kit.
-  Deployer functions may still use recipes, but registry deployers are
-  currently plain `install(DeployerKit)` functions.
-- **manifest**: A deployer-filled record of named materials for the
-  compile path, for example `{ request: (req, res) => {} }`. Values are
-  unconstrained; the name replaces the earlier `listeners` term.
-- **link**: A plain function `(server, listeners) => unknown` that
-  attaches artifact listeners to a server instance.
-- **deploy**: Auto-discovery deployment — looks up a deployer from
-  global Deployer registry by prototype chain.
-- **withDeployer**: Ephemeral custom deployment — no global registration,
-  one-off use with immediate invocation guard.
-- **tune**: Adjust a supplier-owned runtime parameter on a workflow.
-  Complements `attach` (install capability) with parameter-level
-  configuration. Suppliers expose named `tune*` functions keyed by
-  workflow identity through a private `WeakMap`.
-- **EventTarget**: Platform primitive. `KittyExchange` extends it to
-  dispatch lifecycle events (`close`, `timeout`, etc.).
+- **Compound workflow**: a workflow carrying configuration, request body
+  distributor state, and the response body normaliser slot.
+- **Plugin**: a class installed with `mixin()`; receives a `PluginKit`.
+- **Deployer**: a class mapping one server constructor to protocol
+  bridging; receives a `DeployerKit` and the deployment.
+- **Deployment**: the compiled artifact of one workflow against one
+  server; owns dispatch, manifest, linkers, and the identity set.
+- **Exchange**: one logical request/response unit of a given protocol
+  family.
+- **Part**: a member of the `ExchangePart` family (request, response,
+  header, body, controller).
+- **Slot**: a `_S` symbol whose value is a class reference supplied
+  downstream.
+- **Internal**: the connection-time record the deployer hands to the
+  dispatch; its shape is deployer-defined and never interpreted by core.
+- **Identity**: one native object per logical exchange, used to reject a
+  second dispatch.
+- **Manifest**: a deployer-filled record of named materials for the
+  compile path.
+- **Link**: a plain function that wires a compiled deployment to a server.
+- **Deploy**: auto-discovery deployment — looks up a deployer from the
+  registry by server constructor.
+- **WithDeployer**: ephemeral deployment — no registration, one-off use
+  with an immediate-consumption guard.
+- **Tune**: adjust a supplier-owned runtime parameter, keyed by workflow
+  identity.
+- **Done / closed / destroyed**: data reached its end / a reader was
+  closed by its lifecycle / a distributor was destroyed.
 
-## Open Design Questions
+## Open Questions
 
-<!-- setServerLinker resolved: explicit stack + compose internally, API stays setServerLinker -->
-
-## Exchange Layer Architecture
-
-> Stable description moved to [ARCHITECTURE.md](ARCHITECTURE.md#exchange-template).
-> Defense layer details moved to [ARCHITECTURE.md](ARCHITECTURE.md#exchange-template).
->
-> Member ownership, proxy gateway, sub-namespace aggregation, and
-> defense layer descriptions are now stable contracts.
+1. **Protocol resources route**: whether deployer-specific resources
+   (`stream`, `session`, trailers) travel in `internal` or are installed
+   by an exchange attacher.
+2. **HTTP/2 `allowHTTP1`**: allowing it would make one TLS server serve
+   both 1.1 and 2, in parallel with the `deployer/http1/https` path;
+   forbidding it keeps server-constructor routing as the only rule. One
+   choice, no both.
+3. **Response body preset set**: whether `Uint8Array`/`Buffer` stays in
+   the built-in set shipped by the integration package, and the
+   programming name of the normaliser reader.
+4. **Body policy entry point**: the default caching strategy
+   (threshold → temp file) is currently carried by the distributor
+   options; whether any policy controller belongs on `DeploymentKit` is
+   undecided.
+5. **`protocol` / `mode` / `method` semantics**: a future router must
+   express these dimensions without conflating them.
+6. **Timeout completeness**: destroying the request body, `unref()`ing
+   the timer, and protecting a handler's written status from a late
+   `503`.
