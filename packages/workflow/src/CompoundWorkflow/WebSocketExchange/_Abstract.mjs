@@ -1,4 +1,4 @@
-import { SYMBOL } from '@produck/argot';
+import { CONSTRUCTOR } from '@produck/argot';
 import Abstract, { ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
@@ -15,7 +15,7 @@ class WebSocketExchange extends Workflow.Exchange.Abstract {
   constructor(...args) {
     super(...args);
 
-    const TargetController = this[SYMBOL.CONSTRUCTOR][_S.CONTROLLER_CTOR];
+    const TargetController = this[CONSTRUCTOR][_S.CONTROLLER_CTOR];
     const controller = new TargetController($(this));
 
     this[I.CONTROLLER] = controller;

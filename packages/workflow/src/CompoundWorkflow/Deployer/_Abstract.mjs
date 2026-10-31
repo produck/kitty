@@ -1,6 +1,6 @@
 import * as net from 'node:net';
 
-import { Is, Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
+import { CONSTRUCTOR, Is, Ow, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import { isSubConstructor } from '@produck/is-sub-constructor';
@@ -45,7 +45,7 @@ class Deployer {
 
     this[I.KIT] = DeploymentKit('Kitty<Deployer>');
     this[I.DEPLOYMENT] = deployment;
-    this[SYMBOL.CONSTRUCTOR] = new.target;
+    this[CONSTRUCTOR] = new.target;
     this[I.ATTACH.MANIFEST]();
     this[I.ATTACH.SERVER_LINKER]();
     this[I.ATTACH.EXCHANGE_ATTACHER]();
@@ -98,28 +98,26 @@ class Deployer {
 
   [I.ATTACH.HANDLER.HTTP]() {
     this[I.KIT].handleHttpExchange = async (internal) => {
-      const Exchange = this[SYMBOL.CONSTRUCTOR][_S.EXCHANGE_CTOR.HTTP];
+      const Exchange = this[CONSTRUCTOR][_S.EXCHANGE_CTOR.HTTP];
 
-      await this[I.DEPLOYMENT][DEPLOYMENT.$I.HANDLE_EXCHANGE](
-        Exchange,
-        internal,
-      );
+      await this[I.HANDLE_EXCHANGE](Exchange, internal);
     };
   }
 
   [I.ATTACH.HANDLER.WEB_SOCKET]() {
     this[I.KIT].handleWebSocketExchange = async (internal) => {
-      const Exchange = this[SYMBOL.CONSTRUCTOR][_S.EXCHANGE_CTOR.WEB_SOCKET];
+      const Exchange = this[CONSTRUCTOR][_S.EXCHANGE_CTOR.WEB_SOCKET];
 
       if (Exchange === undefined) {
         Ow.Error.Common('It MUST implement a WebSocket exchange.');
       }
 
-      await this[I.DEPLOYMENT][DEPLOYMENT.$I.HANDLE_EXCHANGE](
-        Exchange,
-        internal,
-      );
+      await this[I.HANDLE_EXCHANGE](Exchange, internal);
     };
+  }
+
+  [I.HANDLE_EXCHANGE](...args) {
+    return this[I.DEPLOYMENT][DEPLOYMENT.$I.HANDLE_EXCHANGE](...args);
   }
 
   [I.ASSERT.NOT_COMMITTED]() {

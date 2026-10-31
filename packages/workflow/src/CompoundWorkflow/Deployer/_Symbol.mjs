@@ -9,6 +9,7 @@ const I_ATTACH_DEPLOYMENT = Symbol('.#attachDeployment()');
 const I_ATTACH_HANDLER_HTTP = Symbol('.#attachHttpHandler()');
 const I_ATTACH_HANDLER_WEB_SOCKET = Symbol('.#attachWebSocketHandler()');
 const I_ASSERT_NOT_COMMITTED = Symbol('.#assertNotCommitted()');
+const I_HANDLE_EXCHANGE = Symbol('.#handleExchange()');
 
 const $I_INSTALL = Symbol('.$install()');
 
@@ -30,6 +31,7 @@ export const I = deepFreeze({
   ASSERT: {
     NOT_COMMITTED: I_ASSERT_NOT_COMMITTED,
   },
+  HANDLE_EXCHANGE: I_HANDLE_EXCHANGE,
 });
 
 export const $I = deepFreeze({

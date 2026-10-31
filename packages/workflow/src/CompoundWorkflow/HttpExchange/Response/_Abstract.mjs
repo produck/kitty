@@ -1,4 +1,4 @@
-import { SYMBOL } from '@produck/argot';
+import { CONSTRUCTOR } from '@produck/argot';
 import Abstract from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
@@ -9,7 +9,7 @@ import { I, _S } from './_Symbol.mjs';
 class HttpResponse extends Workflow.Exchange.MutableResponse.Abstract {
   constructor(exchange) {
     super(exchange);
-    this[I.BODY] = new this[SYMBOL.CONSTRUCTOR][_S.BODY_CTOR](exchange);
+    this[I.BODY] = new this[CONSTRUCTOR][_S.BODY_CTOR](exchange);
   }
 
   get body() {

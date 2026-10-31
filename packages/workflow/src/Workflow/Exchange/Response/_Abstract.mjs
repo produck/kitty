@@ -1,4 +1,4 @@
-import { SYMBOL } from '@produck/argot';
+import { CONSTRUCTOR } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
@@ -13,7 +13,7 @@ class Response extends Part.Concrete {
 
   constructor(exchange) {
     super(exchange);
-    this[I.HEADER] = new this[SYMBOL.CONSTRUCTOR][_S.HEADER_CTOR](exchange);
+    this[I.HEADER] = new this[CONSTRUCTOR][_S.HEADER_CTOR](exchange);
   }
 
   get header() {

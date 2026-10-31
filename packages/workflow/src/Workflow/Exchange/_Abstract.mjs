@@ -1,6 +1,6 @@
 import * as net from 'node:net';
 
-import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
+import { CONSTRUCTOR, Ow, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import * as Kit from '@produck/kit';
@@ -34,9 +34,9 @@ class Exchange extends EventTarget {
     this[I.KIT] = ExchangeKit;
     this[I.DEPLOYMENT] = deployment;
     this[I.INTERNAL] = internal;
-    this[SYMBOL.CONSTRUCTOR] = new.target;
-    this[I.REQUEST] = new this[SYMBOL.CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
-    this[I.RESPONSE] = new this[SYMBOL.CONSTRUCTOR][_S.RESPONSE_CTOR]($(this));
+    this[CONSTRUCTOR] = new.target;
+    this[I.REQUEST] = new this[CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
+    this[I.RESPONSE] = new this[CONSTRUCTOR][_S.RESPONSE_CTOR]($(this));
 
     ExchangeKit[K_REQUEST] = this[I.REQUEST];
     ExchangeKit[K_RESPONSE] = this[I.RESPONSE];
