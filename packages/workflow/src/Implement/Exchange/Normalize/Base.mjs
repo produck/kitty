@@ -16,7 +16,7 @@ export function normalizeResponse(_response) {
   if (Is.PlainObject(_status)) {
     const { get: _get } = _status;
 
-    if (typeof _get !== 'function') {
+    if (!Is.Type.Function(_get)) {
       ThrowTypeError('args[0].response.status.get', 'function');
     }
 
@@ -28,7 +28,7 @@ export function normalizeResponse(_response) {
   if (Is.PlainObject(_statusText)) {
     const { get: _get } = _statusText;
 
-    if (typeof _get !== 'function') {
+    if (!Is.Type.Function(_get)) {
       ThrowTypeError('args[0].response.statusText.get', 'function');
     }
 
@@ -40,7 +40,7 @@ export function normalizeResponse(_response) {
   if (Is.PlainObject(finished)) {
     const { is: _is } = finished;
 
-    if (typeof _is !== 'function') {
+    if (!Is.Type.Function(_is)) {
       ThrowTypeError('args[0].response.finished.is', 'function');
     }
 
@@ -52,11 +52,11 @@ export function normalizeResponse(_response) {
   if (Is.PlainObject(header)) {
     const { get: _get, keys: _keys } = header;
 
-    if (typeof _get !== 'function') {
+    if (!Is.Type.Function(_get)) {
       ThrowTypeError('args[0].response.header.get', 'function');
     }
 
-    if (typeof _keys !== 'function') {
+    if (!Is.Type.Function(_keys)) {
       ThrowTypeError('args[0].response.header.keys', 'function');
     }
 
@@ -74,23 +74,23 @@ export function normalizeMutableResponse(_response) {
 
   const { set: _setStatus } = _status;
 
-  if (typeof _setStatus !== 'function') {
+  if (!Is.Type.Function(_setStatus)) {
     ThrowTypeError('args[0].response.status.set', 'function');
   }
 
   const { set: _setStatusText } = _statusText;
 
-  if (typeof _setStatusText !== 'function') {
+  if (!Is.Type.Function(_setStatusText)) {
     ThrowTypeError('args[0].response.statusText.set', 'function');
   }
 
   const { set: _setHeader, delete: _deleteHeader } = header;
 
-  if (typeof _setHeader !== 'function') {
+  if (!Is.Type.Function(_setHeader)) {
     ThrowTypeError('args[0].response.header.set', 'function');
   }
 
-  if (typeof _deleteHeader !== 'function') {
+  if (!Is.Type.Function(_deleteHeader)) {
     ThrowTypeError('args[0].response.header.delete', 'function');
   }
 
@@ -118,7 +118,7 @@ export default function normalizeBase(_options) {
 
       const { get: _get } = _identity;
 
-      if (typeof _get === 'function') {
+      if (Is.Type.Function(_get)) {
         identity.get = _get;
       } else {
         ThrowTypeError('args[0].identity.get', 'function');
@@ -132,7 +132,7 @@ export default function normalizeBase(_options) {
 
       const { get: _get, protocol: _protocol } = _server;
 
-      if (typeof _get === 'function') {
+      if (Is.Type.Function(_get)) {
         server.get = _get;
       } else {
         ThrowTypeError('args[0].server.get', 'function');
@@ -143,7 +143,7 @@ export default function normalizeBase(_options) {
 
         const { get: _get } = _protocol;
 
-        if (typeof _get === 'function') {
+        if (Is.Type.Function(_get)) {
           protocol.get = _get;
         } else {
           ThrowTypeError('args[0].server.protocol.get', 'function');
@@ -160,7 +160,7 @@ export default function normalizeBase(_options) {
 
       const { get: _get } = _httpVersion;
 
-      if (typeof _get === 'function') {
+      if (Is.Type.Function(_get)) {
         httpVersion.get = _get;
       } else {
         ThrowTypeError('args[0].httpVersion.get', 'function');
@@ -179,7 +179,7 @@ export default function normalizeBase(_options) {
 
         const { get: _get } = _method;
 
-        if (typeof _get === 'function') {
+        if (Is.Type.Function(_get)) {
           method.get = _get;
         } else {
           ThrowTypeError('args[0].request.method.get', 'function');
@@ -193,7 +193,7 @@ export default function normalizeBase(_options) {
 
         const { get: _get } = _URL;
 
-        if (typeof _get === 'function') {
+        if (Is.Type.Function(_get)) {
           URL.get = _get;
         } else {
           ThrowTypeError('args[0].request.URL.get', 'function');
@@ -207,13 +207,13 @@ export default function normalizeBase(_options) {
 
         const { get: _get, keys: _keys } = _header;
 
-        if (typeof _get === 'function') {
+        if (Is.Type.Function(_get)) {
           header.get = _get;
         } else {
           ThrowTypeError('args[0].request.header.get', 'function');
         }
 
-        if (typeof _keys === 'function') {
+        if (Is.Type.Function(_keys)) {
           header.keys = _keys;
         } else {
           ThrowTypeError('args[0].request.header.keys', 'function');

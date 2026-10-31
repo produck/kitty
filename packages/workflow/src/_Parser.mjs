@@ -1,9 +1,9 @@
 import { METHODS } from 'node:http';
 
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 
 export function HttpMethod(value) {
-  if (typeof value !== 'string' || !METHODS.includes(value)) {
+  if (!Is.Type.String(value) || !METHODS.includes(value)) {
     ThrowTypeError('member', 'a HTTP method');
   }
 
@@ -11,7 +11,7 @@ export function HttpMethod(value) {
 }
 
 export function Handler(value, index) {
-  if (typeof value !== 'function' || value.length > 2) {
+  if (!Is.Type.Function(value) || value.length > 2) {
     ThrowTypeError(`args[${index}] as handler`, '([kit[, next]]) => any');
   }
 

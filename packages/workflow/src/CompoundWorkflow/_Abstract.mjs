@@ -1,4 +1,4 @@
-import { Ow, ThrowTypeError } from '@produck/argot';
+import { instanceOf, Ow, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
@@ -92,7 +92,7 @@ class CompoundWorkflow extends Workflow.Abstract {
     queueMicrotask(() => (expired = true));
 
     function consumeBy(server) {
-      if (!(server instanceof Server)) {
+      if (!instanceOf(server, Server)) {
         ThrowTypeError('args[0] as server', Server.name);
       }
 

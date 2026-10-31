@@ -1,6 +1,6 @@
 import * as net from 'node:net';
 
-import { Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
+import { Is, Ow, SYMBOL, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 import { isSubConstructor } from '@produck/is-sub-constructor';
@@ -13,7 +13,7 @@ import { DEPLOYMENT } from './_Borrow.mjs';
 import { I, $I, _I, _S } from './_Symbol.mjs';
 
 function assertAttacher(value) {
-  if (typeof value !== 'function') {
+  if (!Is.Type.Function(value)) {
     ThrowTypeError('args[0] as attacher', 'function');
   }
 }
@@ -58,7 +58,7 @@ class Deployer {
     this[I.KIT].declare = (name, value) => {
       this[I.ASSERT.NOT_COMMITTED]();
 
-      if (typeof name !== 'string') {
+      if (!Is.Type.String(name)) {
         ThrowTypeError('args[0] as name', 'string');
       }
 
@@ -70,7 +70,7 @@ class Deployer {
     this[I.KIT].setServerLinker = (link) => {
       this[I.ASSERT.NOT_COMMITTED]();
 
-      if (typeof link !== 'function') {
+      if (!Is.Type.Function(link)) {
         ThrowTypeError('args[0] as linker', 'function');
       }
 

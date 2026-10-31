@@ -1,4 +1,4 @@
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 
 export * from '../_Parser.mjs';
 
@@ -6,7 +6,7 @@ const READY_STATES = Object.freeze([0, 1, 2, 3]);
 const READY_STATES_TAG = READY_STATES.join(' | ');
 
 export function ReadyState(value) {
-  if (!Number.isInteger(value) || !READY_STATES.includes(value)) {
+  if (!Is.NonNegativeInteger(value) || !READY_STATES.includes(value)) {
     ThrowTypeError('member', `a WebSocket ready state (${READY_STATES_TAG})`);
   }
 
@@ -14,7 +14,7 @@ export function ReadyState(value) {
 }
 
 export function Data(value) {
-  if (typeof value !== 'string' && !(value instanceof Uint8Array)) {
+  if (!Is.Type.String(value) && !Is.Instance.Uint8Array(value)) {
     ThrowTypeError('member', 'a string or a Uint8Array');
   }
 

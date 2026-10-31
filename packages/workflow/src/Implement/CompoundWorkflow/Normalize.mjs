@@ -9,7 +9,7 @@ export default function normalizeCompoundWorkflow(_options) {
 
   const options = {};
 
-  if (typeof _normalize === 'function') {
+  if (Is.Type.Function(_normalize)) {
     options.normalizeHttpResponseBodyData = _normalize;
   } else {
     ThrowTypeError('args[0].normalizeHttpResponseBodyData', 'function');

@@ -1,11 +1,11 @@
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 
 import * as P from '../_Parser.mjs';
 
 export * from '../_Parser.mjs';
 
 export function HttpMethodList(value) {
-  if (!Array.isArray(value)) {
+  if (!Is.Instance.Array(value)) {
     ThrowTypeError('member', 'an array of HTTP methods');
   }
 
@@ -17,7 +17,7 @@ export function HttpMethodList(value) {
 }
 
 export function PositiveInteger(value) {
-  if (!Number.isInteger(value) || value < 1) {
+  if (!Is.PositiveInteger(value)) {
     ThrowTypeError('member', 'a positive integer');
   }
 
@@ -25,7 +25,7 @@ export function PositiveInteger(value) {
 }
 
 export function NonNegativeInteger(value) {
-  if (!Number.isInteger(value) || value < 0) {
+  if (!Is.NonNegativeInteger(value)) {
     ThrowTypeError('member', 'a non-negative integer');
   }
 
@@ -33,7 +33,7 @@ export function NonNegativeInteger(value) {
 }
 
 export function NonNegativeIntegerOrInfinity(value) {
-  if (value !== Infinity && (!Number.isInteger(value) || value < 0)) {
+  if (value !== Infinity && !Is.NonNegativeInteger(value)) {
     ThrowTypeError('member', 'a non-negative integer or Infinity');
   }
 
@@ -41,7 +41,7 @@ export function NonNegativeIntegerOrInfinity(value) {
 }
 
 export function Boolean(value) {
-  if (typeof value !== 'boolean') {
+  if (!Is.Type.Boolean(value)) {
     ThrowTypeError('member', 'a boolean');
   }
 
@@ -49,7 +49,7 @@ export function Boolean(value) {
 }
 
 export function HighWaterMark(value) {
-  if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
+  if (!Is.NonNegativeNumber(value)) {
     ThrowTypeError('member', 'a non-negative number');
   }
 

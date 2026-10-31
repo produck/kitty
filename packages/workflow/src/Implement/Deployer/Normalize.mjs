@@ -20,7 +20,7 @@ export default function normalizeDeployer(_options) {
 
   const options = {};
 
-  if (typeof _tag === 'string' && _tag.length > 0) {
+  if (Is.Type.String(_tag) && _tag.length > 0) {
     options.tag = _tag;
   } else {
     ThrowTypeError('args[0].tag', 'non-empty string');
@@ -56,7 +56,7 @@ export default function normalizeDeployer(_options) {
     ThrowTypeError('args[0].exchange', 'plain object');
   }
 
-  if (typeof _install === 'function') {
+  if (Is.Type.Function(_install)) {
     options.install = _install;
   } else {
     ThrowTypeError('args[0].install', 'function');

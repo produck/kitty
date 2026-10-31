@@ -1,4 +1,4 @@
-import { Ow, ThrowTypeError } from '@produck/argot';
+import { instanceOf, Is, Ow, ThrowTypeError } from '@produck/argot';
 import { isKit, isDependenceName } from '@produck/kit';
 
 export * from '../_Parser.mjs';
@@ -20,7 +20,7 @@ export function DependenceName(value) {
 }
 
 export function Attacher(value) {
-  if (typeof value !== 'function') {
+  if (!Is.Type.Function(value)) {
     ThrowTypeError('args[0] as attacher', 'function');
   }
 
@@ -28,7 +28,7 @@ export function Attacher(value) {
 }
 
 export function ReadableStreamResult(value) {
-  if (value === null || typeof value !== 'object') {
+  if (!Is.Type.Object(value)) {
     ThrowTypeError('member', 'a { stream, length } record');
   }
 
@@ -42,7 +42,7 @@ export function ReadableStreamResult(value) {
     return value;
   }
 
-  if (!(stream instanceof ReadableStream)) {
+  if (!instanceOf(stream, ReadableStream)) {
     ThrowTypeError('member', 'a ReadableStream or null stream');
   }
 
@@ -50,7 +50,7 @@ export function ReadableStreamResult(value) {
     Ow.Error.Common('It MUST NOT be locked.');
   }
 
-  if (length !== null && (!Number.isInteger(length) || length < 0)) {
+  if (length !== null && !Is.NonNegativeInteger(length)) {
     ThrowTypeError('member', 'null or a non-negative integer length');
   }
 

@@ -43,7 +43,7 @@ export default function normalizeWebSocket(_options) {
 
         const { get: _get } = _readyState;
 
-        if (typeof _get === 'function') {
+        if (Is.Type.Function(_get)) {
           readyState.get = _get;
         } else {
           ThrowTypeError('args[0].controller.readyState.get', 'function');
@@ -57,7 +57,7 @@ export default function normalizeWebSocket(_options) {
 
         const { send: _sendFn } = _send;
 
-        if (typeof _sendFn === 'function') {
+        if (Is.Type.Function(_sendFn)) {
           send.send = _sendFn;
         } else {
           ThrowTypeError('args[0].controller.send.send', 'function');
@@ -71,7 +71,7 @@ export default function normalizeWebSocket(_options) {
 
         const { close: _closeFn } = _close;
 
-        if (typeof _closeFn === 'function') {
+        if (Is.Type.Function(_closeFn)) {
           close.close = _closeFn;
         } else {
           ThrowTypeError('args[0].controller.close.close', 'function');

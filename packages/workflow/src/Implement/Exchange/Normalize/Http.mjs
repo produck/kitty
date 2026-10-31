@@ -35,7 +35,7 @@ export default function normalizeHttp(_options) {
 
           const { get: _get } = _source;
 
-          if (typeof _get === 'function') {
+          if (Is.Type.Function(_get)) {
             source.get = _get;
           } else {
             ThrowTypeError('args[0].request.body.source.get', 'function');
@@ -62,7 +62,7 @@ export default function normalizeHttp(_options) {
 
           const { set: _set } = _data;
 
-          if (typeof _set === 'function') {
+          if (Is.Type.Function(_set)) {
             data.set = _set;
           } else {
             ThrowTypeError('args[0].response.body.data.set', 'function');

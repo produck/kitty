@@ -1,4 +1,4 @@
-import { Ow } from '@produck/argot';
+import { instanceOf, Ow } from '@produck/argot';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
 import Deployer from './_Abstract.mjs';
@@ -23,7 +23,7 @@ function registerDeployer(DeployerClass) {
 
 export function isAvaiableServer(value) {
   for (const constructor of registry.keys()) {
-    if (value instanceof constructor) {
+    if (instanceOf(value, constructor)) {
       return true;
     }
   }

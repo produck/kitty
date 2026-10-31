@@ -1,4 +1,4 @@
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 
 export * from '../_Parser.mjs';
 
@@ -10,7 +10,7 @@ export function HttpVersion(value) {
     return null;
   }
 
-  if (typeof value !== 'string' || !HTTP_VERSIONS.includes(value)) {
+  if (!Is.Type.String(value) || !HTTP_VERSIONS.includes(value)) {
     ThrowTypeError('member', `'${VERSIONS_TAG}' | null`);
   }
 
@@ -26,7 +26,7 @@ export function HTTPStatusCode(value) {
 }
 
 export function Iterable(value) {
-  if (value == null || typeof value[Symbol.iterator] !== 'function') {
+  if (!Is.Iterable(value)) {
     ThrowTypeError('member', 'iterable');
   }
 
@@ -37,7 +37,7 @@ const PROTOCOLS = Object.freeze(['http:', 'https:']);
 const PROTOCOLS_TAG = PROTOCOLS.map((v) => `'${v}'`).join(' | ');
 
 export function ServerProtocol(value) {
-  if (typeof value !== 'string' || !PROTOCOLS.includes(value)) {
+  if (!Is.Type.String(value) || !PROTOCOLS.includes(value)) {
     ThrowTypeError('member', `a server protocol (${PROTOCOLS_TAG})`);
   }
 
@@ -45,7 +45,7 @@ export function ServerProtocol(value) {
 }
 
 export function HeaderName(value) {
-  if (typeof value !== 'string' || value.length === 0) {
+  if (!Is.Type.String(value) || value.length === 0) {
     ThrowTypeError('member', 'a non-empty header name string');
   }
 
@@ -53,7 +53,7 @@ export function HeaderName(value) {
 }
 
 export function HeaderValue(value) {
-  if (typeof value !== 'string') {
+  if (!Is.Type.String(value)) {
     ThrowTypeError('member', 'a header value string');
   }
 
@@ -61,7 +61,7 @@ export function HeaderValue(value) {
 }
 
 export function HeaderValueOrUndefined(value) {
-  if (value !== undefined && typeof value !== 'string') {
+  if (value !== undefined && !Is.Type.String(value)) {
     ThrowTypeError('member', 'a header value string or undefined');
   }
 
