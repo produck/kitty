@@ -1,5 +1,6 @@
 import * as http from 'node:http';
 import { Readable } from 'node:stream';
+import { spawn } from 'node:child_process';
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -51,6 +52,91 @@ async function listen(server) {
   return `http://127.0.0.1:${port}`;
 }
 
+const TIMEOUT = 3000;
+
+function request(url, init) {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT) });
+}
+
+function scenarioSource(handlerBody) {
+  return `
+import * as http from 'node:http';
+import { Readable } from 'node:stream';
+
+import * as Kit from '@produck/kit';
+import * as Fugue from '@produck/fugue';
+import { SubConstructorProxy as SCP } from '@produck/es-abstract';
+import { Abstract, SYMBOL, useResponse } from '@produck/kitty-workflow';
+import { Deployer } from '@produck/kitty-deployer-http1-http';
+
+class DegradedChunkReader extends Fugue.DegradedChunkReader {}
+
+const Distributor = SCP(
+  class Distributor extends Fugue.Distributor {
+    static get [Fugue.SYMBOL.DISTRIBUTOR._S.DEGRADED_CHUNK_READER_CTOR]() {
+      return DegradedChunkReader;
+    }
+  },
+);
+
+const result = { status: null, leaks: [] };
+
+process.on('unhandledRejection', (error) => {
+  result.leaks.push(error.message);
+});
+
+class Workflow extends Abstract.Workflow {
+  [SYMBOL.WORKFLOW._I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value) {
+    if (value === undefined || value === null) {
+      return { stream: null, length: 0 };
+    }
+
+    const buffer = Buffer.from(String(value));
+
+    return {
+      stream: Readable.toWeb(Readable.from([buffer])),
+      length: buffer.length,
+    };
+  }
+}
+
+const workflow = new Workflow(Kit.global);
+const server = http.createServer();
+
+workflow.setRequestBodyDistributorConstructor(Distributor);
+workflow.use(async (context) => {
+${handlerBody}
+});
+workflow.finalize();
+
+await workflow.withDeployer(Deployer).deploy(server);
+await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+const { port } = server.address();
+const controller = new AbortController();
+const timer = setTimeout(() => controller.abort(), 2000);
+
+try {
+  const response = await fetch(\`http://127.0.0.1:\${port}/boom\`, {
+    signal: controller.signal,
+  });
+
+  result.status = response.status;
+} catch {
+  result.status = null;
+} finally {
+  clearTimeout(timer);
+}
+
+await new Promise((resolve) => setTimeout(resolve, 100));
+
+server.closeAllConnections();
+server.close();
+
+process.stdout.write(JSON.stringify(result));
+`;
+}
+
 async function serve(handler, options = {}) {
   const { compile = false } = options;
   const workflow = createWorkflow(handler);
@@ -73,6 +159,8 @@ async function serve(handler, options = {}) {
     manifest,
     origin,
     close() {
+      server.closeAllConnections();
+
       return new Promise((resolve) => server.close(resolve));
     },
   };
@@ -90,7 +178,7 @@ describe('Exchange', () => {
       });
 
       try {
-        const res = await fetch(`${app.origin}/hello?name=kitty`);
+        const res = await request(`${app.origin}/hello?name=kitty`);
 
         assert.equal(res.status, 201);
         assert.equal(res.statusText, 'Created');
@@ -106,7 +194,7 @@ describe('Exchange', () => {
       const app = await serve(() => {});
 
       try {
-        const res = await fetch(`${app.origin}/empty`);
+        const res = await request(`${app.origin}/empty`);
 
         assert.equal(res.status, 200);
         assert.equal(await res.text(), '');
@@ -121,7 +209,7 @@ describe('Exchange', () => {
       });
 
       try {
-        const res = await fetch(`${app.origin}/null`);
+        const res = await request(`${app.origin}/null`);
 
         assert.equal(res.status, 200);
         assert.equal(res.headers.get('content-length'), '0');
@@ -148,7 +236,7 @@ describe('Exchange', () => {
       });
 
       try {
-        const res = await fetch(`${app.origin}/echo?a=1`, {
+        const res = await request(`${app.origin}/echo?a=1`, {
           body: 'payload',
           method: 'POST',
         });
@@ -175,7 +263,7 @@ describe('Exchange', () => {
       });
 
       try {
-        const res = await fetch(`${app.origin}/header`, {
+        const res = await request(`${app.origin}/header`, {
           headers: { 'x-present': 'value' },
         });
 
@@ -204,7 +292,7 @@ describe('Exchange', () => {
       });
 
       try {
-        const res = await fetch(`${app.origin}/header`);
+        const res = await request(`${app.origin}/header`);
 
         assert.equal(await res.text(), 'a=1|plain|');
         assert.equal(res.headers.get('x-plain'), null);
@@ -235,7 +323,7 @@ describe('Exchange', () => {
       });
 
       try {
-        const res = await fetch(`${app.origin}/facts`);
+        const res = await request(`${app.origin}/facts`);
 
         assert.equal(res.status, 202);
         assert.equal(
@@ -250,33 +338,45 @@ describe('Exchange', () => {
   });
 
   describe('pipeline failure', () => {
-    it('should answer 500 when nothing was written', async () => {
-      const app = await serve(() => {
-        throw new Error('boom');
-      });
+    async function runScenario(handlerBody) {
+      const source = scenarioSource(handlerBody);
+      const child = spawn(
+        process.execPath,
+        ['--input-type=module', '-e', source],
+        {
+          cwd: new URL('.', import.meta.url),
+          stdio: ['ignore', 'pipe', 'inherit'],
+        },
+      );
+      let stdout = '';
 
-      try {
-        const res = await fetch(`${app.origin}/boom`);
+      child.stdout.on('data', (chunk) => (stdout += chunk));
 
-        assert.equal(res.status, 500);
-        assert.equal(res.statusText, 'Internal Server Error');
-      } finally {
-        await app.close();
-      }
+      const timer = setTimeout(() => child.kill('SIGKILL'), TIMEOUT);
+      const code = await new Promise((resolve) => child.on('exit', resolve));
+
+      clearTimeout(timer);
+
+      assert.equal(code, 0, `scenario exited ${code}`);
+
+      return JSON.parse(stdout);
+    }
+
+    it('should leak an unwritten failure instead of answering', async () => {
+      const result = await runScenario('throw new Error("boom");');
+
+      assert.equal(result.status, null);
+      assert.deepEqual(result.leaks, ['boom']);
     });
 
-    it('should drop the connection when the response was already written', async () => {
-      const app = await serve((context) => {
-        useResponse(context).body.data = 'partial';
+    it('should leak a written failure instead of finishing', async () => {
+      const result = await runScenario(
+        'useResponse(context).body.data = "partial";\n' +
+          'await new Promise((resolve) => setTimeout(resolve, 10));\n' +
+          'throw new Error("boom");',
+      );
 
-        throw new Error('boom');
-      });
-
-      try {
-        await assert.rejects(fetch(`${app.origin}/partial`));
-      } finally {
-        await app.close();
-      }
+      assert.deepEqual(result.leaks, ['boom']);
     });
   });
 
@@ -292,7 +392,7 @@ describe('Exchange', () => {
       try {
         assert.equal(typeof app.manifest['request-listener'], 'function');
 
-        const res = await fetch(`${app.origin}/compiled`);
+        const res = await request(`${app.origin}/compiled`);
 
         assert.equal(await res.text(), 'compiled');
       } finally {

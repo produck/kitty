@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 
 import { Implement } from '@produck/kitty-workflow';
 
-import { markWritten } from './_patch.mjs';
+import * as ResponseBody from './ResponseBody.mjs';
 
 const PROTOCOL = 'http:';
 
@@ -75,7 +75,7 @@ export default Implement.Exchange.Http({
         set: function writeBody({ internal }, { stream, length }) {
           const { res } = internal;
 
-          markWritten(res);
+          ResponseBody.register(res);
 
           if (length !== null) {
             res.setHeader('content-length', length);

@@ -557,6 +557,8 @@ The dispatch must reject bad deployer input before any handler runs.
   half-constructed exchange, no stray timer.
 - Dispatch failures are deployer errors, not handler errors. `.use()`
   handlers may assume a validated `ExchangeKit` once the pipeline starts.
+- The dispatch rethrows its failure unchanged; whoever calls it must not
+  absorb it. See [Failure Discipline](#failure-discipline).
 - The deployer's listener still decides whether an event produces an
   exchange at all; the dispatch owns construction, installation, and the
   guards.
@@ -737,6 +739,62 @@ events.
 on `nextTick` as `uncaughtException`, at which point process state is
 undefined. The library installs no global handler and wraps no
 `dispatchEvent` in `try/catch`; the process manager restarts.
+
+## Failure Discipline
+
+Every downstream role has exactly one failure duty, and the three duties
+are deliberately non-overlapping. The framework enforces none of them at
+runtime; it states them so that a broken implementation surfaces at its
+own author's boundary instead of being absorbed by a neighbour.
+
+### Handler: the pipeline never leaks
+
+A handler must keep the pipeline free of uncaught exceptions and
+unhandled rejections. Anything that escapes the pipeline is reported as a
+handler implementation error, not as a transport event, and the deployer
+is required to stop the process (below) rather than synthesise a
+response.
+
+A handler that wants a safety net may install one **at the outermost
+middleware position**. That is the only sanctioned place: the outermost
+middleware owns the whole chain, converts a failure into whatever
+response policy the application chose, and rethrows nothing. Placing a
+guard deeper in the chain hides the failure from the layers above it and
+is the anti-pattern this rule exists to prevent.
+
+### Deployer: never absorb a dispatch failure
+
+A deployer adapts a transport into the dispatch, and must **not** provide
+a fallback for its rejection. No `catch`, no `.then(ok, err)`, no
+`try/catch` around the dispatch call that converts a failure into a
+response or into silence. A failed dispatch means the process must stop
+fast: the transport listener leaves the failure unhandled so the runtime
+reports it, and the process manager restarts the worker.
+
+The reason is diagnostic, not stylistic. A deployer that answers `500`
+on dispatch failure makes a handler bug indistinguishable from a normal
+response: the stack is gone, the metrics look healthy, and the bug
+survives. Failing fast converts every such bug into an immediately
+visible event.
+
+### Plugin: adapt at install, not at dispatch
+
+A plugin installs capabilities and attachers. It must not wrap the
+pipeline in order to absorb handler failures, for the same reason as
+above. If a plugin needs failure policy, it exposes it as a capability the
+application composes, so the policy is visible in the application's own
+middleware stack.
+
+### What the framework still does
+
+The framework is not permitted to hide failures either, so the two
+remaining framework-side recoveries are bounded by construction:
+
+- A dispatch failure is reported through `exchange-pipeline-error` and
+  then rethrown unchanged. The event is observability, not a fallback.
+- `finish` runs in a `finally` block. It releases deployment-owned
+  resources (the exchange timeout timer) and dispatches the terminal
+  event; it does not turn a failure into a success.
 
 ## Request, Response and Body
 
