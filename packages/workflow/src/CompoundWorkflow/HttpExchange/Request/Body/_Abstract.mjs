@@ -1,6 +1,6 @@
 import { Readable } from 'node:stream';
 
-import { Common } from '@produck/argot';
+import { ignoreRejection } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
@@ -64,7 +64,7 @@ class HttpRequestBody extends Workflow.Exchange.Part.Concrete {
       const limit = Configuration.Get.MaxBodySize(this.workflow);
 
       this.dispatchEvent(new Event.Limit(limit, consumed));
-      Common.ignoreRejection(distributor.destroy());
+      ignoreRejection(distributor.destroy());
 
       if (!response.isFinished) {
         response.setStatus(413);

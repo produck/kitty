@@ -141,3 +141,6 @@ publish-assets/
 
 # produck:org-baseline
 !.github/
+
+# npm
+package-lock.json

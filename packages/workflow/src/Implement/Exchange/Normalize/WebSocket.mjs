@@ -1,5 +1,4 @@
-import { isPlainObject } from 'is-plain-object';
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 
 import normalizeBase, { normalizeResponse } from './Base.mjs';
 
@@ -30,7 +29,7 @@ export default function normalizeWebSocket(_options) {
       options.response = normalizeResponse(_options.response);
     }
 
-    if (isPlainObject(_controller)) {
+    if (Is.PlainObject(_controller)) {
       const controller = (options.controller = {});
 
       const {
@@ -39,7 +38,7 @@ export default function normalizeWebSocket(_options) {
         close: _close,
       } = _controller;
 
-      if (isPlainObject(_readyState)) {
+      if (Is.PlainObject(_readyState)) {
         const readyState = (controller.readyState = {});
 
         const { get: _get } = _readyState;
@@ -53,7 +52,7 @@ export default function normalizeWebSocket(_options) {
         ThrowTypeError('args[0].controller.readyState', 'plain object');
       }
 
-      if (isPlainObject(_send)) {
+      if (Is.PlainObject(_send)) {
         const send = (controller.send = {});
 
         const { send: _sendFn } = _send;
@@ -67,7 +66,7 @@ export default function normalizeWebSocket(_options) {
         ThrowTypeError('args[0].controller.send', 'plain object');
       }
 
-      if (isPlainObject(_close)) {
+      if (Is.PlainObject(_close)) {
         const close = (controller.close = {});
 
         const { close: _closeFn } = _close;

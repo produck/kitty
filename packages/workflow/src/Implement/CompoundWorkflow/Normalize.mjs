@@ -1,8 +1,7 @@
-import { isPlainObject } from 'is-plain-object';
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 
 export default function normalizeCompoundWorkflow(_options) {
-  if (!isPlainObject(_options)) {
+  if (!Is.PlainObject(_options)) {
     ThrowTypeError('args[0]', 'plain object');
   }
 

@@ -1,8 +1,7 @@
-import { isPlainObject } from 'is-plain-object';
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 
 export function normalizeResponse(_response) {
-  if (!isPlainObject(_response)) {
+  if (!Is.PlainObject(_response)) {
     ThrowTypeError('args[0].response', 'plain object');
   }
 
@@ -14,7 +13,7 @@ export function normalizeResponse(_response) {
     header,
   } = _response;
 
-  if (isPlainObject(_status)) {
+  if (Is.PlainObject(_status)) {
     const { get: _get } = _status;
 
     if (typeof _get !== 'function') {
@@ -26,7 +25,7 @@ export function normalizeResponse(_response) {
     ThrowTypeError('args[0].response.status', 'plain object');
   }
 
-  if (isPlainObject(_statusText)) {
+  if (Is.PlainObject(_statusText)) {
     const { get: _get } = _statusText;
 
     if (typeof _get !== 'function') {
@@ -38,7 +37,7 @@ export function normalizeResponse(_response) {
     ThrowTypeError('args[0].response.statusText', 'plain object');
   }
 
-  if (isPlainObject(finished)) {
+  if (Is.PlainObject(finished)) {
     const { is: _is } = finished;
 
     if (typeof _is !== 'function') {
@@ -50,7 +49,7 @@ export function normalizeResponse(_response) {
     ThrowTypeError('args[0].response.finished', 'plain object');
   }
 
-  if (isPlainObject(header)) {
+  if (Is.PlainObject(header)) {
     const { get: _get, keys: _keys } = header;
 
     if (typeof _get !== 'function') {
@@ -106,7 +105,7 @@ export function normalizeMutableResponse(_response) {
 export default function normalizeBase(_options) {
   const options = {};
 
-  if (isPlainObject(_options)) {
+  if (Is.PlainObject(_options)) {
     const {
       identity: _identity,
       server: _server,
@@ -114,7 +113,7 @@ export default function normalizeBase(_options) {
       request: _request,
     } = _options;
 
-    if (isPlainObject(_identity)) {
+    if (Is.PlainObject(_identity)) {
       const identity = (options.identity = {});
 
       const { get: _get } = _identity;
@@ -128,7 +127,7 @@ export default function normalizeBase(_options) {
       ThrowTypeError('args[0].identity', 'plain object');
     }
 
-    if (isPlainObject(_server)) {
+    if (Is.PlainObject(_server)) {
       const server = (options.server = {});
 
       const { get: _get, protocol: _protocol } = _server;
@@ -139,7 +138,7 @@ export default function normalizeBase(_options) {
         ThrowTypeError('args[0].server.get', 'function');
       }
 
-      if (isPlainObject(_protocol)) {
+      if (Is.PlainObject(_protocol)) {
         const protocol = (server.protocol = {});
 
         const { get: _get } = _protocol;
@@ -156,7 +155,7 @@ export default function normalizeBase(_options) {
       ThrowTypeError('args[0].server', 'plain object');
     }
 
-    if (isPlainObject(_httpVersion)) {
+    if (Is.PlainObject(_httpVersion)) {
       const httpVersion = (options.httpVersion = {});
 
       const { get: _get } = _httpVersion;
@@ -170,12 +169,12 @@ export default function normalizeBase(_options) {
       ThrowTypeError('args[0].httpVersion', 'plain object');
     }
 
-    if (isPlainObject(_request)) {
+    if (Is.PlainObject(_request)) {
       const request = (options.request = {});
 
       const { method: _method, URL: _URL, header: _header } = _request;
 
-      if (isPlainObject(_method)) {
+      if (Is.PlainObject(_method)) {
         const method = (request.method = {});
 
         const { get: _get } = _method;
@@ -189,7 +188,7 @@ export default function normalizeBase(_options) {
         ThrowTypeError('args[0].request.method', 'plain object');
       }
 
-      if (isPlainObject(_URL)) {
+      if (Is.PlainObject(_URL)) {
         const URL = (request.URL = {});
 
         const { get: _get } = _URL;
@@ -203,7 +202,7 @@ export default function normalizeBase(_options) {
         ThrowTypeError('args[0].request.URL', 'plain object');
       }
 
-      if (isPlainObject(_header)) {
+      if (Is.PlainObject(_header)) {
         const header = (request.header = {});
 
         const { get: _get, keys: _keys } = _header;

@@ -3,18 +3,17 @@
   "bugs": {
     "url": "https://github.com/produck/kitty/issues"
   },
-  "dependencies": {
-    "@produck/argot": "^0.3.1",
-    "@produck/compose": "^0.3.0",
-    "@produck/deep-freeze-enumerable": "^1.1.1",
-    "@produck/es-abstract": "^0.4.2",
-    "@produck/es-abstract-member-constructor": "^0.1.2",
-    "@produck/fugue": "^0.2.0",
-    "@produck/is-sub-constructor": "^1.0.4",
-    "@produck/kit": "^0.4.1",
-    "is-plain-object": "^5.1.0"
-  },
   "description": "Handler pipeline orchestration over kit scopes, HTTP and WebSocket exchanges included.",
+  "devDependencies": {
+    "@produck/argot": "^0.4.0",
+    "@produck/compose": "^0.3.0",
+    "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/es-abstract": "^0.5.0",
+    "@produck/es-abstract-member-constructor": "^0.1.0",
+    "@produck/fugue": "^0.2.0",
+    "@produck/is-sub-constructor": "^2.0.0",
+    "@produck/kit": "^0.4.0"
+  },
   "exports": {
     ".": {
       "import": "./src/index.mjs",
@@ -35,6 +34,16 @@
   ],
   "license": "MIT",
   "name": "@produck/kitty-workflow",
+  "peerDependencies": {
+    "@produck/argot": "^0.4.0",
+    "@produck/compose": "^0.3.0",
+    "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/es-abstract": "^0.5.0",
+    "@produck/es-abstract-member-constructor": "^0.1.0",
+    "@produck/fugue": "^0.2.0",
+    "@produck/is-sub-constructor": "^2.0.0",
+    "@produck/kit": "^0.4.0"
+  },
   "repository": {
     "directory": "packages/workflow",
     "type": "git",

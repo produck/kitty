@@ -1,14 +1,13 @@
 import * as net from 'node:net';
 
-import { isPlainObject } from 'is-plain-object';
-import { ThrowTypeError } from '@produck/argot';
+import { Is, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 
 import * as HttpExchange from '../../CompoundWorkflow/HttpExchange/index.mjs';
 import * as WebSocketExchange from '../../CompoundWorkflow/WebSocketExchange/index.mjs';
 
 export default function normalizeDeployer(_options) {
-  if (!isPlainObject(_options)) {
+  if (!Is.PlainObject(_options)) {
     ThrowTypeError('args[0]', 'plain object');
   }
 
@@ -33,7 +32,7 @@ export default function normalizeDeployer(_options) {
     ThrowTypeError('args[0].server', 'sub class of net.Server');
   }
 
-  if (isPlainObject(_exchange)) {
+  if (Is.PlainObject(_exchange)) {
     const exchange = (options.exchange = {});
     const { http: _http, webSocket: _webSocket } = _exchange;
 

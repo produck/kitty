@@ -3,3 +3,6 @@
 # Windows script entrypoints
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# npm configuration
+.npmrc text eol=lf
