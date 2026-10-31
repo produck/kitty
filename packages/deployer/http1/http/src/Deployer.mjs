@@ -2,13 +2,13 @@ import * as http from 'node:http';
 
 import { Implement, useServer } from '@produck/kitty-workflow';
 
-import Exchange from './Exchange.mjs';
+import * as Exchange from './Exchange/index.mjs';
 import * as ResponseBody from './ResponseBody.mjs';
 
 export default Implement.Deployer({
   tag: 'http1-http',
   server: http.Server,
-  exchange: { http: Exchange },
+  exchange: { http: Exchange.Http.Exchange },
   install({ Kit, handleHttpExchange, declare, setServerLinker }) {
     const server = useServer(Kit);
 

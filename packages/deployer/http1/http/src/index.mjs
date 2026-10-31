@@ -5,7 +5,7 @@ import * as Workflow from '@produck/kitty-workflow';
 
 import Deployer from './Deployer.mjs';
 
-export { default as Exchange } from './Exchange.mjs';
+export * as Exchange from './Exchange/index.mjs';
 export { Deployer };
 
 export function register() {
