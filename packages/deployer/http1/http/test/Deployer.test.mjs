@@ -3,9 +3,10 @@ import * as http from 'node:http';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Abstract, DeployerRegistry, SYMBOL } from '@produck/kitty-workflow';
+import { Abstract, SYMBOL } from '@produck/kitty-workflow';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
 
-import { Deployer, register } from '@produck/kitty-deployer-http1-http';
+const Deployer = Http1Http.Deployer.Http1HttpDeployer;
 
 describe('Deployer', () => {
   describe('::TAG', () => {
@@ -38,16 +39,6 @@ describe('Deployer', () => {
       const WebSocket = Deployer[SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET];
 
       assert.equal(WebSocket, undefined);
-    });
-  });
-
-  describe('register()', () => {
-    it('should register the deployer by its server constructor', () => {
-      assert.equal(register(), Deployer);
-    });
-
-    it('should be resolvable through the registry', () => {
-      assert.equal(DeployerRegistry.getByServer(new http.Server()), Deployer);
     });
   });
 });

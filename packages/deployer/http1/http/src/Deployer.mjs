@@ -5,7 +5,7 @@ import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
 import * as Exchange from './Exchange/index.mjs';
 import * as ResponseBody from './ResponseBody.mjs';
 
-const options = {
+export const options = Implement.Normalize.Deployer({
   tag: '1:http',
   server: http.Server,
   exchange: { http: Exchange.Http.Exchange },
@@ -49,9 +49,9 @@ const options = {
       return next();
     });
   },
-};
+});
 
-export default class Http1Deployer extends Implement.Deployer(options) {
+export class Http1HttpDeployer extends Implement.Deployer(options) {
   static withWebSocketExchange(WebSocketExchange) {
     return class Http1WithWebSocketDeployer extends this {
       static get [SYMBOL.DEPLOYER._S.TAG]() {
@@ -64,3 +64,5 @@ export default class Http1Deployer extends Implement.Deployer(options) {
     };
   }
 }
+
+export { Http1HttpDeployer as Http1Http };

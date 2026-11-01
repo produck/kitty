@@ -3,16 +3,8 @@ import * as http from 'node:http';
 import { instanceOf, Ow } from '@produck/argot';
 import * as Workflow from '@produck/kitty-workflow';
 
-import Deployer from './Deployer.mjs';
-
 export * as Exchange from './Exchange/index.mjs';
-export { Deployer };
-
-export function register() {
-  Workflow.DeployerRegistry.registerDeployer(Deployer);
-
-  return Deployer;
-}
+export * as Deployer from './Deployer.mjs';
 
 export function useServer(...args) {
   const server = Workflow.useServer(...args);

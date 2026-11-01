@@ -14,8 +14,9 @@ import {
   useRequest,
   useResponse,
 } from '@produck/kitty-workflow';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
 
-import { Deployer } from '@produck/kitty-deployer-http1-http';
+const Deployer = Http1Http.Deployer.Http1HttpDeployer;
 
 class Workflow extends Abstract.Workflow {
   [SYMBOL.WORKFLOW._I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value) {
@@ -67,7 +68,9 @@ import * as Kit from '@produck/kit';
 import * as Fugue from '@produck/fugue';
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 import { Abstract, SYMBOL, useResponse } from '@produck/kitty-workflow';
-import { Deployer } from '@produck/kitty-deployer-http1-http';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
+
+const Deployer = Http1Http.Deployer.Http1HttpDeployer;
 
 class DegradedChunkReader extends Fugue.DegradedChunkReader {}
 
@@ -138,11 +141,15 @@ process.stdout.write(JSON.stringify(result));
 }
 
 async function serve(handler, options = {}) {
-  const { compile = false } = options;
+  const { compile = false, protocol } = options;
   const workflow = createWorkflow(handler);
   const server = http.createServer();
   const oneTime = workflow.withDeployer(Deployer);
   let manifest = null;
+
+  if (protocol !== undefined) {
+    server.protocol = protocol;
+  }
 
   if (compile) {
     const deployment = await oneTime.compile(server);
@@ -331,6 +338,37 @@ describe('Exchange', () => {
           'Server http: 1.1 has open 202 Accepted',
         );
         assert.equal(res.headers.get('x-a'), '1');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should let the server answer the protocol', async () => {
+      const app = await serve((context) => {
+        useResponse(context).body.data = useExchange(context).protocol;
+      });
+
+      try {
+        const res = await request(`${app.origin}/protocol`);
+
+        assert.equal(await res.text(), 'http:');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should prefer the protocol the server reports', async () => {
+      const app = await serve(
+        (context) => {
+          useResponse(context).body.data = useExchange(context).protocol;
+        },
+        { protocol: 'https:' },
+      );
+
+      try {
+        const res = await request(`${app.origin}/protocol`);
+
+        assert.equal(await res.text(), 'https:');
       } finally {
         await app.close();
       }

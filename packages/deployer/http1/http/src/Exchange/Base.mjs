@@ -5,7 +5,7 @@ export const identity = {
 export const server = {
   get: ({ internal }) => internal.server,
   protocol: {
-    get: () => 'http:',
+    get: ({ internal }) => internal.server.protocol ?? 'http:',
   },
 };
 
