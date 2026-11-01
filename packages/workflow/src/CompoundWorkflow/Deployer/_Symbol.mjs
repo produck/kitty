@@ -8,6 +8,7 @@ const I_ATTACH_EXCHANGE_ATTACHER = Symbol('.#attachExchangeAttacher()');
 const I_ATTACH_DEPLOYMENT = Symbol('.#attachDeployment()');
 const I_ATTACH_HANDLER_HTTP = Symbol('.#attachHttpHandler()');
 const I_ATTACH_HANDLER_WEB_SOCKET = Symbol('.#attachWebSocketHandler()');
+const I_ATTACH_HAS_WEB_SOCKET = Symbol('.#attachHasWebSocket()');
 const I_ASSERT_NOT_COMMITTED = Symbol('.#assertNotCommitted()');
 const I_HANDLE_EXCHANGE = Symbol('.#handleExchange()');
 
@@ -27,6 +28,7 @@ export const I = deepFreeze({
       HTTP: I_ATTACH_HANDLER_HTTP,
       WEB_SOCKET: I_ATTACH_HANDLER_WEB_SOCKET,
     },
+    HAS_WEB_SOCKET: I_ATTACH_HAS_WEB_SOCKET,
   },
   ASSERT: {
     NOT_COMMITTED: I_ASSERT_NOT_COMMITTED,

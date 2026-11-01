@@ -52,6 +52,7 @@ class Deployer {
     this[I.ATTACH.DEPLOYMENT]();
     this[I.ATTACH.HANDLER.HTTP]();
     this[I.ATTACH.HANDLER.WEB_SOCKET]();
+    this[I.ATTACH.HAS_WEB_SOCKET]();
   }
 
   [I.ATTACH.MANIFEST]() {
@@ -113,6 +114,12 @@ class Deployer {
       }
 
       await this[I.HANDLE_EXCHANGE](Exchange, internal);
+    };
+  }
+
+  [I.ATTACH.HAS_WEB_SOCKET]() {
+    this[I.KIT].hasWebSocketExchange = () => {
+      return this[CONSTRUCTOR][_S.EXCHANGE_CTOR.WEB_SOCKET] !== undefined;
     };
   }
 

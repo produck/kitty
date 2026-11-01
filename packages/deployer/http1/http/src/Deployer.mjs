@@ -1,15 +1,22 @@
 import * as http from 'node:http';
 
-import { Implement, useServer } from '@produck/kitty-workflow';
+import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
 
 import * as Exchange from './Exchange/index.mjs';
 import * as ResponseBody from './ResponseBody.mjs';
 
-export default Implement.Deployer({
-  tag: 'http1-http',
+const options = {
+  tag: '1:http',
   server: http.Server,
   exchange: { http: Exchange.Http.Exchange },
-  install({ Kit, handleHttpExchange, declare, setServerLinker }) {
+  install({
+    Kit,
+    handleHttpExchange,
+    handleWebSocketExchange,
+    declare,
+    setServerLinker,
+    hasWebSocketExchange,
+  }) {
     const server = useServer(Kit);
 
     async function requestListener(req, res) {
@@ -20,12 +27,40 @@ export default Implement.Deployer({
       }
     }
 
+    async function upgradeListener(req, socket, head) {
+      await handleWebSocketExchange({ server, req, res: null, socket, head });
+    }
+
     declare('request-listener', requestListener);
+
+    const hasWebSocket = hasWebSocketExchange();
+
+    if (hasWebSocket) {
+      declare('upgrade-listener', upgradeListener);
+    }
 
     setServerLinker((_context, next) => {
       server.on('request', requestListener);
 
+      if (hasWebSocket) {
+        server.on('upgrade', upgradeListener);
+      }
+
       return next();
     });
   },
-});
+};
+
+export default class Http1Deployer extends Implement.Deployer(options) {
+  static withWebSocketExchange(WebSocketExchange) {
+    return class Http1WithWebSocketDeployer extends this {
+      static get [SYMBOL.DEPLOYER._S.TAG]() {
+        return '1:http,websocket';
+      }
+
+      static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
+        return WebSocketExchange;
+      }
+    };
+  }
+}
