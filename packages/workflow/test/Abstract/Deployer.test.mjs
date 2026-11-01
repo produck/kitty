@@ -83,12 +83,12 @@ describe('Deployer', () => {
     });
   });
 
-  describe('.declare()', () => {
+  describe('.declareToManifest()', () => {
     it('should write a named entry into the manifest', async () => {
       const fixture = Baseline.createDeployer({
         declare: (kit) => {
-          kit.declare('request', () => {});
-          kit.declare('options', { timeout: 1 });
+          kit.declareToManifest('request', () => {});
+          kit.declareToManifest('options', { timeout: 1 });
         },
       });
       const workflow = Baseline.createWorkflow();
@@ -102,7 +102,7 @@ describe('Deployer', () => {
     });
 
     it('should reject a non-string name', async () => {
-      const { errors } = await run((kit) => kit.declare(1, 'probe'));
+      const { errors } = await run((kit) => kit.declareToManifest(1, 'probe'));
 
       assert.equal(errors.length, 1);
     });
@@ -215,7 +215,7 @@ describe('Deployer', () => {
 
       await workflow.compile(new fixture.Server());
 
-      assert.throws(() => captured.declare('late', 1));
+      assert.throws(() => captured.declareToManifest('late', 1));
       assert.throws(() => captured.setServerLinker(() => {}));
       assert.throws(() => captured.appendExchangeAttacher(() => {}));
       assert.throws(() => captured.attachDeployment('late', 1));

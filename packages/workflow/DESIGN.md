@@ -237,7 +237,7 @@ classDiagram
     ...
   }
   class DeployerKit["⚙️DeployerKit"] {
-    +declare(name, value)
+    +declareToManifest(name, value)
     +setServerLinker(link)
     +attachDeployment(name, value)
     +appendExchangeAttacher(attacher)
@@ -441,7 +441,7 @@ the deployer's whole capability surface. A deployer cannot mutate
 
 | Method                                          | Behavior                                                     |
 | ----------------------------------------------- | ------------------------------------------------------------ |
-| `deployerKit.declare(name, value)`              | Declares a named manifest entry for the compile path         |
+| `deployerKit.declareToManifest(name, value)`    | Declares a named manifest entry for the compile path         |
 | `deployerKit.setServerLinker(link)`             | Pushes a linker onto a LIFO stack                            |
 | `deployerKit.attachDeployment(name, value)`     | Attaches a value onto `DeploymentKit` for downstream use     |
 | `deployerKit.appendExchangeAttacher(fn)`        | Registers an attacher for every `ExchangeKit`                |
@@ -1155,7 +1155,7 @@ is a concrete subject (`Workflow/Deployment/`), created by
 | `KIT`                | constructor                | package siblings     |
 | `SERVER`             | constructor                | package siblings     |
 | `WORKFLOW`           | constructor                | `$I.HANDLE_EXCHANGE` |
-| `MANIFEST`           | `$I.DECLARE`               | `get manifest`       |
+| `MANIFEST`           | `$I.ADD_TO_MANIFEST`       | `get manifest`       |
 | `LINK_LIST`          | `$I.SET_LINKER`            | `link()`             |
 | exchange attachers   | `$I.ADD_EXCHANGE_ATTACHER` | `$I.ATTACH_EXCHANGE` |
 | handled identity set | `$I.REGISTER_EXCHANGE`     | `$I.HAS_EXCHANGE`    |

@@ -111,8 +111,8 @@ describe('Workflow', () => {
     it('should return the deployment of the compile phase', async () => {
       const fixture = Baseline.createDeployer({
         declare: (kit) => {
-          kit.declare('request', (_req, _res) => {});
-          kit.declare('options', { timeout: 1000 });
+          kit.declareToManifest('request', (_req, _res) => {});
+          kit.declareToManifest('options', { timeout: 1000 });
         },
       });
       const workflow = Baseline.createWorkflow();
@@ -198,7 +198,7 @@ describe('Workflow', () => {
   describe('.withDeployer()', () => {
     it('should compile through a one-time deployer', async () => {
       const fixture = Baseline.createDeployer({
-        declare: (kit) => kit.declare('request', () => {}),
+        declare: (kit) => kit.declareToManifest('request', () => {}),
       });
       const workflow = Baseline.createWorkflow();
 

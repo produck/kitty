@@ -13,12 +13,12 @@
 部署器的定义面是 `_I.INSTALL(DeployerKit)`。派生部署器覆写它，就在
 同一个 `Deployment` 上叠加定义。当前三处结构写入各自独立：
 
-| 端口                            | 落点                                     | 叠加语义                               |
-| ------------------------------- | ---------------------------------------- | -------------------------------------- |
-| `declare(name, value)`          | `deployment[I.MANIFEST][name] = value`   | **后写覆盖，静默**                     |
-| `setServerLinker(link)`         | `LINK_LIST.unshift(link)`                | LIFO 栈，`compose` 串起来              |
-| `attachDeployment(name, value)` | `deployment[I.DEPLOYMENT][name] = value` | **后写覆盖，静默（kit 自身会拒同名）** |
-| `appendExchangeAttacher(fn)`    | 数组 push                                | 按注册顺序执行                         |
+| 端口                             | 落点                                     | 叠加语义                               |
+| -------------------------------- | ---------------------------------------- | -------------------------------------- |
+| `declareToManifest(name, value)` | `deployment[I.MANIFEST][name] = value`   | **后写覆盖，静默**                     |
+| `setServerLinker(link)`          | `LINK_LIST.unshift(link)`                | LIFO 栈，`compose` 串起来              |
+| `attachDeployment(name, value)`  | `deployment[I.DEPLOYMENT][name] = value` | **后写覆盖，静默（kit 自身会拒同名）** |
+| `appendExchangeAttacher(fn)`     | 数组 push                                | 按注册顺序执行                         |
 
 `linker` 与 `attacher` 是**可叠加列表**，`declare` 与
 `attachDeployment` 是**单值槽**。覆盖在单值槽上是静默的：两个派生层

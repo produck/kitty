@@ -27,7 +27,7 @@ const $I_WORKFLOW = Symbol('.$workflow');
 const $I_SERVER = Symbol('.$server');
 const $I_COMMITTED = Symbol('.$committed');
 const $I_COMMIT = Symbol('.$commit()');
-const $I_DECLARE = Symbol('.$declare()');
+const $I_ADD_TO_MANIFEST = Symbol('.$addToManifest()');
 const $I_SET_LINKER = Symbol('.$setLinker()');
 const $I_HANDLE_EXCHANGE = Symbol('.$handleExchange()');
 const $I_REGISTER_EXCHANGE = Symbol('.$registerExchange()');
@@ -41,7 +41,7 @@ export const $I = deepFreeze({
   SERVER: $I_SERVER,
   COMMITTED: $I_COMMITTED,
   COMMIT: $I_COMMIT,
-  DECLARE: $I_DECLARE,
+  ADD_TO_MANIFEST: $I_ADD_TO_MANIFEST,
   SET_LINKER: $I_SET_LINKER,
   HANDLE_EXCHANGE: $I_HANDLE_EXCHANGE,
   REGISTER_EXCHANGE: $I_REGISTER_EXCHANGE,

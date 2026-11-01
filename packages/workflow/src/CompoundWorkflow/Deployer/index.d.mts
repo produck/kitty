@@ -9,7 +9,7 @@ import type * as _Symbol from './_Symbol.d.mts';
 /** Kit the deployer writes its deployment definition through. */
 export interface DeployerKit extends Kit.KitProvider {
   /** Declares a named manifest entry for the compile path. */
-  declare(name: string, value: unknown): void;
+  declareToManifest(name: string, value: unknown): void;
 
   /** Pushes a server linker; linkers run LIFO when the deployment links. */
   setServerLinker(

@@ -46,7 +46,7 @@ class Deployer {
     this[I.KIT] = DeploymentKit('Kitty<Deployer>');
     this[I.DEPLOYMENT] = deployment;
     this[CONSTRUCTOR] = new.target;
-    this[I.ATTACH.MANIFEST]();
+    this[I.ATTACH.DECLARE_TO_MANIFEST]();
     this[I.ATTACH.SERVER_LINKER]();
     this[I.ATTACH.EXCHANGE_ATTACHER]();
     this[I.ATTACH.DEPLOYMENT]();
@@ -55,15 +55,15 @@ class Deployer {
     this[I.ATTACH.HAS_WEB_SOCKET]();
   }
 
-  [I.ATTACH.MANIFEST]() {
-    this[I.KIT].declare = (name, value) => {
+  [I.ATTACH.DECLARE_TO_MANIFEST]() {
+    this[I.KIT].declareToManifest = (name, value) => {
       this[I.ASSERT.NOT_COMMITTED]();
 
       if (!Is.Type.String(name)) {
         ThrowTypeError('args[0] as name', 'string');
       }
 
-      this[I.DEPLOYMENT][DEPLOYMENT.$I.DECLARE](name, value);
+      this[I.DEPLOYMENT][DEPLOYMENT.$I.ADD_TO_MANIFEST](name, value);
     };
   }
 

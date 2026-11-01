@@ -2,7 +2,7 @@ import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_KIT = Symbol('.#kit');
 const I_DEPLOYMENT = Symbol('.#deployment');
-const I_ATTACH_MANIFEST = Symbol('.#attachManifest()');
+const I_ATTACH_DECLARE_TO_MANIFEST = Symbol('.#attachDeclareToManifest()');
 const I_ATTACH_SERVER_LINKER = Symbol('.#attachServerLinker()');
 const I_ATTACH_EXCHANGE_ATTACHER = Symbol('.#attachExchangeAttacher()');
 const I_ATTACH_DEPLOYMENT = Symbol('.#attachDeployment()');
@@ -20,7 +20,7 @@ export const I = deepFreeze({
   KIT: I_KIT,
   DEPLOYMENT: I_DEPLOYMENT,
   ATTACH: {
-    MANIFEST: I_ATTACH_MANIFEST,
+    DECLARE_TO_MANIFEST: I_ATTACH_DECLARE_TO_MANIFEST,
     SERVER_LINKER: I_ATTACH_SERVER_LINKER,
     EXCHANGE_ATTACHER: I_ATTACH_EXCHANGE_ATTACHER,
     DEPLOYMENT: I_ATTACH_DEPLOYMENT,

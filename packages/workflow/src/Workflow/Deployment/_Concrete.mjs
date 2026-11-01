@@ -51,7 +51,7 @@ export default class Deployment {
     this[I.COMMITTED] = true;
   }
 
-  [$I.DECLARE](name, value) {
+  [$I.ADD_TO_MANIFEST](name, value) {
     this[I.MANIFEST][name] = value;
   }
 

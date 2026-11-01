@@ -113,7 +113,7 @@ describe('Deployer()', () => {
       await workflow.compile(new options.server());
 
       assert.equal(seen.length, 1);
-      assert.equal(typeof seen[0].declare, 'function');
+      assert.equal(typeof seen[0].declareToManifest, 'function');
     });
   });
 });

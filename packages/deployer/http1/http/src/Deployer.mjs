@@ -13,7 +13,7 @@ const options = {
     Kit,
     handleHttpExchange,
     handleWebSocketExchange,
-    declare,
+    declareToManifest,
     setServerLinker,
     hasWebSocketExchange,
   }) {
@@ -31,12 +31,12 @@ const options = {
       await handleWebSocketExchange({ server, req, res: null, socket, head });
     }
 
-    declare('request-listener', requestListener);
+    declareToManifest('request-listener', requestListener);
 
     const hasWebSocket = hasWebSocketExchange();
 
     if (hasWebSocket) {
-      declare('upgrade-listener', upgradeListener);
+      declareToManifest('upgrade-listener', upgradeListener);
     }
 
     setServerLinker((_context, next) => {
