@@ -90,54 +90,69 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
 
 ### 决定
 
-1. **ws exchange 独立成包**，`ws` 依赖只落在该包（暂名
-   `@produck/kitty-exchange-websocket`）。`@produck/kitty-deployer-http1-http`
-   保持零 ws 依赖。
+1. **ws exchange 住在 `http1-http`，用子导出隔开**。`ws` 是
+   `peerDependencies` + `devDependencies`，只有引用
+   `./exchange/websocket` 子路径的使用者才会加载它。主入口不 import
+   `ws`。
 2. **deployer 通过派生装载 exchange，不写可变静态字段**。静态槽是类
    自身属性，直接赋值会变成进程级全局状态，并让测试互相污染。派生出的
    子类才是组装结果的载体。
-3. **`upgrade` 事件的接线点留在 deployer**。握手的传输层归属不随
-   exchange 外挂而转移；exchange 只负责握手判定与消息。
+3. **握手由 controller 自己完成**。`upgrade` 事件给的原生 socket 在
+   controller 构造后被换成 `ws` 客户端；deployer 只负责把
+   `{ server, req, socket, head }` 交进 `handleWebSocketExchange`，不
+   知道 `ws` 存在。
 4. **`declare` 条件执行**。没装 ws exchange 时不声明 `upgrade-listener`，
    因此 HTTP-only 部署的 manifest 里不会出现无关材料。
 5. **官方实现以身作则：基于实现器派生，不直接 extends 抽象类**。
    ws exchange 用 `Implement.Exchange.WebSocket(options)` 生成；
    deployer 用 `Implement.Deployer({ ... })` 再派生一次。
 
+### 握手的挂点
+
+`WebSocketController` 上一对成员：
+
+| 成员                | 级别 | 由谁调用   |
+| ------------------- | ---- | ---------- |
+| `$I.HANDLE_UPGRADE` | 保护 | 核心包内部 |
+| `_I.HANDLE_UPGRADE` | 抽象 | 实现器提供 |
+
+调用时机是 `WebSocketExchange` 构造函数的末尾 —— 此时 controller 已
+实例化，而 exchange attacher 与 handler 管线都还未运行，所以用户拿到
+的 controller 一定对应一个已完成握手的连接。`ws` 的
+`handleUpgrade(req, socket, head, cb)` 同步调用 `cb`，因此这一环不需要
+异步契约，`_I.INSTALL` 也不必改成 `void | Promise<void>`。
+
 ### 装配形状
 
 ```js
-import Deployer from '@produck/kitty-deployer-http1-http';
-import { Exchange as WebSocketExchange } from '@produck/kitty-exchange-websocket';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
+import * as Ws from '@produck/kitty-deployer-http1-http/exchange/websocket';
 
-registerDeployer(Deployer.withWebSocket(WebSocketExchange));
+const Base = Http1Http.Deployer.Http1HttpDeployer;
+const Deployer = Base.withWebSocketExchange(Ws.Exchange);
+
+Workflow.registerDeployer(Deployer);
 ```
 
-`withWebSocket` 由 deployer 包导出（方案 A），内部是
-`Implement.Deployer({ ...baseOptions, exchange: { http, webSocket } })`。
-用户不需要知道 `Implement` 的存在，也不需要复制 `install` 里的 listener
-与 linker 逻辑；代价是 deployer 包要对外提供一个工厂，并引用
-`WebSocketExchange` 的类型（不引用 `ws`）。
+### 待定
 
-### 前置：核心层要补的可观察机制
-
-`withWebSocket` 与条件 `declare` 都要求能回答“当前这个部署器是否装了
-ws exchange”。目前 `install` 只是普通函数，拿不到 `this`，而静态槽只有
-类自身可读。所以先要在核心层补一组对 deployer 类与实例的观察手段，至少
-要能：
-
-- 从 `install` 的上下文读取当前部署器类的 exchange 槽；
-- 判断 WebSocket 槽是否为 `undefined`，而不是等待
-  `handleWebSocketExchange` 抛错。
-
-具体形状未定（是否经由 `DeployerKit` 暴露、是否作为 `install` 的额外
-参数）。**在它落地之前不动 deployer 与 exchange 包的代码**，避免两套
-判断并存。
+1. **握手失败路径**。`handleUpgrade` 在 method 非 GET、缺
+   `Sec-WebSocket-Key`、版本不符等情况下**不调用** `cb`，而是写 4xx
+   后销毁 socket。此时 `internal.socket` 仍是原生 socket。若让异常冒
+   出 `_I.HANDLE_UPGRADE`，它会从 `new TargetExchange(...)` 穿过
+   `upgradeListener`（`async` 且无人 await）成为 unhandledRejection。
+   是“静默跳过管线”还是“抛且由 deployer 兜底”，未决。
+2. **ws 的 response 端口**。现在直接复用 `Base.response`，而它全读
+   `internal.res`（upgrade 路径下不存在）。任何读 response 的 handler
+   都会抛。是给 ws 一套独立端口（从 `req.headers` 造只读视图），还是
+   让 `Normalize.Exchange.WebSocket` 允许省略，未决。
+3. **`WebSocketServer` 实例是模块级的**。`noServer: true` 的一个实例
+   被同进程所有 ws 部署共用，因此 `wss.clients` 跨部署可见。是否需要
+   按 deployment 隔离，未决。
 
 ### 不做
 
 - 不引入通用 MessageExchange 抽象。第二种长连接协议出现之前不为
   “可能的复用”付出抽象成本。
-- 不让 `ws` 进入核心包或 `http1-http` 包的依赖。
 - 不把 ws 的策略（心跳、重连、广播、鉴权）放进 exchange。exchange 只
   封装协议，不封装策略。

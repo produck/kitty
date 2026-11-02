@@ -35,7 +35,7 @@ declare class WebSocketController<
    * @param internal - Connection record supplied by the deployer.
    * @returns The ready state.
    */
-  [_Symbol._I.READY_STATE.GET](internal: Internal): 0 | 1 | 2 | 3;
+  [_Symbol._I.GET_READY_STATE](internal: Internal): 0 | 1 | 2 | 3;
 
   /**
    * Implementation: sends one frame.

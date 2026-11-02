@@ -54,6 +54,7 @@ function createWebSocketOptions(patch = {}) {
     header: { get: () => undefined, keys: () => [] },
   };
   options.controller = {
+    handleUpgrade: noop,
     readyState: { get: () => 1 },
     send: { send: noop },
     close: { close: noop },
@@ -313,6 +314,9 @@ function createWebSocketAccessors(state) {
       header: headerAccessors(state.responseHeaders),
     },
     controller: {
+      handleUpgrade: () => {
+        state.upgraded = true;
+      },
       readyState: { get: () => state.readyState },
       send: {
         send: (_context, data) => {

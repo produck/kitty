@@ -34,9 +34,16 @@ export default function normalizeWebSocket(_options) {
 
       const {
         readyState: _readyState,
+        handleUpgrade: _handleUpgrade,
         send: _send,
         close: _close,
       } = _controller;
+
+      if (Is.Type.Function(_handleUpgrade)) {
+        controller.handleUpgrade = _handleUpgrade;
+      } else {
+        ThrowTypeError('args[0].controller.handleUpgrade', 'function');
+      }
 
       if (Is.PlainObject(_readyState)) {
         const readyState = (controller.readyState = {});

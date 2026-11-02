@@ -35,6 +35,7 @@ export function WebSocket(options) {
       header: { get: getResponseHeader, keys: getResponseHeaderKeys },
     },
     controller: {
+      handleUpgrade: handleControllerUpgrade,
       readyState: { get: getControllerReadyState },
       send: { send: sendController },
       close: { close: closeController },
@@ -89,7 +90,11 @@ export function WebSocket(options) {
       Object.seal(this);
     }
 
-    [CONTROLLER._I.READY_STATE.GET](_internal) {
+    [CONTROLLER._I.HANDLE_UPGRADE](_internal) {
+      handleControllerUpgrade(this[I_OPTIONS_CONTEXT]);
+    }
+
+    [CONTROLLER._I.GET_READY_STATE](_internal) {
       return getControllerReadyState(this[I_OPTIONS_CONTEXT]);
     }
 

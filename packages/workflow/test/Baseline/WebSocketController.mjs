@@ -8,7 +8,11 @@ import {
 
 export default SCP(
   class WebSocketController extends Abstract.WebSocketController {
-    [SYMBOL.WEB_SOCKET_CONTROLLER._I.READY_STATE.GET](internal) {
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.HANDLE_UPGRADE](internal) {
+      internal.upgraded = true;
+    }
+
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.GET_READY_STATE](internal) {
       const { readyState = WebSocketControllerEvent.READY_STATE.OPEN } =
         internal.socket;
 
