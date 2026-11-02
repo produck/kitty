@@ -110,6 +110,12 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
    `./exchange/websocket` 子导出里；用 `WeakMap` 以 http server 为键
    懒建实例，避免模块级单例让 `clients` 跨部署可见；实例随部署对象一
    起被回收，不需要额外关闭钩子。
+7. **`response` 归 `HttpExchange`，不进通用 `Exchange`**。
+   `statusCode` / `statusText` / `setStatus` / `isFinished` 都是 HTTP
+   概念；通用 `Exchange` 只保留 `request`。`K_RESPONSE` 随之从
+   `Workflow/Exchange` 迁到 `CompoundWorkflow/HttpExchange`，
+   `useResponse` 也只对 http exchange kit 成立。ws exchange 因此没有
+   response 成员。
 
 ### 握手的挂点
 
@@ -151,10 +157,12 @@ Workflow.registerDeployer(Deployer);
 ### 待定
 
 1. **拒绝握手没有落点**。用户能在 handler 里选择不调 `upgrade()`，但
-   现在没有可写 4xx 的端口：`response` 全读 `internal.res`（upgrade 路
-   径下不存在）。是给 ws 一套独立端口（从 `req.headers` 造只读视图，
-   外加写状态行/头的通道），还是让 deployer 暴露原始 `socket` 让人自己
-   写，未决。
+   ws 既没有 response 端口，也没有拿到 `req` / `socket` 的通道：既不
+   upgrade 也不 close 时，原生 socket 会一直挂着——不写响应、不
+   destroy、没有超时，只能等客户端自己放弃。核心按约定不介入，于是
+   “拒绝”目前只有拿到原始 socket 才做得完。是给 ws 一套独立端口（从
+   `req.headers` 造只读视图，外加写状态行/头的通道），还是让 deployer
+   暴露原始 `socket`，未决。
 
 ### 不做
 

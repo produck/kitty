@@ -11,7 +11,6 @@ describe('ExchangeResponse', () => {
       assert.equal(state.response.statusCode, 204);
     });
   });
-
   describe('.statusText', () => {
     it('should read the status text from the internal record', async () => {
       const state = await Baseline.dispatch({
@@ -33,35 +32,30 @@ describe('ExchangeResponse', () => {
   describe('.header', () => {
     it('should expose the read-only header part', async () => {
       const state = await Baseline.dispatch({
-        kind: 'websocket',
         internal: {
-          socket: { readyState: 1, sent: [], closed: null },
           responseHeaders: new Map([['sec-websocket-accept', 'probe']]),
         },
       });
+      const response = new Baseline.Response(state.exchange);
 
-      assert.equal(state.response.header.get('sec-websocket-accept'), 'probe');
+      assert.equal(response.header.get('sec-websocket-accept'), 'probe');
     });
   });
 
   describe('>read-only surface', () => {
     it('should not expose a status setter', async () => {
-      const state = await Baseline.dispatch({
-        kind: 'websocket',
-        internal: { socket: { readyState: 1, sent: [], closed: null } },
-      });
+      const state = await Baseline.dispatch();
+      const response = new Baseline.Response(state.exchange);
 
-      assert.equal(state.response.setStatus, undefined);
+      assert.equal(response.setStatus, undefined);
     });
 
     it('should not expose a header mutator', async () => {
-      const state = await Baseline.dispatch({
-        kind: 'websocket',
-        internal: { socket: { readyState: 1, sent: [], closed: null } },
-      });
+      const state = await Baseline.dispatch();
+      const response = new Baseline.Response(state.exchange);
 
-      assert.equal(state.response.header.set, undefined);
-      assert.equal(state.response.header.delete, undefined);
+      assert.equal(response.header.set, undefined);
+      assert.equal(response.header.delete, undefined);
     });
   });
 });

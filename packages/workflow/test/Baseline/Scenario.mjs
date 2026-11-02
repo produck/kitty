@@ -48,7 +48,10 @@ export async function dispatch(options = {}) {
         state.exchange = exchange;
         state.exchangeKit = ExchangeKit;
         state.request = useRequest(ExchangeKit);
-        state.response = useResponse(ExchangeKit);
+
+        if (kind !== 'websocket') {
+          state.response = useResponse(ExchangeKit);
+        }
 
         for (const type of PIPELINE_TYPES) {
           exchange.addEventListener(type, (event) => {

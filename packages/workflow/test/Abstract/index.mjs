@@ -15,4 +15,3 @@ await import('./HttpResponse.test.mjs');
 await import('./HttpResponseBody.test.mjs');
 await import('./WebSocketExchange.test.mjs');
 await import('./WebSocketController.test.mjs');
-await import('./WebSocketResponse.test.mjs');

@@ -26,7 +26,6 @@ export const Abstract = deepFreeze({
   HttpResponseBody: _HttpExchange.Response.Body.Abstract,
   WebSocketExchange: _WebSocketExchange.Abstract,
   WebSocketController: _WebSocketExchange.Controller.Abstract,
-  WebSocketResponse: _WebSocketExchange.Response.Abstract,
 });
 
 import * as COMPOUND_WORKFLOW from './CompoundWorkflow/_Symbol.mjs';
@@ -39,6 +38,7 @@ import * as EXCHANGE_RESPONSE from './Workflow/Exchange/Response/_Symbol.mjs';
 import * as EXCHANGE_RESPONSE_HEADER from './Workflow/Exchange/Response/Header/_Symbol.mjs';
 import * as EXCHANGE_RESPONSE_MUTABLE_HEADER from './Workflow/Exchange/Response/MutableHeader/_Symbol.mjs';
 import * as EXCHANGE_MUTABLE_RESPONSE from './Workflow/Exchange/MutableResponse/_Symbol.mjs';
+import * as HTTP_EXCHANGE from './CompoundWorkflow/HttpExchange/_Symbol.mjs';
 import * as HTTP_REQUEST from './CompoundWorkflow/HttpExchange/Request/_Symbol.mjs';
 import * as HTTP_REQUEST_BODY from './CompoundWorkflow/HttpExchange/Request/Body/_Symbol.mjs';
 import * as HTTP_RESPONSE from './CompoundWorkflow/HttpExchange/Response/_Symbol.mjs';
@@ -81,6 +81,9 @@ export const SYMBOL = deepFreeze({
   },
   EXCHANGE_MUTABLE_RESPONSE: {
     _I: EXCHANGE_MUTABLE_RESPONSE._I,
+  },
+  HTTP_EXCHANGE: {
+    _S: HTTP_EXCHANGE._S,
   },
   HTTP_REQUEST: {
     _S: HTTP_REQUEST._S,

@@ -80,12 +80,6 @@ export declare const Abstract: Readonly<{
 
   /** WebSocket controller: `readyState` / `send` / `close`. */
   WebSocketController: typeof import('./CompoundWorkflow/WebSocketExchange/Controller/index.d.mts').Abstract;
-
-  /**
-   * WebSocket response: the opening record left by the handshake;
-   * `isFinished` is always true.
-   */
-  WebSocketResponse: typeof import('./CompoundWorkflow/WebSocketExchange/Response/index.d.mts').Abstract;
 }>;
 
 /**
@@ -156,10 +150,6 @@ export declare namespace Abstract {
   /** Class type behind `Abstract.WebSocketController`. */
   type WebSocketController =
     import('./CompoundWorkflow/WebSocketExchange/Controller/index.d.mts').Abstract;
-
-  /** Class type behind `Abstract.WebSocketResponse`. */
-  type WebSocketResponse =
-    import('./CompoundWorkflow/WebSocketExchange/Response/index.d.mts').Abstract;
 
   /** Kit the deployer writes its deployment definition through. */
   type DeployerKit =
@@ -244,6 +234,11 @@ export declare const SYMBOL: Readonly<{
   /** Abstract slots of the mutable response. */
   EXCHANGE_MUTABLE_RESPONSE: Readonly<{
     _I: typeof import('./Workflow/Exchange/MutableResponse/_Symbol.d.mts')._I;
+  }>;
+
+  /** Static slots of the HTTP exchange. */
+  HTTP_EXCHANGE: Readonly<{
+    _S: typeof import('./CompoundWorkflow/HttpExchange/_Symbol.d.mts')._S;
   }>;
 
   /** Static slots of the HTTP request. */

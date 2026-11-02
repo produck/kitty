@@ -2,7 +2,6 @@ import type * as net from 'node:net';
 
 import type * as Workflow from '../../CompoundWorkflow/index.d.mts';
 import type * as Request from './Request/index.d.mts';
-import type * as MutableResponse from './MutableResponse/index.d.mts';
 import type * as _Symbol from './_Symbol.d.mts';
 
 /** Exchange port on the ExchangeKit. */
@@ -11,9 +10,6 @@ export declare const K_EXCHANGE: unique symbol;
 /** Request part port on the ExchangeKit. */
 export declare const K_REQUEST: unique symbol;
 
-/** Response part port on the ExchangeKit. */
-export declare const K_RESPONSE: unique symbol;
-
 /** Supported HTTP versions. */
 export type HttpVersion = '1.0' | '1.1' | '2.0' | '3.0';
 
@@ -21,9 +17,9 @@ export type HttpVersion = '1.0' | '1.1' | '2.0' | '3.0';
 export type ServerProtocol = 'http:' | 'https:';
 
 /**
- * Exchange shell: protocol agnostic; declares request / response and the facts
+ * Exchange shell: protocol agnostic; declares the request part and the facts
  * shared by every protocol. The concrete protocol comes from subclasses;
- * request / response are plugged in through static slots.
+ * the request part is plugged in through a static slot.
  */
 declare class Exchange<Internal = object> extends EventTarget {
   /** Owning workflow. */
@@ -32,20 +28,11 @@ declare class Exchange<Internal = object> extends EventTarget {
   /** Request part. */
   readonly request: Request.Abstract<Internal>;
 
-  /** Mutable response part. */
-  readonly response: MutableResponse.Abstract<Internal>;
-
   /** Request method. */
   readonly method: string;
 
   /** Request URL. */
   readonly url: URL;
-
-  /** Response status code. */
-  readonly statusCode: number;
-
-  /** Response reason phrase. */
-  readonly statusText: string;
 
   /** Server instance that owns this connection. */
   readonly server: net.Server;
@@ -58,14 +45,6 @@ declare class Exchange<Internal = object> extends EventTarget {
 
   /** HTTP version; `null` when not applicable. */
   readonly httpVersion: HttpVersion | null;
-
-  /**
-   * Writes the response status code and the optional reason phrase.
-   *
-   * @param code - Status code, within 100..599.
-   * @param text - Reason phrase; keeps the current one when omitted.
-   */
-  setStatus(code: number, text?: string): void;
 
   /** An exchange is not serializable; always throws. */
   toJSON(): never;
@@ -114,11 +93,6 @@ declare class Exchange<Internal = object> extends EventTarget {
   static readonly [_Symbol._S.REQUEST_CTOR]: abstract new (
     ...args: never[]
   ) => Request.Abstract;
-
-  /** Implementation: constructor of the mutable response part. */
-  static readonly [_Symbol._S.RESPONSE_CTOR]: abstract new (
-    ...args: never[]
-  ) => MutableResponse.Abstract;
 }
 
 export { Exchange as Abstract };

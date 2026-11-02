@@ -1,6 +1,6 @@
 import { Is, ThrowTypeError } from '@produck/argot';
 
-import normalizeBase, { normalizeResponse } from './Base.mjs';
+import normalizeBase from './Base.mjs';
 
 export default function normalizeWebSocket(_options) {
   const $base = normalizeBase(_options);
@@ -23,10 +23,6 @@ export default function normalizeWebSocket(_options) {
 
     {
       options.request = $base.request;
-    }
-
-    {
-      options.response = normalizeResponse(_options.response);
     }
 
     if (Is.PlainObject(_controller)) {

@@ -3,14 +3,12 @@ import { describe, it } from 'node:test';
 
 import * as Baseline from '../Baseline/index.mjs';
 
-function dispatchWith(headers) {
-  return Baseline.dispatch({
-    kind: 'websocket',
-    internal: {
-      socket: { readyState: 1, sent: [], closed: null },
-      responseHeaders: new Map(headers),
-    },
+async function dispatchWith(headers) {
+  const state = await Baseline.dispatch({
+    internal: { responseHeaders: new Map(headers) },
   });
+
+  return { response: { header: new Baseline.ResponseHeader(state.exchange) } };
 }
 
 describe('ExchangeResponseHeader', () => {

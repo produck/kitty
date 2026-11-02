@@ -4,14 +4,12 @@ const I_KIT = Symbol('.#kit');
 const I_DEPLOYMENT = Symbol('.#deployment');
 const I_INTERNAL = Symbol('.#internal');
 const I_REQUEST = Symbol('.#request');
-const I_RESPONSE = Symbol('.#response');
 
 export const I = deepFreeze({
   KIT: I_KIT,
   DEPLOYMENT: I_DEPLOYMENT,
   INTERNAL: I_INTERNAL,
   REQUEST: I_REQUEST,
-  RESPONSE: I_RESPONSE,
 });
 
 const $I_INTERNAL = Symbol('.$internal');
@@ -46,10 +44,8 @@ export const _I = deepFreeze({
 
 const _S_IDENTITY = Symbol('._identity()');
 const _S_REQUEST_CTOR = Symbol('._requestCtor');
-const _S_RESPONSE_CTOR = Symbol('._responseCtor');
 
 export const _S = deepFreeze({
   IDENTITY: _S_IDENTITY,
   REQUEST_CTOR: _S_REQUEST_CTOR,
-  RESPONSE_CTOR: _S_RESPONSE_CTOR,
 });

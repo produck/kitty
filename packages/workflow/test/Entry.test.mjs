@@ -20,7 +20,6 @@ const ABSTRACT_KEYS = [
   'Plugin',
   'WebSocketController',
   'WebSocketExchange',
-  'WebSocketResponse',
   'Workflow',
 ];
 
@@ -33,6 +32,7 @@ const SYMBOL_KEYS = [
   'EXCHANGE_RESPONSE',
   'EXCHANGE_RESPONSE_HEADER',
   'EXCHANGE_RESPONSE_MUTABLE_HEADER',
+  'HTTP_EXCHANGE',
   'HTTP_REQUEST',
   'HTTP_REQUEST_BODY',
   'HTTP_RESPONSE',

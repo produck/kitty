@@ -26,7 +26,6 @@ export declare const _I: {
 
 declare const _S_IDENTITY: unique symbol;
 declare const _S_REQUEST_CTOR: unique symbol;
-declare const _S_RESPONSE_CTOR: unique symbol;
 
 /** Static-side abstract slots of the exchange shell. */
 export declare const _S: {
@@ -35,7 +34,4 @@ export declare const _S: {
 
   /** Constructor of the request part. */
   readonly REQUEST_CTOR: typeof _S_REQUEST_CTOR;
-
-  /** Constructor of the mutable response part. */
-  readonly RESPONSE_CTOR: typeof _S_RESPONSE_CTOR;
 };

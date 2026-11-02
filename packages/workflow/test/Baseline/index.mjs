@@ -18,7 +18,6 @@ export { default as ResponseHeader } from './ResponseHeader.mjs';
 export { default as Server } from './Server.mjs';
 export { default as WebSocketController } from './WebSocketController.mjs';
 export { default as WebSocketExchange } from './WebSocketExchange.mjs';
-export { default as WebSocketResponse } from './WebSocketResponse.mjs';
 
 export { createDeployer } from './Deployer.mjs';
 export { createInternal } from './Internal.mjs';

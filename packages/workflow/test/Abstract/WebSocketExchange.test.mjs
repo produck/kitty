@@ -18,18 +18,6 @@ describe('WebSocketExchange', () => {
     });
   });
 
-  describe('.response', () => {
-    it('should expose the web socket response part', async () => {
-      const state = await Baseline.dispatch({
-        kind: 'websocket',
-        internal: { socket: socket() },
-      });
-
-      assert.equal(state.response.isFinished, true);
-      assert.equal(typeof state.response.header, 'object');
-    });
-  });
-
   describe('>controller', () => {
     it('should attach the controller to the exchange kit', async () => {
       const state = await Baseline.dispatch({

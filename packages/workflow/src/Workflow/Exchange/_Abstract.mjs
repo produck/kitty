@@ -6,20 +6,17 @@ import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-construct
 import * as Kit from '@produck/kit';
 
 import * as Request from './Request/index.mjs';
-import * as Response from './Response/index.mjs';
 import * as P from './_Parser.mjs';
 import { DEPLOYMENT } from './_Borrow.mjs';
 import { I, $I, $S, _I, _S } from './_Symbol.mjs';
 
 export const K_EXCHANGE = Symbol('ExchangeKit.exchange');
 export const K_REQUEST = Symbol('ExchangeKit.request');
-export const K_RESPONSE = Symbol('ExchangeKit.response');
 
 class Exchange extends EventTarget {
   [I.DEPLOYMENT] = null;
   [I.INTERNAL] = null;
   [I.REQUEST] = null;
-  [I.RESPONSE] = null;
 
   constructor(DeploymentKit, deployment, { internal }) {
     super();
@@ -36,10 +33,8 @@ class Exchange extends EventTarget {
     this[I.INTERNAL] = internal;
     this[CONSTRUCTOR] = new.target;
     this[I.REQUEST] = new this[CONSTRUCTOR][_S.REQUEST_CTOR]($(this));
-    this[I.RESPONSE] = new this[CONSTRUCTOR][_S.RESPONSE_CTOR]($(this));
 
     ExchangeKit[K_REQUEST] = this[I.REQUEST];
-    ExchangeKit[K_RESPONSE] = this[I.RESPONSE];
   }
 
   get [$I.KIT]() {
@@ -58,10 +53,6 @@ class Exchange extends EventTarget {
     return this[I.REQUEST];
   }
 
-  get response() {
-    return this[I.RESPONSE];
-  }
-
   toJSON() {
     Ow.Error.Common('Exchange object cannot be serialized.');
   }
@@ -72,18 +63,6 @@ class Exchange extends EventTarget {
 
   get url() {
     return this.request.url;
-  }
-
-  get statusCode() {
-    return this.response.statusCode;
-  }
-
-  get statusText() {
-    return this.response.statusText;
-  }
-
-  setStatus(code, text) {
-    this.response.setStatus(code, text);
   }
 
   get server() {
@@ -118,6 +97,5 @@ export default Abstract(
   Abstract.Static({
     [_S.IDENTITY]: M.Method().args(M.Any).returns(M.Object),
     [_S.REQUEST_CTOR]: M_Sub(Request.Abstract),
-    [_S.RESPONSE_CTOR]: M_Sub(Response.Abstract),
   }),
 );

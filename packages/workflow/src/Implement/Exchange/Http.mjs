@@ -11,6 +11,7 @@ import * as REQUEST from '../../Workflow/Exchange/Request/_Symbol.mjs';
 import * as REQUEST_HEADER from '../../Workflow/Exchange/Request/Header/_Symbol.mjs';
 import * as RESPONSE from '../../Workflow/Exchange/Response/_Symbol.mjs';
 import * as RESPONSE_HEADER from '../../Workflow/Exchange/Response/Header/_Symbol.mjs';
+import * as HTTP_EXCHANGE from '../../CompoundWorkflow/HttpExchange/_Symbol.mjs';
 import * as HTTP_REQUEST from '../../CompoundWorkflow/HttpExchange/Request/_Symbol.mjs';
 import * as HTTP_REQUEST_BODY from '../../CompoundWorkflow/HttpExchange/Request/Body/_Symbol.mjs';
 import * as HTTP_RESPONSE from '../../CompoundWorkflow/HttpExchange/Response/_Symbol.mjs';
@@ -210,7 +211,7 @@ export function Http(options) {
       return Impl.Request;
     }
 
-    static get [EXCHANGE._S.RESPONSE_CTOR]() {
+    static get [HTTP_EXCHANGE._S.RESPONSE_CTOR]() {
       return Impl.Response;
     }
 

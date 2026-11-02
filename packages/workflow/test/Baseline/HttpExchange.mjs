@@ -12,7 +12,7 @@ export default SCP(
       return HttpRequest;
     }
 
-    static get [SYMBOL.EXCHANGE._S.RESPONSE_CTOR]() {
+    static get [SYMBOL.HTTP_EXCHANGE._S.RESPONSE_CTOR]() {
       return HttpResponse;
     }
 

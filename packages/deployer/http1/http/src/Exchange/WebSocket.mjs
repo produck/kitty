@@ -20,7 +20,6 @@ export const options = Implement.Normalize.Exchange.WebSocket({
   server: Base.server,
   httpVersion: Base.httpVersion,
   request: Base.request,
-  response: Base.response,
   controller: {
     handleUpgrade: ({ internal, self }) => {
       getWebSocketServer(internal.server).handleUpgrade(

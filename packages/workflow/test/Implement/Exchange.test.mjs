@@ -47,12 +47,6 @@ function createHttpOptions(patch = {}) {
 function createWebSocketOptions(patch = {}) {
   const options = createBaseOptions();
 
-  options.response = {
-    status: { get: () => 101 },
-    statusText: { get: () => 'Switching Protocols' },
-    finished: { is: () => false },
-    header: { get: () => undefined, keys: () => [] },
-  };
   options.controller = {
     handleUpgrade: noop,
     readyState: { get: () => 1 },
@@ -139,7 +133,7 @@ describe('Http()', () => {
           Abstract.ExchangeRequest,
       );
       assert.ok(
-        Exchange[SYMBOL.EXCHANGE._S.RESPONSE_CTOR].prototype instanceof
+        Exchange[SYMBOL.HTTP_EXCHANGE._S.RESPONSE_CTOR].prototype instanceof
           Abstract.ExchangeResponse,
       );
     });
@@ -185,14 +179,6 @@ describe('WebSocket()', () => {
       delete options.controller.close;
 
       assert.throws(() => Baseline.Kitty.Implement.Exchange.WebSocket(options));
-    });
-
-    it('should accept a read-only response', () => {
-      const Exchange = Baseline.Kitty.Implement.Exchange.WebSocket(
-        createWebSocketOptions(),
-      );
-
-      assert.equal(typeof Exchange, 'function');
     });
   });
 
@@ -467,16 +453,11 @@ describe('implemented exchange', () => {
       assert.equal(state.exchange.mode, 'websocket');
       assert.equal(state.exchange.method, 'GET');
       assert.equal(state.exchange.url.href, state.url);
-      assert.equal(state.exchange.statusCode, 101);
-      assert.equal(state.exchange.statusText, 'Switching Protocols');
       assert.equal(state.exchange.server, state.server);
       assert.equal(state.exchange.protocol, state.protocol);
       assert.equal(state.exchange.httpVersion, state.httpVersion);
-      assert.equal(state.exchange.response.isFinished, true);
       assert.equal(state.exchange.request.header.get('X-Probe'), 'yes');
       assert.deepEqual(state.exchange.request.header.keys(), ['x-probe']);
-      assert.equal(state.exchange.response.header.get('x-absent'), undefined);
-      assert.deepEqual(state.exchange.response.header.keys(), []);
     });
 
     it('should drive the controller accessors', async () => {
