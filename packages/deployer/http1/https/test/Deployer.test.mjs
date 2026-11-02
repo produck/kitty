@@ -14,6 +14,7 @@ import {
 } from '@produck/kitty-workflow';
 
 import * as Http1Https from '@produck/kitty-deployer-http1-https';
+import { Exchange as WebSocketExchange } from '@produck/kitty-deployer-http1-http/exchange/websocket';
 
 import credentials from './credentials.mjs';
 import Distributor from './Distributor.mjs';
@@ -282,27 +283,24 @@ describe('Exchange', () => {
 
 describe('::withWebSocketExchange()', () => {
   it('should derive a deployer that fills the websocket slot', () => {
-    const { Exchange } = Http1Https;
-    const Derived = Deployer.withWebSocketExchange(Exchange.WebSocket.Exchange);
+    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
 
     assert.ok(Derived.prototype instanceof Deployer);
     assert.equal(
       Derived[SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET],
-      Exchange.WebSocket.Exchange,
+      WebSocketExchange,
     );
   });
 
   it('should tag the derived deployer as a websocket variant', () => {
-    const { Exchange } = Http1Https;
     const base = Deployer[SYMBOL.DEPLOYER._S.TAG];
-    const Derived = Deployer.withWebSocketExchange(Exchange.WebSocket.Exchange);
+    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
 
     assert.equal(Derived[SYMBOL.DEPLOYER._S.TAG], `${base},websocket`);
   });
 
   it('should keep the TLS server constructor', () => {
-    const { Exchange } = Http1Https;
-    const Derived = Deployer.withWebSocketExchange(Exchange.WebSocket.Exchange);
+    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
 
     assert.equal(Derived[SYMBOL.DEPLOYER._S.SERVER_CTOR], https.Server);
   });

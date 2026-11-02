@@ -28,7 +28,7 @@ export const options = Implement.Normalize.Deployer({
     }
 
     async function upgradeListener(req, socket, head) {
-      await handleWebSocketExchange({ server, req, res: null, socket, head });
+      await handleWebSocketExchange({ server, req, socket, head });
     }
 
     declareToManifest('request-listener', requestListener);
