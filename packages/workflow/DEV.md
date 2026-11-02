@@ -106,21 +106,35 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
 5. **官方实现以身作则：基于实现器派生，不直接 extends 抽象类**。
    ws exchange 用 `Implement.Exchange.WebSocket(options)` 生成；
    deployer 用 `Implement.Deployer({ ... })` 再派生一次。
+6. **`WebSocketServer` 按部署懒创建**。`ws` 只在
+   `./exchange/websocket` 子导出里；用 `WeakMap` 以 http server 为键
+   懒建实例，避免模块级单例让 `clients` 跨部署可见；实例随部署对象一
+   起被回收，不需要额外关闭钩子。
 
 ### 握手的挂点
 
-`WebSocketController` 上一对成员：
+握手不由核心发起。`WebSocketExchange` 构造时只建 controller 并挂到
+exchange kit 上，真正的握手由 handler 主动调 `controller.upgrade()`。
+这与 `ws` 的 `noServer` 模式一致：是否接受连接是用户的选择，不是核心
+的默认。
 
-| 成员                | 级别 | 由谁调用   |
-| ------------------- | ---- | ---------- |
-| `$I.HANDLE_UPGRADE` | 保护 | 核心包内部 |
-| `_I.HANDLE_UPGRADE` | 抽象 | 实现器提供 |
+`WebSocketController` 上的成员：
 
-调用时机是 `WebSocketExchange` 构造函数的末尾 —— 此时 controller 已
-实例化，而 exchange attacher 与 handler 管线都还未运行，所以用户拿到
-的 controller 一定对应一个已完成握手的连接。`ws` 的
-`handleUpgrade(req, socket, head, cb)` 同步调用 `cb`，因此这一环不需要
-异步契约，`_I.INSTALL` 也不必改成 `void | Promise<void>`。
+| 成员                        | 级别 | 说明                   |
+| --------------------------- | ---- | ---------------------- |
+| `upgrade()`                 | 公开 | 完成握手，只允许调一次 |
+| `$I.HANDLE_UPGRADE`         | 保护 | 核心包内部入口         |
+| `_I.HANDLE_UPGRADE`         | 抽象 | 实现器提供             |
+| `readyState`/`send`/`close` | 公开 | 未握手时一律抛错       |
+
+`ws` 的 `handleUpgrade(req, socket, head, cb)` 同步调用 `cb`，因此
+`_I.INSTALL` 不需要异步契约，也不必改成 `void | Promise<void>`。异常
+从 `controller.upgrade()` 直接抛给调用它的 handler，核心不吞、不兜底。
+
+管线结束不是连接结束的信号：`upgrade()` 之后 ws 的生命周期完全归用户
+（消息、事件、关闭都由用户处理），核心不再介入。没调 `upgrade()` 的
+连接也不会被核心关闭 —— 这同样属于预期行为。未来可以加一个「是否自动
+握手」的配置项让核心代劳，那是可选的便利，不改变控制权归属。
 
 ### 装配形状
 
@@ -136,19 +150,11 @@ Workflow.registerDeployer(Deployer);
 
 ### 待定
 
-1. **握手失败路径**。`handleUpgrade` 在 method 非 GET、缺
-   `Sec-WebSocket-Key`、版本不符等情况下**不调用** `cb`，而是写 4xx
-   后销毁 socket。此时 `internal.socket` 仍是原生 socket。若让异常冒
-   出 `_I.HANDLE_UPGRADE`，它会从 `new TargetExchange(...)` 穿过
-   `upgradeListener`（`async` 且无人 await）成为 unhandledRejection。
-   是“静默跳过管线”还是“抛且由 deployer 兜底”，未决。
-2. **ws 的 response 端口**。现在直接复用 `Base.response`，而它全读
-   `internal.res`（upgrade 路径下不存在）。任何读 response 的 handler
-   都会抛。是给 ws 一套独立端口（从 `req.headers` 造只读视图），还是
-   让 `Normalize.Exchange.WebSocket` 允许省略，未决。
-3. **`WebSocketServer` 实例是模块级的**。`noServer: true` 的一个实例
-   被同进程所有 ws 部署共用，因此 `wss.clients` 跨部署可见。是否需要
-   按 deployment 隔离，未决。
+1. **拒绝握手没有落点**。用户能在 handler 里选择不调 `upgrade()`，但
+   现在没有可写 4xx 的端口：`response` 全读 `internal.res`（upgrade 路
+   径下不存在）。是给 ws 一套独立端口（从 `req.headers` 造只读视图，
+   外加写状态行/头的通道），还是让 deployer 暴露原始 `socket` 让人自己
+   写，未决。
 
 ### 不做
 

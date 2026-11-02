@@ -484,6 +484,8 @@ describe('implemented exchange', () => {
 
       await kit.handleWebSocketExchange({});
 
+      state.exchange.controller.upgrade();
+
       assert.equal(state.exchange.controller.readyState, 1);
 
       state.exchange.controller.send('probe');

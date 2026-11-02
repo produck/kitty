@@ -4,7 +4,16 @@ import { Implement } from '@produck/kitty-workflow';
 
 import * as Base from './Base.mjs';
 
-const server = new WebSocketServer({ noServer: true });
+const SERVER_MAP = new WeakMap();
+const WEB_SOCKET_MAP = new WeakMap();
+
+function getWebSocketServer(server) {
+  if (SERVER_MAP.get(server) === undefined) {
+    SERVER_MAP.set(server, new WebSocketServer({ noServer: true }));
+  }
+
+  return SERVER_MAP.get(server);
+}
 
 export const options = Implement.Normalize.Exchange.WebSocket({
   identity: Base.identity,
@@ -13,27 +22,27 @@ export const options = Implement.Normalize.Exchange.WebSocket({
   request: Base.request,
   response: Base.response,
   controller: {
-    handleUpgrade: ({ internal }) => {
-      server.handleUpgrade(
+    handleUpgrade: ({ internal, self }) => {
+      getWebSocketServer(internal.server).handleUpgrade(
         internal.req,
         internal.socket,
         internal.head,
         (ws) => {
-          internal.socket = ws;
+          WEB_SOCKET_MAP.set(self, ws);
         },
       );
     },
     readyState: {
-      get: ({ internal }) => internal.socket.readyState,
+      get: ({ self }) => WEB_SOCKET_MAP.get(self).readyState,
     },
     send: {
-      send: ({ internal }, data) => {
-        internal.socket.send(data);
+      send: ({ self }, data) => {
+        WEB_SOCKET_MAP.get(self).send(data);
       },
     },
     close: {
-      close: ({ internal }, code, reason) => {
-        internal.socket.close(code, reason);
+      close: ({ self }, code, reason) => {
+        WEB_SOCKET_MAP.get(self).close(code, reason);
       },
     },
   },

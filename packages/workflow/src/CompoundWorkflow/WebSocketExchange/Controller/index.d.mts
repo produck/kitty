@@ -11,13 +11,24 @@ declare class WebSocketController<
    */
   constructor(exchange: Exchange.Abstract<Internal>);
 
-  /** Current ready state: 0 connecting, 1 open, 2 closing, 3 closed. */
+  /**
+   * Completes the handshake, turning the incoming connection into a web
+   * socket. The deployer never calls it; the handler owns this step.
+   */
+  upgrade(): void;
+
+  /**
+   * Current ready state: 0 connecting, 1 open, 2 closing, 3 closed.
+   *
+   * @throws When the handshake has not been completed yet.
+   */
   readonly readyState: 0 | 1 | 2 | 3;
 
   /**
    * Sends one text or binary frame.
    *
    * @param data - Text or binary payload.
+   * @throws When the handshake has not been completed yet.
    */
   send(data: string | Uint8Array): void;
 
@@ -26,6 +37,7 @@ declare class WebSocketController<
    *
    * @param code - Close code; uses the platform default when omitted.
    * @param reason - Close reason.
+   * @throws When the handshake has not been completed yet.
    */
   close(code?: number, reason?: string): void;
 

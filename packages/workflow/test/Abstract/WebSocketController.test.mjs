@@ -7,15 +7,47 @@ function createSocket() {
   return { readyState: 1, sent: [], closed: null };
 }
 
-async function dispatchWithSocket() {
+async function dispatchPending() {
   const internal = { socket: createSocket() };
   const state = await Baseline.dispatch({ kind: 'websocket', internal });
 
   return { state, socket: state.internal.socket };
 }
 
+async function dispatchWithSocket() {
+  const { state, socket } = await dispatchPending();
+
+  state.exchange.controller.upgrade();
+
+  return { state, socket };
+}
+
 describe('WebSocketController', () => {
+  describe('.upgrade()', () => {
+    it('should complete the handshake on the connection', async () => {
+      const { state } = await dispatchPending();
+
+      assert.equal(state.internal.upgraded, undefined);
+
+      state.exchange.controller.upgrade();
+
+      assert.equal(state.internal.upgraded, true);
+    });
+
+    it('should reject a second upgrade', async () => {
+      const { state } = await dispatchWithSocket();
+
+      assert.throws(() => state.exchange.controller.upgrade());
+    });
+  });
+
   describe('.readyState', () => {
+    it('should reject before the handshake', async () => {
+      const { state } = await dispatchPending();
+
+      assert.throws(() => state.exchange.controller.readyState);
+    });
+
     it('should read the ready state of the socket', async () => {
       const { state, socket } = await dispatchWithSocket();
 
@@ -34,6 +66,12 @@ describe('WebSocketController', () => {
   });
 
   describe('.send()', () => {
+    it('should reject before the handshake', async () => {
+      const { state } = await dispatchPending();
+
+      assert.throws(() => state.exchange.controller.send('probe'));
+    });
+
     it('should write a payload to the socket', async () => {
       const { state, socket } = await dispatchWithSocket();
 
@@ -50,6 +88,12 @@ describe('WebSocketController', () => {
   });
 
   describe('.close()', () => {
+    it('should reject before the handshake', async () => {
+      const { state } = await dispatchPending();
+
+      assert.throws(() => state.exchange.controller.close(1000, 'done'));
+    });
+
     it('should close the socket with a code and a reason', async () => {
       const { state, socket } = await dispatchWithSocket();
 
