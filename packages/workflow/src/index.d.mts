@@ -160,6 +160,25 @@ export declare namespace Abstract {
   /** Class type behind `Abstract.WebSocketResponse`. */
   type WebSocketResponse =
     import('./CompoundWorkflow/WebSocketExchange/Response/index.d.mts').Abstract;
+
+  /** Kit the deployer writes its deployment definition through. */
+  type DeployerKit =
+    import('./CompoundWorkflow/Deployer/index.d.mts').DeployerKit;
+
+  /** One link in the server linker stack. */
+  type ServerLinker =
+    import('./CompoundWorkflow/Deployer/index.d.mts').ServerLinker;
+
+  /** Attacher invoked once with each ExchangeKit at request time. */
+  type ExchangeAttacher =
+    import('./CompoundWorkflow/Deployer/index.d.mts').ExchangeAttacher;
+
+  /** Kit the plugin attaches its capabilities through. */
+  type PluginKit = import('./CompoundWorkflow/Plugin/index.d.mts').PluginKit;
+
+  /** Attacher invoked once with each DeploymentKit. */
+  type DeploymentAttacher =
+    import('./CompoundWorkflow/Plugin/index.d.mts').DeploymentAttacher;
 }
 
 /**

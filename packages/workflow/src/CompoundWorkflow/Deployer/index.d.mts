@@ -6,20 +6,34 @@ import type * as HttpExchange from '../HttpExchange/index.d.mts';
 import type * as WebSocketExchange from '../WebSocketExchange/index.d.mts';
 import type * as _Symbol from './_Symbol.d.mts';
 
+/** One link in the server linker stack; receives the link context. */
+export interface ServerLinker {
+  /**
+   * @param context - Value handed down the linker stack.
+   * @param next - Runs the next linker.
+   * @returns Whatever the linker returns, propagated to the caller.
+   */
+  (context: unknown, next: () => unknown): unknown;
+}
+
+/** Attacher invoked once with each ExchangeKit at request time. */
+export interface ExchangeAttacher {
+  /**
+   * @param exchangeKit - Kit of the exchange being served.
+   */
+  (exchangeKit: Kit.KitProvider): void;
+}
+
 /** Kit the deployer writes its deployment definition through. */
 export interface DeployerKit extends Kit.KitProvider {
   /** Declares a named manifest entry for the compile path. */
   declareToManifest(name: string, value: unknown): void;
 
   /** Pushes a server linker; linkers run LIFO when the deployment links. */
-  setServerLinker(
-    link: (context: unknown, next: () => unknown) => unknown,
-  ): void;
+  setServerLinker(link: ServerLinker): void;
 
   /** Registers an attacher invoked with each ExchangeKit at request time. */
-  appendExchangeAttacher(
-    attacher: (ExchangeKit: Kit.KitProvider) => void,
-  ): void;
+  appendExchangeAttacher(attacher: ExchangeAttacher): void;
 
   /** Attaches a value to the deployment kit under the given name. */
   attachDeployment(name: string, value: unknown): void;
@@ -29,6 +43,9 @@ export interface DeployerKit extends Kit.KitProvider {
 
   /** Dispatches one WebSocket exchange. */
   handleWebSocketExchange(internal: unknown): Promise<void>;
+
+  /** Whether this deployer serves a WebSocket exchange. */
+  hasWebSocketExchange(): boolean;
 }
 
 /**
