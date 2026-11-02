@@ -8,22 +8,20 @@ export const S = deepFreeze({
 
 const I_DEPLOYER_REGISTRY = Symbol('.#deployerRegistry');
 const I_PLUGIN_HANDLER_PREFIX_LIST = Symbol('.#pluginHandlerPrefixList');
-const I_PLUGIN_DEPLOYMENT_ATTACHER_LIST = Symbol(
-  '.#pluginDeploymentAttacherList',
-);
+const I_PLUGIN_DEPLOYMENT_ATTACHER_LIST = Symbol('.#pluginDeploymentAttacherList');
 const I_PLUGIN_EXCHANGE_ATTACHER_LIST = Symbol('.#pluginExchangeAttacherList');
 
 export const I = deepFreeze({
   DEPLOYER_REGISTRY: I_DEPLOYER_REGISTRY,
-  PLUGIN_HANDLER_PREFIX_LIST: I_PLUGIN_HANDLER_PREFIX_LIST,
-  PLUGIN_DEPLOYMENT_ATTACHER_LIST: I_PLUGIN_DEPLOYMENT_ATTACHER_LIST,
-  PLUGIN_EXCHANGE_ATTACHER_LIST: I_PLUGIN_EXCHANGE_ATTACHER_LIST,
+  PLUGIN: {
+    HANDLER_PREFIX_LIST: I_PLUGIN_HANDLER_PREFIX_LIST,
+    DEPLOYMENT_ATTACHER_LIST: I_PLUGIN_DEPLOYMENT_ATTACHER_LIST,
+    EXCHANGE_ATTACHER_LIST: I_PLUGIN_EXCHANGE_ATTACHER_LIST,
+  },
 });
 
 const $I_STATE = Symbol('.$state');
-const $I_NORMALIZE_HTTP_RESPONSE_BODY_DATA = Symbol(
-  '.$normalizeHttpResponseBodyData()',
-);
+const $I_NORMALIZE_HTTP_RESPONSE_BODY_DATA = Symbol('.$normalizeHttpResponseBodyData()');
 const $I_APPEND_PREFIX_HANDLER = Symbol('.$appendPrefixHandler()');
 const $I_APPEND_DEPLOYMENT_ATTACHER = Symbol('.$appendDeploymentAttacher()');
 const $I_APPEND_EXCHANGE_ATTACHER = Symbol('.$appendExchangeAttacher()');
@@ -38,9 +36,7 @@ export const $I = deepFreeze({
   },
 });
 
-const _I_NORMALIZE_HTTP_RESPONSE_BODY_DATA = Symbol(
-  '._normalizeHttpResponseBodyData()',
-);
+const _I_NORMALIZE_HTTP_RESPONSE_BODY_DATA = Symbol('._normalizeHttpResponseBodyData()');
 
 export const _I = deepFreeze({
   NORMALIZE_HTTP_RESPONSE_BODY_DATA: _I_NORMALIZE_HTTP_RESPONSE_BODY_DATA,

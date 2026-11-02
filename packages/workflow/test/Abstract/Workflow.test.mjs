@@ -165,6 +165,17 @@ describe('Workflow', () => {
 
       await assert.rejects(() => workflow.compile(new fixture.Server()));
     });
+
+    it('should reject when no deployer is registered for the server', async () => {
+      const workflow = Baseline.createWorkflow();
+      const server = new Baseline.Server();
+
+      workflow.finalize();
+
+      await assert.rejects(() => workflow.compile(server), {
+        message: `No deployer for ${server.constructor.name}.`,
+      });
+    });
   });
 
   describe('.deploy()', () => {

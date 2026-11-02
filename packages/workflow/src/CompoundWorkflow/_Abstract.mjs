@@ -25,9 +25,9 @@ class CompoundWorkflow extends Workflow.Abstract {
     return this[CONSTRUCTOR].DeployerRegistry;
   }
 
-  [I.PLUGIN_HANDLER_PREFIX_LIST] = [];
-  [I.PLUGIN_DEPLOYMENT_ATTACHER_LIST] = [];
-  [I.PLUGIN_EXCHANGE_ATTACHER_LIST] = [];
+  [I.PLUGIN.HANDLER_PREFIX_LIST] = [];
+  [I.PLUGIN.DEPLOYMENT_ATTACHER_LIST] = [];
+  [I.PLUGIN.EXCHANGE_ATTACHER_LIST] = [];
 
   [$I.STATE] = {
     RequestBodyDistributor: null,
@@ -41,17 +41,17 @@ class CompoundWorkflow extends Workflow.Abstract {
 
   [$I.APPEND.PREFIX_HANDLER](...handlerList) {
     this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-    this[I.PLUGIN_HANDLER_PREFIX_LIST].push(...handlerList);
+    this[I.PLUGIN.HANDLER_PREFIX_LIST].push(...handlerList);
   }
 
   [$I.APPEND.DEPLOYMENT_ATTACHER](attacher) {
     this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-    this[I.PLUGIN_DEPLOYMENT_ATTACHER_LIST].push(attacher);
+    this[I.PLUGIN.DEPLOYMENT_ATTACHER_LIST].push(attacher);
   }
 
   [$I.APPEND.EXCHANGE_ATTACHER](attacher) {
     this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
-    this[I.PLUGIN_EXCHANGE_ATTACHER_LIST].push(attacher);
+    this[I.PLUGIN.EXCHANGE_ATTACHER_LIST].push(attacher);
   }
 
   [$I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value) {
@@ -59,24 +59,29 @@ class CompoundWorkflow extends Workflow.Abstract {
   }
 
   [WORKFLOW._I.COMPOSE.EXTEND]() {
-    Object.freeze(this[I.PLUGIN_HANDLER_PREFIX_LIST]);
-    this[WORKFLOW.$I.COMPOSE.PREPEND](...this[I.PLUGIN_HANDLER_PREFIX_LIST]);
+    Object.freeze(this[I.PLUGIN.HANDLER_PREFIX_LIST]);
+    this[WORKFLOW.$I.COMPOSE.PREPEND](...this[I.PLUGIN.HANDLER_PREFIX_LIST]);
   }
 
   [WORKFLOW._I.COMPILE_DEPLOYMENT](deployment) {
     const DeploymentKit = deployment[DEPLOYMENT.$I.KIT];
 
-    for (const attacher of this[I.PLUGIN_DEPLOYMENT_ATTACHER_LIST]) {
+    for (const attacher of this[I.PLUGIN.DEPLOYMENT_ATTACHER_LIST]) {
       attacher(DeploymentKit);
     }
 
     const server = deployment[DEPLOYMENT.$I.SERVER];
     const TargetDeployer = this[A.I.REGISTRY][_A.REGISTRY.$I.RESOLVE](server);
+
+    if (TargetDeployer === undefined) {
+      Ow.Error.Common(`No deployer for ${server.constructor.name}.`);
+    }
+
     const deployer = new TargetDeployer(DeploymentKit, deployment);
 
     deployer[DEPLOYER.$I.INSTALL]();
 
-    for (const attacher of this[I.PLUGIN_EXCHANGE_ATTACHER_LIST]) {
+    for (const attacher of this[I.PLUGIN.EXCHANGE_ATTACHER_LIST]) {
       deployment[DEPLOYMENT.$I.ADD_EXCHANGE_ATTACHER](attacher);
     }
 
