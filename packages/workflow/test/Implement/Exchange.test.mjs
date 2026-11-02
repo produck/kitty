@@ -355,9 +355,8 @@ async function dispatchImplemented(patchHttpAccessors = null) {
     },
   });
 
-  Baseline.Kitty.DeployerRegistry.registerDeployer(Deployer);
-
   const workflow = Baseline.createWorkflow({
+    deployers: [Deployer],
     normalize: (value) => ({
       stream: value.stream ?? null,
       length: value.length ?? 0,

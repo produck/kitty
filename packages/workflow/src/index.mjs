@@ -3,6 +3,7 @@ import { deepFreeze } from '@produck/deep-freeze-enumerable';
 import * as _Exchange from './Workflow/Exchange/index.mjs';
 import * as _CompoundWorkflow from './CompoundWorkflow/index.mjs';
 import * as _Deployer from './CompoundWorkflow/Deployer/index.mjs';
+import * as _DeployerRegistry from './CompoundWorkflow/DeployerRegistry/index.mjs';
 import * as _Plugin from './CompoundWorkflow/Plugin/index.mjs';
 import * as _HttpExchange from './CompoundWorkflow/HttpExchange/index.mjs';
 import * as _WebSocketExchange from './CompoundWorkflow/WebSocketExchange/index.mjs';
@@ -101,7 +102,6 @@ export const SYMBOL = deepFreeze({
   },
 });
 
-export const DeployerRegistry = _Deployer.Registry;
 export * as WebSocketControllerEvent from './CompoundWorkflow/WebSocketExchange/Controller/Event.mjs';
 export * from './Capability.mjs';
 export * as Implement from './Implement/index.mjs';

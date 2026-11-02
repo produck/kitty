@@ -156,7 +156,9 @@ describe('Exchange', () => {
   describe('>dispatch', () => {
     it('should reject a repeated identity', async () => {
       const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       Baseline.Kitty.Tune.MaxExchangeTimeout(workflow, 50);
       workflow.finalize();
@@ -173,7 +175,9 @@ describe('Exchange', () => {
 
     it('should accept distinct identities', async () => {
       const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       Baseline.Kitty.Tune.MaxExchangeTimeout(workflow, 50);
       workflow.finalize();

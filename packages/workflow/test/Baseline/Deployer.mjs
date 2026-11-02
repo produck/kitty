@@ -2,7 +2,7 @@ import * as net from 'node:net';
 
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
-import { Abstract, DeployerRegistry, SYMBOL } from '@produck/kitty-workflow';
+import { Abstract, SYMBOL } from '@produck/kitty-workflow';
 
 import HttpExchange from './HttpExchange.mjs';
 import WebSocketExchange from './WebSocketExchange.mjs';
@@ -60,8 +60,6 @@ export function createDeployer(options = {}) {
       }
     },
   );
-
-  DeployerRegistry.registerDeployer(Deployer);
 
   return {
     Deployer,

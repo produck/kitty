@@ -84,7 +84,10 @@ describe('Plugin', () => {
   describe('.appendDeploymentAttacher()', () => {
     it('should register a deployment attacher', async () => {
       const seen = [];
-      const workflow = Baseline.createWorkflow();
+      const fixture = Baseline.createDeployer();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.mixin(
         Baseline.createPlugin({
@@ -97,8 +100,6 @@ describe('Plugin', () => {
         }),
       );
       workflow.finalize();
-
-      const fixture = Baseline.createDeployer();
 
       await workflow.compile(new fixture.Server());
 
@@ -117,7 +118,10 @@ describe('Plugin', () => {
   describe('.appendExchangeAttacher()', () => {
     it('should register an exchange attacher', async () => {
       const seen = [];
-      const workflow = Baseline.createWorkflow();
+      const fixture = Baseline.createDeployer();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.mixin(
         Baseline.createPlugin({
@@ -128,8 +132,6 @@ describe('Plugin', () => {
         }),
       );
       workflow.finalize();
-
-      const fixture = Baseline.createDeployer();
 
       await workflow.deploy(new fixture.Server());
       await fixture.installLog[0].handleHttpExchange(Baseline.createInternal());
@@ -149,7 +151,10 @@ describe('Plugin', () => {
   describe('.appendPrefixHandler()', () => {
     it('should register prefix handlers', async () => {
       const order = [];
-      const workflow = Baseline.createWorkflow();
+      const fixture = Baseline.createDeployer();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.use(() => {
         order.push('main');
@@ -167,8 +172,6 @@ describe('Plugin', () => {
         }),
       );
       workflow.finalize();
-
-      const fixture = Baseline.createDeployer();
 
       await workflow.deploy(new fixture.Server());
       await fixture.installLog[0].handleHttpExchange(Baseline.createInternal());

@@ -277,12 +277,6 @@ export declare const SYMBOL: Readonly<{
   }>;
 }>;
 
-/**
- * Deployer registry: registers and resolves deployer classes by server
- * constructor.
- */
-export declare const DeployerRegistry: typeof import('./CompoundWorkflow/Deployer/Registry.d.mts');
-
 /** Controller event constants and the `Close` event class. */
 export declare const WebSocketControllerEvent: typeof import('./CompoundWorkflow/WebSocketExchange/Controller/Event.d.mts');
 

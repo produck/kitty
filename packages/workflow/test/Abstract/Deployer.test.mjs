@@ -64,7 +64,9 @@ async function run(hook) {
       }
     },
   });
-  const workflow = Baseline.createWorkflow();
+  const workflow = Baseline.createWorkflow({
+    deployers: [fixture.Deployer],
+  });
 
   workflow.finalize();
 
@@ -91,7 +93,9 @@ describe('Deployer', () => {
           kit.declareToManifest('options', { timeout: 1 });
         },
       });
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -111,7 +115,9 @@ describe('Deployer', () => {
   describe('.setServerLinker()', () => {
     it('should register a linker for the link phase', async () => {
       const fixture = Baseline.createDeployer({ linkers: ['only'] });
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -189,7 +195,9 @@ describe('Deployer', () => {
 
     it('should reject when the web socket slot is absent', async () => {
       const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -209,7 +217,9 @@ describe('Deployer', () => {
           captured = kit;
         },
       });
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 

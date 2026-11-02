@@ -1,18 +1,30 @@
-import { instanceOf, Ow, ThrowTypeError } from '@produck/argot';
+import { CONSTRUCTOR, instanceOf, Ow, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
-import * as Deployer from './Deployer/index.mjs';
+import * as DeployerRegistry from './DeployerRegistry/index.mjs';
 import * as Configuration from './Configuration/index.mjs';
 import * as Plugin from './Plugin/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
 import * as P from './_Parser.mjs';
-import { $I, _I, I } from './_Symbol.mjs';
-import { DEPLOYER, DEPLOYMENT, PLUGIN, WORKFLOW } from './_Borrow.mjs';
+import { _A, DEPLOYER, DEPLOYMENT, PLUGIN, WORKFLOW } from './_Borrow.mjs';
+import { $I, _I, A, I, S } from './_Symbol.mjs';
 
 class CompoundWorkflow extends Workflow.Abstract {
+  static get DeployerRegistry() {
+    if (!Object.hasOwn(this, S.DEPLOYER_REGISTRY)) {
+      this[S.DEPLOYER_REGISTRY] = new DeployerRegistry.Concrete();
+    }
+
+    return this[S.DEPLOYER_REGISTRY];
+  }
+
+  get [I.DEPLOYER_REGISTRY]() {
+    return this[CONSTRUCTOR].DeployerRegistry;
+  }
+
   [I.PLUGIN_HANDLER_PREFIX_LIST] = [];
   [I.PLUGIN_DEPLOYMENT_ATTACHER_LIST] = [];
   [I.PLUGIN_EXCHANGE_ATTACHER_LIST] = [];
@@ -23,6 +35,7 @@ class CompoundWorkflow extends Workflow.Abstract {
 
   constructor(...args) {
     super(...args);
+    this[CONSTRUCTOR] = new.target;
     Configuration.install($(this));
   }
 
@@ -58,7 +71,7 @@ class CompoundWorkflow extends Workflow.Abstract {
     }
 
     const server = deployment[DEPLOYMENT.$I.SERVER];
-    const TargetDeployer = Deployer.Registry.getByServer(server);
+    const TargetDeployer = this[A.I.REGISTRY][_A.REGISTRY.$I.RESOLVE](server);
     const deployer = new TargetDeployer(DeploymentKit, deployment);
 
     deployer[DEPLOYER.$I.INSTALL]();
@@ -79,19 +92,17 @@ class CompoundWorkflow extends Workflow.Abstract {
   }
 
   withDeployer(TargetDeployer) {
+    P.SubDeployer(TargetDeployer);
     this[WORKFLOW.$I.ASSERT.FINALIZED]();
 
     const DeploymentKitName = 'Kitty<Deployment:OneTime>';
-
-    Deployer.Registry.assertDeployer(TargetDeployer);
-
     const Server = TargetDeployer[DEPLOYER._S.SERVER_CTOR];
     let expired = false;
     let consumed = false;
 
     queueMicrotask(() => (expired = true));
 
-    function consumeBy(server) {
+    const consumeBy = (server) => {
       if (!instanceOf(server, Server)) {
         ThrowTypeError('args[0] as server', Server.name);
       }
@@ -105,8 +116,8 @@ class CompoundWorkflow extends Workflow.Abstract {
       }
 
       consumed = true;
-      Deployer.Registry.associate(server, TargetDeployer);
-    }
+      this[A.I.REGISTRY][_A.REGISTRY.$I.ASSOCIATE](server, TargetDeployer);
+    };
 
     const deployer = Object.freeze({
       compile: async (server) => {

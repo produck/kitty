@@ -1,5 +1,12 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
+const S_DEPLOYER_REGISTRY = Symbol('.#deployerRegistry');
+
+export const S = deepFreeze({
+  DEPLOYER_REGISTRY: S_DEPLOYER_REGISTRY,
+});
+
+const I_DEPLOYER_REGISTRY = Symbol('.#deployerRegistry');
 const I_PLUGIN_HANDLER_PREFIX_LIST = Symbol('.#pluginHandlerPrefixList');
 const I_PLUGIN_DEPLOYMENT_ATTACHER_LIST = Symbol(
   '.#pluginDeploymentAttacherList',
@@ -7,6 +14,7 @@ const I_PLUGIN_DEPLOYMENT_ATTACHER_LIST = Symbol(
 const I_PLUGIN_EXCHANGE_ATTACHER_LIST = Symbol('.#pluginExchangeAttacherList');
 
 export const I = deepFreeze({
+  DEPLOYER_REGISTRY: I_DEPLOYER_REGISTRY,
   PLUGIN_HANDLER_PREFIX_LIST: I_PLUGIN_HANDLER_PREFIX_LIST,
   PLUGIN_DEPLOYMENT_ATTACHER_LIST: I_PLUGIN_DEPLOYMENT_ATTACHER_LIST,
   PLUGIN_EXCHANGE_ATTACHER_LIST: I_PLUGIN_EXCHANGE_ATTACHER_LIST,
@@ -39,6 +47,9 @@ export const _I = deepFreeze({
 });
 
 export const A = deepFreeze({
+  I: {
+    REGISTRY: I_DEPLOYER_REGISTRY,
+  },
   $I: {
     NORMALIZE_DATA: $I_NORMALIZE_HTTP_RESPONSE_BODY_DATA,
   },

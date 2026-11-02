@@ -104,9 +104,7 @@ describe('Deployer()', () => {
       const options = createOptions({ install: (kit) => seen.push(kit) });
       const Deployer = Baseline.Kitty.Implement.Deployer(options);
 
-      Baseline.Kitty.DeployerRegistry.registerDeployer(Deployer);
-
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({ deployers: [Deployer] });
 
       workflow.finalize();
 

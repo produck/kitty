@@ -115,7 +115,9 @@ describe('Workflow', () => {
           kit.declareToManifest('options', { timeout: 1000 });
         },
       });
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -130,7 +132,9 @@ describe('Workflow', () => {
 
     it('should produce an empty manifest when the deployer declares nothing', async () => {
       const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -141,7 +145,9 @@ describe('Workflow', () => {
 
     it('should link the returned deployment only once', async () => {
       const fixture = Baseline.createDeployer({ linkers: ['only'] });
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -164,7 +170,9 @@ describe('Workflow', () => {
   describe('.deploy()', () => {
     it('should run the linkers in LIFO order', async () => {
       const fixture = Baseline.createDeployer({ linkers: ['first', 'second'] });
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -185,7 +193,9 @@ describe('Workflow', () => {
 
     it('should install the deployer exactly once per deployment', async () => {
       const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
 
       workflow.finalize();
 
@@ -265,7 +275,9 @@ describe('Workflow', () => {
   describe('integration', () => {
     it('should accept a plugin before deployment and reject it afterwards', async () => {
       const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
+      const workflow = Baseline.createWorkflow({
+        deployers: [fixture.Deployer],
+      });
       const Plugin = Baseline.Kitty.Implement.Plugin({
         tag: 'probe',
         install: () => {},

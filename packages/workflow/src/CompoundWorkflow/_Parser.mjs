@@ -1,7 +1,18 @@
 import { instanceOf, Is, Ow, ThrowTypeError } from '@produck/argot';
 import { isKit, isDependenceName } from '@produck/kit';
+import { isSubConstructor } from '@produck/is-sub-constructor';
+
+import Deployer from './Deployer/_Abstract.mjs';
 
 export * from '../_Parser.mjs';
+
+export function SubDeployer(value) {
+  if (!isSubConstructor(value, Deployer)) {
+    ThrowTypeError('args[0] as deployer', 'sub class of Deployer');
+  }
+
+  return value;
+}
 
 export function Kit(value) {
   if (!isKit(value)) {

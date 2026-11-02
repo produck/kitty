@@ -67,7 +67,10 @@ export async function dispatch(options = {}) {
     },
   });
 
-  const workflow = createWorkflow(normalize === undefined ? {} : { normalize });
+  const workflow = createWorkflow({
+    deployers: [fixture.Deployer],
+    ...(normalize === undefined ? {} : { normalize }),
+  });
 
   Tune.MaxExchangeTimeout(workflow, timeout);
 

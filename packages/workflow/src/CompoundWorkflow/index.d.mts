@@ -3,6 +3,7 @@ import type * as net from 'node:net';
 
 import type * as Deployment from '../Workflow/Deployment/index.d.mts';
 import type * as Deployer from './Deployer/index.d.mts';
+import type * as DeployerRegistry from './DeployerRegistry/index.d.mts';
 import type * as Plugin from './Plugin/index.d.mts';
 import type * as _Symbol from './_Symbol.d.mts';
 
@@ -58,6 +59,12 @@ declare abstract class CompoundWorkflow {
    * @param externalKit - Kit to build on; omit to create a fresh one.
    */
   constructor(externalKit?: Kit.KitProvider);
+
+  /**
+   * Deployer registry owned by this workflow class; derived classes each get
+   * their own instance.
+   */
+  static readonly DeployerRegistry: DeployerRegistry.default;
 
   /** Whether it is finalized; `use` / `mixin` are rejected afterwards. */
   readonly isFinalized: boolean;

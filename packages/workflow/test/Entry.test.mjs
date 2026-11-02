@@ -114,24 +114,6 @@ describe('package entry', () => {
     });
   });
 
-  describe('::DeployerRegistry', () => {
-    it('should expose the registry operations', () => {
-      for (const key of [
-        'associate',
-        'assertDeployer',
-        'getByServer',
-        'isAvaiableServer',
-        'registerDeployer',
-      ]) {
-        assert.equal(
-          typeof Baseline.Kitty.DeployerRegistry[key],
-          'function',
-          key,
-        );
-      }
-    });
-  });
-
   describe('::Tune', () => {
     it('should expose the configuration tuners', () => {
       assert.equal(typeof Baseline.Kitty.Tune, 'object');

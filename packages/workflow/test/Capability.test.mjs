@@ -39,7 +39,9 @@ describe('capability', () => {
         const fixture = Baseline.createDeployer({
           declare: (kit) => captured.push(Baseline.Kitty.useServer(kit)),
         });
-        const workflow = Baseline.createWorkflow();
+        const workflow = Baseline.createWorkflow({
+          deployers: [fixture.Deployer],
+        });
         const server = new fixture.Server();
 
         workflow.finalize();
