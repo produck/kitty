@@ -339,7 +339,7 @@ guard against post-finalization calls.
 ```text
 1. Create the Deployment, deriving DeploymentKit from WorkflowKit
 2. Plugin deployment attachers run on DeploymentKit, in registration order
-3. Look up the deployer (registry, or the one-time association)
+3. Look up the deployer (the class registry, or the one-time association)
 4. Derive DeployerKit from DeploymentKit; construct the deployer with
    (DeployerKit, deployment)
 5. deployer[$I.INSTALL](DeployerKit) — declares manifest entries,
@@ -383,8 +383,15 @@ the workflow instance.
 
 ### Deployer registration
 
-A deployer is registered once per server constructor through
-`DeployerRegistry.registerDeployer(DeployerClass)`.
+A deployer is registered once per server constructor, on the workflow
+class that will use it:
+`MyWorkflow.DeployerRegistry.register(DeployerClass)`.
+
+The registry is **owned by the workflow class**, not by the package. A
+derivation of a workflow class that registers nothing starts with an
+empty registry of its own; it never sees its base's entries. This makes
+"which servers this workflow serves" a readable property of the class
+rather than a fact about module load order.
 
 | Member                        | Level              | Meaning                                                |
 | ----------------------------- | ------------------ | ------------------------------------------------------ |
@@ -417,18 +424,20 @@ Deployer resolution is two-level:
    constructor.
 
 `getByServer(server)` checks the instance map first, then
-`Object.getPrototypeOf(server).constructor` in the registry.
+`Object.getPrototypeOf(server).constructor` in the registry. It answers
+`undefined` when neither matches; `_I.COMPILE_DEPLOYMENT` turns that
+into an error naming the server constructor.
 
 - **Framework-level distribution**: library authors register deployers
-  for standard server constructors; `deploy(server)` then finds the
-  right one.
+  for standard server constructors on the workflow class they ship;
+  `deploy(server)` then finds the right one.
 - **Per-instance override**: `withDeployer()` binds one deployer to one
   server instance, bypassing registration.
 
 The registry stores the **class only**, keyed by
-`DeployerClass[_S.SERVER_CTOR]`. `registerDeployer` asserts only that
-the class is a `Deployer` subclass; the static slots validate themselves
-on read. The deployment instance is created later, during
+`DeployerClass[_S.SERVER_CTOR]`. `register` asserts only that the class
+is a `Deployer` subclass; the static slots validate themselves on read.
+The deployment instance is created later, during
 `_I.COMPILE_DEPLOYMENT`, once a `DeployerKit` exists. Without the
 explicit `SubConstructorOf(Deployer)` assertion, a plain class would
 register silently as `undefined`.
@@ -527,7 +536,7 @@ deploy(server) / withDeployer(DeployerClass).deploy(server)
   │
   ├─ 1. Create the Deployment (DeploymentKit + server + workflow)
   ├─ 2. Run plugin deployment attachers on DeploymentKit
-  ├─ 3. Look up the deployer (registry or instance association)
+  ├─ 3. Look up the deployer (class registry or instance association)
   ├─ 4. Derive DeployerKit; construct the deployer
   ├─ 5. deployer[$I.INSTALL](DeployerKit)
   ├─ 6. Append plugin exchange attachers to the deployment
@@ -1187,12 +1196,12 @@ internal)` through the kit entries.
 
 Three paths serve different scenarios:
 
-| Property        | `deploy(server)`               | `compile(server)`              | `withDeployer(DeployerClass)`            |
-| --------------- | ------------------------------ | ------------------------------ | ---------------------------------------- |
-| Deployer source | Registry by server constructor | Registry by server constructor | Instance association, bypassing registry |
-| Links server    | Yes                            | No (returns the deployment)    | `compile` or `deploy`                    |
-| Reusability     | Unlimited                      | Unlimited                      | Single-use per call                      |
-| Timing          | No constraint                  | No constraint                  | Must be consumed in the same microtask   |
+| Property        | `deploy(server)`   | `compile(server)`           | `withDeployer(DeployerClass)`            |
+| --------------- | ------------------ | --------------------------- | ---------------------------------------- |
+| Deployer source | Per-class registry | Per-class registry          | Instance association, bypassing registry |
+| Links server    | Yes                | No (returns the deployment) | `compile` or `deploy`                    |
+| Reusability     | Unlimited          | Unlimited                   | Single-use per call                      |
+| Timing          | No constraint      | No constraint               | Must be consumed in the same microtask   |
 
 ### `withDeployer()` single-use contract
 
@@ -1210,7 +1219,6 @@ The returned handle enforces:
 import {
   Abstract,
   SYMBOL,
-  DeployerRegistry,
   Tune,
   Get,
   Implement,
@@ -1298,8 +1306,8 @@ Factories that turn one options record into a whole class (or class set):
 - **Manifest**: a deployer-filled record of named materials for the
   compile path.
 - **Link**: a plain function that wires a compiled deployment to a server.
-- **Deploy**: auto-discovery deployment — looks up a deployer from the
-  registry by server constructor.
+- **Deploy**: auto-discovery deployment — looks up a deployer in the
+  workflow class's registry by server constructor.
 - **WithDeployer**: ephemeral deployment — no registration, one-off use
   with an immediate-consumption guard.
 - **Tune**: adjust a supplier-owned runtime parameter, keyed by workflow
