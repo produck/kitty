@@ -31,6 +31,7 @@ export default function normalizeWebSocket(_options) {
       const {
         readyState: _readyState,
         handleUpgrade: _handleUpgrade,
+        rejectUpgrade: _rejectUpgrade,
         send: _send,
         close: _close,
       } = _controller;
@@ -39,6 +40,12 @@ export default function normalizeWebSocket(_options) {
         controller.handleUpgrade = _handleUpgrade;
       } else {
         ThrowTypeError('args[0].controller.handleUpgrade', 'function');
+      }
+
+      if (Is.Type.Function(_rejectUpgrade)) {
+        controller.rejectUpgrade = _rejectUpgrade;
+      } else {
+        ThrowTypeError('args[0].controller.rejectUpgrade', 'function');
       }
 
       if (Is.PlainObject(_readyState)) {

@@ -11,11 +11,27 @@ declare class WebSocketController<
    */
   constructor(exchange: Exchange.Abstract<Internal>);
 
+  /** Whether the handshake has been accepted. */
+  readonly upgraded: boolean;
+
   /**
    * Completes the handshake, turning the incoming connection into a web
    * socket. The deployer never calls it; the handler owns this step.
+   *
+   * @throws When the handshake has already been settled.
    */
-  upgrade(): void;
+  acceptUpgrade(): void;
+
+  /**
+   * Rejects the handshake, answering with a plain HTTP error status instead
+   * of switching protocols. The deployer never calls it; the handler owns
+   * this step.
+   *
+   * @param status - HTTP error status code, within 400..599.
+   * @param reason - Reason phrase; defaults to the standard phrase.
+   * @throws When the handshake has already been settled.
+   */
+  rejectUpgrade(status?: number, reason?: string): void;
 
   /**
    * Current ready state: 0 connecting, 1 open, 2 closing, 3 closed.
@@ -58,12 +74,23 @@ declare class WebSocketController<
   [_Symbol._I.SEND](internal: Internal, data: string | Uint8Array): void;
 
   /**
-   * Implementation: starts the closing handshake.
+   * Implementation: writes the rejection response and ends the connection.
    *
    * @param internal - Connection record supplied by the deployer.
-   * @param args - Close code and reason.
+   * @param status - HTTP error status code, within 400..599.
+   * @param reason - Reason phrase.
    */
-  [_Symbol._I.CLOSE](internal: Internal, ...args: unknown[]): void;
+  [_Symbol._I.REJECT_UPGRADE](
+    internal: Internal,
+    status: number,
+    reason: string,
+  ): void;
+
+  [_Symbol._I.CLOSE](
+    internal: Internal,
+    code: number | undefined,
+    reason: string | undefined,
+  ): void;
 }
 
 export { WebSocketController as Abstract };

@@ -120,27 +120,39 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
 ### 握手的挂点
 
 握手不由核心发起。`WebSocketExchange` 构造时只建 controller 并挂到
-exchange kit 上，真正的握手由 handler 主动调 `controller.upgrade()`。
+exchange kit 上，真正的握手由 handler 主动调 `controller.acceptUpgrade()`。
 这与 `ws` 的 `noServer` 模式一致：是否接受连接是用户的选择，不是核心
 的默认。
 
 `WebSocketController` 上的成员：
 
-| 成员                        | 级别 | 说明                   |
-| --------------------------- | ---- | ---------------------- |
-| `upgrade()`                 | 公开 | 完成握手，只允许调一次 |
-| `$I.HANDLE_UPGRADE`         | 保护 | 核心包内部入口         |
-| `_I.HANDLE_UPGRADE`         | 抽象 | 实现器提供             |
-| `readyState`/`send`/`close` | 公开 | 未握手时一律抛错       |
+| 成员                                      | 级别 | 说明                   |
+| ----------------------------------------- | ---- | ---------------------- |
+| `upgraded`                                | 公开 | 是否已接受握手         |
+| `acceptUpgrade()`                         | 公开 | 完成握手，只允许调一次 |
+| `rejectUpgrade(status = 400, reason)`     | 公开 | 以 HTTP 错误状态拒绝   |
+| `_I.HANDLE_UPGRADE` / `_I.REJECT_UPGRADE` | 抽象 | 实现器提供             |
+| `readyState`/`send`/`close`               | 公开 | 未握手时一律抛错       |
+
+`status` 限 400..599，`reason` 不得含 CR/LF（要拼进状态行）；两者都有默认
+值，`reason` 省略时取标准短语。没有只放行 4xx：`ws` 自己在收到非法握手时
+用 400/401/405，而在关停期间用 503，5xx 同样是合法的拒绝。
+
+`acceptUpgrade()` 与 `rejectUpgrade()` 互斥，二者合起来只允许发生
+一次；任一发生后另一就抛错。拒绝由实现器写状态行并结束连接（官方实现回
+`HTTP/1.1 <status> <reason>` + `Connection: close`），客户端拿到的是
+一个普通 4xx，而不是“连上又被踢”。
 
 `ws` 的 `handleUpgrade(req, socket, head, cb)` 同步调用 `cb`，因此
 `_I.INSTALL` 不需要异步契约，也不必改成 `void | Promise<void>`。异常
-从 `controller.upgrade()` 直接抛给调用它的 handler，核心不吞、不兜底。
+从 `controller.acceptUpgrade()` 直接抛给调用它的 handler，核心不吞、
+不兜底。
 
-管线结束不是连接结束的信号：`upgrade()` 之后 ws 的生命周期完全归用户
-（消息、事件、关闭都由用户处理），核心不再介入。没调 `upgrade()` 的
-连接也不会被核心关闭 —— 这同样属于预期行为。未来可以加一个「是否自动
-握手」的配置项让核心代劳，那是可选的便利，不改变控制权归属。
+管线结束不是连接结束的信号：`acceptUpgrade()` 之后 ws 的生命周期完全
+归用户（消息、事件、关闭都由用户处理），核心不再介入。没调
+`acceptUpgrade()` 的连接也不会被核心关闭 —— 这同样属于预期行为。未来
+可以加一个「是否自动握手」的配置项让核心代劳，那是可选的便利，不改变
+控制权归属。
 
 ### 装配形状
 
@@ -156,13 +168,11 @@ Workflow.registerDeployer(Deployer);
 
 ### 待定
 
-1. **拒绝握手没有落点**。用户能在 handler 里选择不调 `upgrade()`，但
-   ws 既没有 response 端口，也没有拿到 `req` / `socket` 的通道：既不
-   upgrade 也不 close 时，原生 socket 会一直挂着——不写响应、不
-   destroy、没有超时，只能等客户端自己放弃。核心按约定不介入，于是
-   “拒绝”目前只有拿到原始 socket 才做得完。是给 ws 一套独立端口（从
-   `req.headers` 造只读视图，外加写状态行/头的通道），还是让 deployer
-   暴露原始 `socket`，未决。
+1. **未了结的连接没人收尾**。`acceptUpgrade()` 与 `rejectUpgrade()` 都
+   给了 handler 决定权，但两者都不调时没人管：原生 socket 会一直挂
+   着——不写响应、不 destroy、没有超时，只能等客户端自己放弃。核心按
+   约定不介入。是要一个默认收尾（比如要求管线结束前必须了结，否则
+   400 + destroy），还是把这个责任完整交给用户，未决。
 
 ### 不做
 

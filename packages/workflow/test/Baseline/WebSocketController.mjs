@@ -12,6 +12,10 @@ export default SCP(
       internal.upgraded = true;
     }
 
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.REJECT_UPGRADE](internal, status, reason) {
+      internal.rejected = { status, reason };
+    }
+
     [SYMBOL.WEB_SOCKET_CONTROLLER._I.GET_READY_STATE](internal) {
       const { readyState = WebSocketControllerEvent.READY_STATE.OPEN } =
         internal.socket;

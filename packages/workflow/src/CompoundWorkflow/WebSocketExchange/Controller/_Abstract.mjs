@@ -1,22 +1,31 @@
+import { STATUS_CODES } from 'node:http';
+
 import { Ow } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
 import * as Workflow from '../../../Workflow/index.mjs';
 import { PART } from './_Borrow.mjs';
-import { I, $I, _I } from './_Symbol.mjs';
+import { I, _I } from './_Symbol.mjs';
 import * as P from './_Parser.mjs';
 
 class WebSocketController extends Workflow.Exchange.Part.Concrete {
   [I.UPGRADED] = false;
+  [I.REJECTED] = false;
 
-  upgrade() {
-    this[$I.HANDLE_UPGRADE]();
+  get upgraded() {
+    return this[I.UPGRADED];
   }
 
-  [$I.HANDLE_UPGRADE]() {
-    this[I.ASSERT.NOT_UPGRADED]();
+  acceptUpgrade() {
+    this[I.ASSERT.PENDING]();
     this[_I.HANDLE_UPGRADE](this[PART.$I.INTERNAL]);
     this[I.UPGRADED] = true;
+  }
+
+  rejectUpgrade(status = 400, reason = STATUS_CODES[status] ?? '') {
+    this[I.ASSERT.PENDING]();
+    this[_I.REJECT_UPGRADE](this[PART.$I.INTERNAL], status, reason);
+    this[I.REJECTED] = true;
   }
 
   get readyState() {
@@ -35,16 +44,26 @@ class WebSocketController extends Workflow.Exchange.Part.Concrete {
     this[_I.CLOSE](this[PART.$I.INTERNAL], code, reason);
   }
 
-  [I.ASSERT.NOT_UPGRADED]() {
+  [I.ASSERT.PENDING]() {
     if (this[I.UPGRADED]) {
       Ow.Error.Common('The connection has already been upgraded.');
+    }
+
+    if (this[I.REJECTED]) {
+      Ow.Error.Common('The connection has already been rejected.');
     }
   }
 
   [I.ASSERT.UPGRADED]() {
-    if (!this[I.UPGRADED]) {
-      Ow.Error.Common('The connection has not been upgraded.');
+    if (this[I.UPGRADED]) {
+      return;
     }
+
+    if (this[I.REJECTED]) {
+      Ow.Error.Common('The connection has already been rejected.');
+    }
+
+    Ow.Error.Common('The connection has not been upgraded.');
   }
 }
 
@@ -53,7 +72,12 @@ export default Abstract(
   Abstract({
     [_I.GET_READY_STATE]: M.Method().args(M.Any).returns(P.ReadyState),
     [_I.HANDLE_UPGRADE]: M.Method().args(M.Any).returns(M.Undefined),
+    [_I.REJECT_UPGRADE]: M.Method()
+      .args(M.Any, P.RejectStatusCode, P.RejectReason)
+      .returns(M.Undefined),
     [_I.SEND]: M.Method().args(M.Any, P.Data).returns(M.Undefined),
-    [_I.CLOSE]: M.Method().args(M.Any).rest(M.Any).returns(M.Undefined),
+    [_I.CLOSE]: M.Method()
+      .args(M.Any, P.CloseCode, P.CloseReason)
+      .returns(M.Undefined),
   }),
 );

@@ -49,6 +49,7 @@ function createWebSocketOptions(patch = {}) {
 
   options.controller = {
     handleUpgrade: noop,
+    rejectUpgrade: noop,
     readyState: { get: () => 1 },
     send: { send: noop },
     close: { close: noop },
@@ -303,6 +304,9 @@ function createWebSocketAccessors(state) {
       handleUpgrade: () => {
         state.upgraded = true;
       },
+      rejectUpgrade: (_context, status, reason) => {
+        state.rejected = { status, reason };
+      },
       readyState: { get: () => state.readyState },
       send: {
         send: (_context, data) => {
@@ -465,7 +469,7 @@ describe('implemented exchange', () => {
 
       await kit.handleWebSocketExchange({});
 
-      state.exchange.controller.upgrade();
+      state.exchange.controller.acceptUpgrade();
 
       assert.equal(state.exchange.controller.readyState, 1);
 
@@ -561,6 +565,8 @@ describe('Http() rejections', () => {
 
 const WEB_SOCKET_REJECTIONS = [
   ['a non-object controller', (o) => (o.controller = 'probe')],
+  ['a non-function handle upgrade', (o) => (o.controller.handleUpgrade = 'x')],
+  ['a non-function reject upgrade', (o) => (o.controller.rejectUpgrade = 'x')],
   ['a non-object ready state', (o) => (o.controller.readyState = 'probe')],
   ['a ready state without get', (o) => (o.controller.readyState = {})],
   ['a non-object send', (o) => (o.controller.send = 'probe')],

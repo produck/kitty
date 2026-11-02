@@ -31,6 +31,17 @@ export const options = Implement.Normalize.Exchange.WebSocket({
         },
       );
     },
+    rejectUpgrade: ({ internal }, status, reason) => {
+      const body = `${status} ${reason}`.trim();
+
+      internal.socket.end(
+        `HTTP/1.1 ${status} ${reason}\r\n` +
+          'Connection: close\r\n' +
+          'Content-Type: text/plain\r\n' +
+          `Content-Length: ${Buffer.byteLength(body)}\r\n` +
+          `\r\n${body}`,
+      );
+    },
     readyState: {
       get: ({ self }) => WEB_SOCKET_MAP.get(self).readyState,
     },

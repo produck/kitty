@@ -1,4 +1,5 @@
 declare const _I_GET_READY_STATE: unique symbol;
+declare const _I_REJECT_UPGRADE: unique symbol;
 declare const _I_SEND: unique symbol;
 declare const _I_CLOSE: unique symbol;
 
@@ -6,6 +7,9 @@ declare const _I_CLOSE: unique symbol;
 export declare const _I: {
   /** Ready state accessor. */
   readonly GET_READY_STATE: typeof _I_GET_READY_STATE;
+
+  /** Handshake rejection writer. */
+  readonly REJECT_UPGRADE: typeof _I_REJECT_UPGRADE;
 
   /** Frame writer. */
   readonly SEND: typeof _I_SEND;

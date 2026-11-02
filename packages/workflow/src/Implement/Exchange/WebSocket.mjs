@@ -29,6 +29,7 @@ export function WebSocket(options) {
     },
     controller: {
       handleUpgrade: handleControllerUpgrade,
+      rejectUpgrade: rejectControllerUpgrade,
       readyState: { get: getControllerReadyState },
       send: { send: sendController },
       close: { close: closeController },
@@ -66,6 +67,10 @@ export function WebSocket(options) {
 
     [CONTROLLER._I.HANDLE_UPGRADE](_internal) {
       handleControllerUpgrade(this[I_OPTIONS_CONTEXT]);
+    }
+
+    [CONTROLLER._I.REJECT_UPGRADE](_internal, status, reason) {
+      rejectControllerUpgrade(this[I_OPTIONS_CONTEXT], status, reason);
     }
 
     [CONTROLLER._I.GET_READY_STATE](_internal) {
