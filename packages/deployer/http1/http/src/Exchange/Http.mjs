@@ -2,6 +2,7 @@ import { Readable } from 'node:stream';
 
 import { Implement } from '@produck/kitty-workflow';
 
+import * as RawRequest from '../RawRequest.mjs';
 import * as ResponseBody from '../ResponseBody.mjs';
 import * as Base from './Base.mjs';
 
@@ -13,7 +14,11 @@ export const options = Implement.Normalize.Exchange.Http({
     ...Base.request,
     body: {
       source: {
-        get: ({ internal }) => internal.req,
+        get: ({ internal, self }) => {
+          RawRequest.bind(self.exchange, internal.req, self);
+
+          return internal.req;
+        },
       },
     },
   },

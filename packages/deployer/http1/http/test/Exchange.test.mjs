@@ -281,6 +281,86 @@ describe('Exchange', () => {
     });
   });
 
+  describe('useRawRequest()', () => {
+    it('should hand out the raw request stream', async () => {
+      const app = await serve(async (context) => {
+        const chunks = [];
+
+        for await (const chunk of Http1Http.useRawRequest(context)) {
+          chunks.push(chunk);
+        }
+
+        useResponse(context).body.data = Buffer.concat(chunks).toString();
+      });
+
+      try {
+        const res = await request(`${app.origin}/raw`, {
+          body: 'raw-body',
+          method: 'POST',
+        });
+
+        assert.equal(await res.text(), 'raw-body');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should answer the same stream for a repeated call', async () => {
+      const app = await serve((context) => {
+        const first = Http1Http.useRawRequest(context);
+        const second = Http1Http.useRawRequest(context);
+
+        useResponse(context).body.data = first === second ? 'same' : 'other';
+      });
+
+      try {
+        const res = await request(`${app.origin}/twice`, { method: 'POST' });
+
+        assert.equal(await res.text(), 'same');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should answer a request without a body', async () => {
+      const app = await serve((context) => {
+        useResponse(context).body.data =
+          Http1Http.useRawRequest(context).method;
+      });
+
+      try {
+        const res = await request(`${app.origin}/raw-get`);
+
+        assert.equal(await res.text(), 'GET');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should close the distributor path after the claim', async () => {
+      const app = await serve((context) => {
+        const response = useResponse(context);
+
+        Http1Http.useRawRequest(context);
+
+        try {
+          assert.throws(() => useRequest(context).body.data, /raw stream path/);
+          response.body.data = 'rejected';
+        } catch (error) {
+          response.body.data = error.message;
+        }
+      });
+
+      try {
+        const res = await request(`${app.origin}/claimed`, { method: 'POST' });
+
+        assert.equal(await res.text(), 'rejected');
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
   describe('.response.header', () => {
     it('should normalize stored header values', async () => {
       const app = await serve((context) => {

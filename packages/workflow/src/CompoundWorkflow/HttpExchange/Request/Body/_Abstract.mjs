@@ -1,6 +1,6 @@
 import { Readable } from 'node:stream';
 
-import { ignoreRejection } from '@produck/argot';
+import { ignoreRejection, Ow } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 
@@ -11,13 +11,40 @@ import { _A, PART } from './_Borrow.mjs';
 import { I, _I } from './_Symbol.mjs';
 
 class HttpRequestBody extends Workflow.Exchange.Part.Concrete {
+  [I.READABLE] = null;
+  [I.DISTRIBUTOR] = null;
+  [I.RAW] = false;
+
   constructor(exchange) {
     super(exchange);
 
     this[I.READABLE] = this[_I.SOURCE.GET](this[PART.$I.INTERNAL]);
-    this[I.INIT.DISTRIBUTOR]();
     this[I.INIT.READABLE_EVENT]();
-    this[I.INIT.MAX_BODY_SIZE]();
+  }
+
+  get source() {
+    return this[I.READABLE];
+  }
+
+  claimRaw() {
+    if (this[I.DISTRIBUTOR] !== null) {
+      Ow.Error.Common('The body is already on the distributor path.');
+    }
+
+    this[I.RAW] = true;
+  }
+
+  [I.REQUIRE.DISTRIBUTOR]() {
+    if (this[I.RAW]) {
+      Ow.Error.Common('The body is already on the raw stream path.');
+    }
+
+    if (this[I.DISTRIBUTOR] === null) {
+      this[I.INIT.DISTRIBUTOR]();
+      this[I.INIT.MAX_BODY_SIZE]();
+    }
+
+    return this[I.DISTRIBUTOR];
   }
 
   [I.INIT.DISTRIBUTOR]() {
@@ -73,11 +100,11 @@ class HttpRequestBody extends Workflow.Exchange.Part.Concrete {
   }
 
   get data() {
-    return this[I.DISTRIBUTOR].fork();
+    return this[I.REQUIRE.DISTRIBUTOR]().fork();
   }
 
   get distributor() {
-    return this[I.DISTRIBUTOR];
+    return this[I.REQUIRE.DISTRIBUTOR]();
   }
 }
 

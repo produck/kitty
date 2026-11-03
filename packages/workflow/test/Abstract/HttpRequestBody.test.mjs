@@ -87,6 +87,54 @@ describe('HttpRequestBody', () => {
     });
   });
 
+  describe('.source', () => {
+    it('should expose the readable handed out by the implementer', async () => {
+      const state = await Baseline.dispatch({ internal: { method: 'POST' } });
+
+      assert.equal(state.request.body.source, state.internal.body);
+    });
+  });
+
+  describe('.claimRaw()', () => {
+    it('should keep the distributor unbuilt until it is asked for', async () => {
+      const state = await Baseline.dispatch({ internal: { method: 'POST' } });
+      const body = state.request.body;
+
+      body.claimRaw();
+
+      assert.equal(body.source, state.internal.body);
+    });
+
+    it('should reject the distributor path after a claim', async () => {
+      const state = await Baseline.dispatch({ internal: { method: 'POST' } });
+      const body = state.request.body;
+
+      body.claimRaw();
+
+      assert.throws(() => body.data, /raw stream path/);
+      assert.throws(() => body.distributor, /raw stream path/);
+    });
+
+    it('should stay on the raw stream path for a repeated claim', async () => {
+      const state = await Baseline.dispatch({ internal: { method: 'POST' } });
+      const body = state.request.body;
+
+      body.claimRaw();
+      body.claimRaw();
+
+      assert.throws(() => body.data, /raw stream path/);
+    });
+
+    it('should reject a claim after the distributor is built', async () => {
+      const state = await Baseline.dispatch({ internal: { method: 'POST' } });
+      const body = state.request.body;
+
+      assert.ok(body.data);
+
+      assert.throws(() => body.claimRaw(), /distributor path/);
+    });
+  });
+
   describe('#end', () => {
     it('should dispatch when the source ends', async () => {
       const state = await Baseline.dispatch({

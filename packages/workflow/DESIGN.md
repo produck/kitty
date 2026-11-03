@@ -823,6 +823,33 @@ node Readable
   → data: a fresh WHATWG ReadableStream per access
 ```
 
+One exchange owns one body, and the body is claimed **once**, by one of two
+paths:
+
+| Claim                 | How it is taken        | After it                     |
+| --------------------- | ---------------------- | ---------------------------- |
+| distributor (default) | `data` / `distributor` | `claimRaw()` throws          |
+| native stream         | `body.claimRaw()`      | `data` / `distributor` throw |
+
+- Every path is claimed lazily: the distributor is built on the first
+  `data` / `distributor` access, so a handler that wants the raw node
+  stream can claim it right after the exchange starts.
+- Claiming the raw path again is a no-op, so a capability accessor like
+  `useRawRequest()` can be called any number of times and keeps answering
+  the same stream.
+- Both errors name the winning path (`…claimed by the distributor path.` /
+  `…on the raw stream path.`), because `already consumed` does not tell an
+  operator who took it.
+- `source` is the node request object the deployer handed in
+  (`http.IncomingMessage`), i.e. the object the distributor would wrap with
+  `Readable.toWeb()`, not that wrapper. The deployer records that object
+  when the body part is built, so `useRawRequest()` there is `claimRaw()`
+  plus the recorded request — it never reads the body part the
+  distributor would have owned.
+- The raw path gives up everything the distributor provides: `413` and
+  `MaxBodySize`, `limit`, multi-consumer forks, the degraded chunk
+  reader, and lifecycle cleanup — the claimant must drain or destroy the
+  stream itself.
 - `data` answers a **fork**: a fresh copy from byte 0 on every access.
 - `distributor` is exposed unchanged, so a handler may tune per-exchange
   differences itself. The framework offers no second configuration entry

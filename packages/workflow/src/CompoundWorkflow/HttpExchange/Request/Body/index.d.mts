@@ -21,6 +21,21 @@ declare class HttpRequestBody<
   readonly distributor: Fugue.Distributor;
 
   /**
+   * Raw node request object the deployer handed in; the node stream the
+   * distributor would wrap, not the wrapper itself.
+   */
+  readonly source: stream.Readable;
+
+  /**
+   * Switches the body to the raw stream path: the distributor can no
+   * longer be built and `data` / `distributor` stop working. Claiming
+   * again is a no-op.
+   *
+   * @throws When the distributor path has already been claimed.
+   */
+  claimRaw(): void;
+
+  /**
    * Implementation: reads the source readable.
    *
    * @param internal - Connection record supplied by the deployer.
