@@ -1,3 +1,5 @@
+import { STATUS_CODES } from 'node:http';
+
 import { WebSocketServer } from 'ws';
 
 import { Implement } from '@produck/kitty-workflow';
@@ -32,9 +34,11 @@ export const options = Implement.Normalize.Exchange.WebSocket({
           ws.on('message', (data, isBinary) => {
             notifier.message(isBinary ? data : data.toString(), isBinary);
           });
+
           ws.on('close', (code, reason) => {
             notifier.close(code, reason.toString());
           });
+
           ws.on('error', (error) => {
             notifier.error(error);
           });
@@ -42,15 +46,19 @@ export const options = Implement.Normalize.Exchange.WebSocket({
       );
     },
     rejectUpgrade: ({ internal }, status, reason) => {
-      const body = `${status} ${reason}`.trim();
+      const { socket } = internal;
 
-      internal.socket.end(
-        `HTTP/1.1 ${status} ${reason}\r\n` +
-          'Connection: close\r\n' +
-          'Content-Type: text/plain\r\n' +
-          `Content-Length: ${Buffer.byteLength(body)}\r\n` +
-          `\r\n${body}`,
-      );
+      const lines = [
+        `HTTP/1.1 ${status} ${STATUS_CODES[status]}`,
+        'Connection: close',
+        'Content-Type: text/html',
+        `Content-Length: ${Buffer.byteLength(reason)}`,
+        '',
+        reason,
+      ];
+
+      socket.once('finish', () => socket.destroy());
+      socket.end(lines.join('\r\n'));
     },
     readyState: {
       get: ({ self }) => WEB_SOCKET_MAP.get(self).readyState,

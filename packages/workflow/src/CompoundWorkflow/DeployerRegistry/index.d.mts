@@ -5,7 +5,7 @@ import type * as Deployer from '../Deployer/index.d.mts';
  * server instances to deployer classes. Each workflow class owns its own
  * instance, so classes never see each other's registrations.
  */
-export default class DeployerRegistry {
+declare class DeployerRegistry {
   /**
    * Registers a deployer class by server constructor; duplicates throw.
    *
@@ -21,3 +21,5 @@ export default class DeployerRegistry {
    */
   isAvaiableServer(value: unknown): boolean;
 }
+
+export { DeployerRegistry as Concrete };

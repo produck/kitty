@@ -64,7 +64,7 @@ declare abstract class CompoundWorkflow {
    * Deployer registry owned by this workflow class; derived classes each get
    * their own instance.
    */
-  static readonly DeployerRegistry: DeployerRegistry.default;
+  static readonly DeployerRegistry: DeployerRegistry.Concrete;
 
   /** Whether it is finalized; `use` / `mixin` are rejected afterwards. */
   readonly isFinalized: boolean;

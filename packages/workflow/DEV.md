@@ -97,10 +97,10 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
 2. **deployer 通过派生装载 exchange，不写可变静态字段**。静态槽是类
    自身属性，直接赋值会变成进程级全局状态，并让测试互相污染。派生出的
    子类才是组装结果的载体。
-3. **握手由 controller 自己完成**。`upgrade` 事件给的原生 socket 在
-   controller 构造后被换成 `ws` 客户端；deployer 只负责把
-   `{ server, req, socket, head }` 交进 `handleWebSocketExchange`，不
-   知道 `ws` 存在。
+3. **握手由 controller 完成，不由 deployer 代劳**。`upgrade` 事件给的
+   原生 socket 在 `acceptUpgrade()` 里换成 `ws` 客户端；deployer 只负
+   责把 `{ server, req, socket, head }` 交进
+   `handleWebSocketExchange`，不知道 `ws` 存在。
 4. **`declare` 条件执行**。没装 ws exchange 时不声明 `upgrade-listener`，
    因此 HTTP-only 部署的 manifest 里不会出现无关材料。
 5. **官方实现以身作则：基于实现器派生，不直接 extends 抽象类**。
@@ -116,6 +116,10 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
    `Workflow/Exchange` 迁到 `CompoundWorkflow/HttpExchange`，
    `useResponse` 也只对 http exchange kit 成立。ws exchange 因此没有
    response 成员。
+8. **未了结的连接不是核心的责任**。`acceptUpgrade()` 与
+   `rejectUpgrade()` 都不调时，原生 socket 会一直挂着（不写响应、不
+   destroy、没有超时），核心不介入 —— 收尾是下游的事。将来可以加一个
+   「自动握手」配置项，让核心在管线结束时按配置收尾，那属于可选的便利。
 
 ### 握手的挂点
 
@@ -134,14 +138,17 @@ exchange kit 上，真正的握手由 handler 主动调 `controller.acceptUpgrad
 | `_I.HANDLE_UPGRADE` / `_I.REJECT_UPGRADE` | 抽象 | 实现器提供             |
 | `readyState`/`send`/`close`               | 公开 | 未握手时一律抛错       |
 
-`status` 限 400..599，`reason` 不得含 CR/LF（要拼进状态行）；两者都有默认
-值，`reason` 省略时取标准短语。没有只放行 4xx：`ws` 自己在收到非法握手时
-用 400/401/405，而在关停期间用 503，5xx 同样是合法的拒绝。
+`status` 限 400..599，`reason` 不得含 CR/LF（要拼进 body）；两者都有
+默认值，`reason` 省略时取标准短语。没有只放行 4xx：`ws` 自己在收到非法
+握手时用 400/401/405，而在关停期间用 503，5xx 同样是合法的拒绝。
+`reason` 是语义标签，不带 HTTP 状态 —— 状态本来就在调用方手里。
 
 `acceptUpgrade()` 与 `rejectUpgrade()` 互斥，二者合起来只允许发生
-一次；任一发生后另一就抛错。拒绝由实现器写状态行并结束连接（官方实现回
-`HTTP/1.1 <status> <reason>` + `Connection: close`），客户端拿到的是
-一个普通 4xx，而不是“连上又被踢”。
+一次；任一发生后另一就抛错。拒绝由实现器写响应并结束连接，客户端拿到
+的是一个普通 4xx，而不是“连上又被踢”。官方实现照 `ws` 私有的
+`abortHandshake` 对齐：状态行用标准短语（`HTTP/1.1 403 Forbidden`），
+`reason` 进 body，响应 `Connection: close`，并在 `finish` 后
+`socket.destroy()`。
 
 `ws` 的 `handleUpgrade(req, socket, head, cb)` 同步调用 `cb`，因此
 `_I.INSTALL` 不需要异步契约，也不必改成 `void | Promise<void>`。异常
@@ -150,9 +157,7 @@ exchange kit 上，真正的握手由 handler 主动调 `controller.acceptUpgrad
 
 管线结束不是连接结束的信号：`acceptUpgrade()` 之后 ws 的生命周期完全
 归用户（消息、事件、关闭都由用户处理），核心不再介入。没调
-`acceptUpgrade()` 的连接也不会被核心关闭 —— 这同样属于预期行为。未来
-可以加一个「是否自动握手」的配置项让核心代劳，那是可选的便利，不改变
-控制权归属。
+`acceptUpgrade()` 的连接也不会被核心关闭。
 
 ### 事件派发
 
@@ -190,14 +195,6 @@ const Deployer = Base.withWebSocketExchange(Ws.Exchange);
 
 Workflow.registerDeployer(Deployer);
 ```
-
-### 待定
-
-1. **未了结的连接没人收尾**。`acceptUpgrade()` 与 `rejectUpgrade()` 都
-   给了 handler 决定权，但两者都不调时没人管：原生 socket 会一直挂
-   着——不写响应、不 destroy、没有超时，只能等客户端自己放弃。核心按
-   约定不介入。是要一个默认收尾（比如要求管线结束前必须了结，否则
-   400 + destroy），还是把这个责任完整交给用户，未决。
 
 ### 不做
 
