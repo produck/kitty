@@ -46,15 +46,11 @@ function createWorkflow(handler) {
 }
 
 async function serve(handler, options = {}) {
-  const { compile = false, protocol = true } = options;
+  const { compile = false, tls = {} } = options;
   const workflow = createWorkflow(handler);
-  const server = https.createServer(credentials);
+  const server = https.createServer({ ...credentials, ...tls });
   const oneTime = workflow.withDeployer(Deployer);
   let manifest = null;
-
-  if (protocol) {
-    server.protocol = 'https:';
-  }
 
   if (compile) {
     const deployment = await oneTime.compile(server);
@@ -71,6 +67,7 @@ async function serve(handler, options = {}) {
 
   return {
     manifest,
+    port,
     origin: `https://127.0.0.1:${port}`,
     close() {
       server.closeAllConnections();
@@ -84,6 +81,30 @@ const TIMEOUT = 3000;
 
 function request(url, init) {
   return fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT) });
+}
+
+function askTLS(port, options = {}) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        host: '127.0.0.1',
+        port,
+        rejectUnauthorized: false,
+        timeout: TIMEOUT,
+        ...options,
+      },
+      (res) => {
+        let body = '';
+
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => resolve(body));
+      },
+    );
+
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 describe('Deployer', () => {
@@ -165,18 +186,76 @@ describe('Exchange', () => {
       }
     });
 
-    it('should fall back to the http protocol when the server stays silent', async () => {
-      const app = await serve(
-        (context) => {
-          useResponse(context).body.data = useExchange(context).protocol;
-        },
-        { protocol: false },
-      );
+    it('should report the https protocol without the server providing one', async () => {
+      const app = await serve((context) => {
+        useResponse(context).body.data = useExchange(context).protocol;
+      });
 
       try {
         const res = await request(`${app.origin}/protocol`);
 
-        assert.equal(await res.text(), 'http:');
+        assert.equal(await res.text(), 'https:');
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe('TLS facts', () => {
+    function describeTLS(context) {
+      const certificate = Http1Https.useCertificate(context);
+
+      useResponse(context).body.data = JSON.stringify({
+        servername: Http1Https.useServername(context),
+        cipher: Http1Https.useCipher(context),
+        alpn: Http1Https.useAlpnProtocol(context),
+        subject: certificate.subject ?? null,
+        authorization: Http1Https.useAuthorization(context),
+      });
+    }
+
+    it('should read the SNI name, cipher, ALPN and an empty peer certificate', async () => {
+      const app = await serve(describeTLS);
+
+      try {
+        const body = JSON.parse(
+          await askTLS(app.port, { servername: 'kitty.test', path: '/' }),
+        );
+
+        assert.equal(body.servername, 'kitty.test');
+        assert.equal(typeof body.cipher.name, 'string');
+        assert.match(body.cipher.version, /^TLSv1\.[23]$/);
+        assert.equal(body.alpn, false);
+        assert.deepEqual(body.subject, null);
+        assert.deepEqual(body.authorization, {
+          authorized: false,
+          error: null,
+        });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should read the client certificate and its verification failure', async () => {
+      const app = await serve(describeTLS, {
+        tls: { requestCert: true, rejectUnauthorized: false },
+      });
+
+      try {
+        const body = JSON.parse(
+          await askTLS(app.port, {
+            servername: 'kitty.test',
+            path: '/',
+            key: credentials.key,
+            cert: credentials.cert,
+          }),
+        );
+
+        assert.equal(body.subject.CN, 'localhost');
+        assert.deepEqual(body.authorization, {
+          authorized: false,
+          error: 'DEPTH_ZERO_SELF_SIGNED_CERT',
+        });
       } finally {
         await app.close();
       }
@@ -278,6 +357,30 @@ describe('Exchange', () => {
         await app.close();
       }
     });
+  });
+});
+
+describe('::useRawRequest()', () => {
+  it('should answer the node request and keep the TLS facts', async () => {
+    const app = await serve((context) => {
+      const req = Http1Https.useRawRequest(context);
+
+      useResponse(context).body.data = [
+        Http1Https.useServername(context),
+        req.url,
+      ].join(' ');
+    });
+
+    try {
+      const body = await askTLS(app.port, {
+        servername: 'kitty.test',
+        path: '/raw',
+      });
+
+      assert.equal(body, 'kitty.test /raw');
+    } finally {
+      await app.close();
+    }
   });
 });
 

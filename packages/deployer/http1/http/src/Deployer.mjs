@@ -2,8 +2,8 @@ import * as http from 'node:http';
 
 import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
 
+import * as Bridge from './Bridge.mjs';
 import * as Exchange from './Exchange/index.mjs';
-import * as ResponseBody from './ResponseBody.mjs';
 
 export const options = Implement.Normalize.Deployer({
   tag: '1:http',
@@ -22,7 +22,7 @@ export const options = Implement.Normalize.Deployer({
     async function requestListener(req, res) {
       await handleHttpExchange({ server, req, res });
 
-      if (!ResponseBody.isRegistered(res) && !res.writableEnded) {
+      if (!Bridge.hasResponse(res) && !res.writableEnded) {
         res.end();
       }
     }

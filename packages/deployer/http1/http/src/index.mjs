@@ -3,7 +3,7 @@ import * as http from 'node:http';
 import { instanceOf, Ow } from '@produck/argot';
 import * as Workflow from '@produck/kitty-workflow';
 
-import * as RawRequest from './RawRequest.mjs';
+import * as Bridge from './Bridge.mjs';
 
 export * as Exchange from './Exchange/index.mjs';
 export * as Deployer from './Deployer.mjs';
@@ -20,7 +20,7 @@ export function useServer(Kit) {
 
 export function useRawRequest(Kit) {
   const exchange = Workflow.useExchange(Kit);
-  const entry = RawRequest.get(exchange);
+  const entry = Bridge.getRaw(exchange);
 
   if (entry === undefined) {
     Ow.Error.Common('No raw request is bound to the exchange.');

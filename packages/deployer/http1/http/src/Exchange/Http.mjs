@@ -2,8 +2,7 @@ import { Readable } from 'node:stream';
 
 import { Implement } from '@produck/kitty-workflow';
 
-import * as RawRequest from '../RawRequest.mjs';
-import * as ResponseBody from '../ResponseBody.mjs';
+import * as Bridge from '../Bridge.mjs';
 import * as Base from './Base.mjs';
 
 export const options = Implement.Normalize.Exchange.Http({
@@ -15,7 +14,7 @@ export const options = Implement.Normalize.Exchange.Http({
     body: {
       source: {
         get: ({ internal, self }) => {
-          RawRequest.bind(self.exchange, internal.req, self);
+          Bridge.bindRaw(self.exchange, internal.req, self);
 
           return internal.req;
         },
@@ -50,7 +49,7 @@ export const options = Implement.Normalize.Exchange.Http({
         set: function writeBody({ internal }, { stream, length }) {
           const { res } = internal;
 
-          ResponseBody.register(res);
+          Bridge.registerResponse(res);
 
           if (length !== null) {
             res.setHeader('content-length', length);
