@@ -8,29 +8,30 @@ import {
 
 export default SCP(
   class WebSocketController extends Abstract.WebSocketController {
-    [SYMBOL.WEB_SOCKET_CONTROLLER._I.HANDLE_UPGRADE](internal) {
-      internal.upgraded = true;
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.HANDLE_UPGRADE](context) {
+      context.internal.upgraded = true;
+      context.internal.notifier = context.notifier;
     }
 
-    [SYMBOL.WEB_SOCKET_CONTROLLER._I.REJECT_UPGRADE](internal, status, reason) {
-      internal.rejected = { status, reason };
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.REJECT_UPGRADE](context, status, reason) {
+      context.internal.rejected = { status, reason };
     }
 
-    [SYMBOL.WEB_SOCKET_CONTROLLER._I.GET_READY_STATE](internal) {
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.GET_READY_STATE](context) {
       const { readyState = WebSocketControllerEvent.READY_STATE.OPEN } =
-        internal.socket;
+        context.internal.socket;
 
       return readyState;
     }
 
-    [SYMBOL.WEB_SOCKET_CONTROLLER._I.SEND](internal, data) {
-      internal.socket.sent.push(data);
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.SEND](context, data) {
+      context.internal.socket.sent.push(data);
     }
 
-    [SYMBOL.WEB_SOCKET_CONTROLLER._I.CLOSE](internal, code, reason) {
-      internal.socket.closed = { code, reason };
+    [SYMBOL.WEB_SOCKET_CONTROLLER._I.CLOSE](context, code, reason) {
+      context.internal.socket.closed = { code, reason };
 
-      this.dispatchEvent(new WebSocketControllerEvent.Close(code, reason));
+      context.notifier.close(code, reason);
     }
   },
 );

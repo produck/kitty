@@ -269,4 +269,64 @@ describe('WebSocketController', () => {
       assert.equal(event.reason, 'done');
     });
   });
+
+  describe('>notifier', () => {
+    it('should expose one stable listener per event', async () => {
+      const { state } = await dispatchWithSocket();
+      const notifier = state.internal.notifier;
+
+      assert.equal(typeof notifier.message, 'function');
+      assert.equal(typeof notifier.close, 'function');
+      assert.equal(typeof notifier.error, 'function');
+      assert.equal(notifier.message, notifier.message);
+      assert.equal(notifier.close, notifier.close);
+      assert.equal(notifier.error, notifier.error);
+    });
+  });
+
+  describe('#message', () => {
+    it('should dispatch the message event with the payload', async () => {
+      const { state } = await dispatchWithSocket();
+      const received = [];
+
+      state.exchange.controller.addEventListener('message', (event) => {
+        received.push(event);
+      });
+      state.internal.notifier.message('probe', false);
+
+      assert.equal(received.length, 1);
+
+      const [event] = received;
+
+      assert.ok(
+        event instanceof Baseline.Kitty.WebSocketControllerEvent.Message,
+      );
+      assert.equal(
+        event.type,
+        Baseline.Kitty.WebSocketControllerEvent.TYPE.MESSAGE,
+      );
+      assert.equal(event.data, 'probe');
+      assert.equal(event.isBinary, false);
+    });
+  });
+
+  describe('#error', () => {
+    it('should dispatch the error event with the failure', async () => {
+      const { state } = await dispatchWithSocket();
+      const received = [];
+      const error = new RangeError('probe');
+
+      state.exchange.controller.addEventListener('error', (event) => {
+        received.push(event);
+      });
+      state.internal.notifier.error(error);
+
+      assert.equal(received.length, 1);
+      assert.equal(received[0].error, error);
+      assert.equal(
+        received[0].type,
+        Baseline.Kitty.WebSocketControllerEvent.TYPE.ERROR,
+      );
+    });
+  });
 });

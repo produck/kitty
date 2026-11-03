@@ -14,6 +14,26 @@ export const READY_STATE = deepFreeze({
   CLOSED: 3,
 });
 
+class MessageEvent extends Event {
+  #data;
+  #isBinary;
+
+  constructor(data, isBinary) {
+    super(TYPE.MESSAGE);
+
+    this.#data = data;
+    this.#isBinary = isBinary;
+  }
+
+  get data() {
+    return this.#data;
+  }
+
+  get isBinary() {
+    return this.#isBinary;
+  }
+}
+
 class CloseEvent extends Event {
   #code;
   #reason;
@@ -34,4 +54,18 @@ class CloseEvent extends Event {
   }
 }
 
-export { CloseEvent as Close };
+class ErrorEvent extends Event {
+  #error;
+
+  constructor(error) {
+    super(TYPE.ERROR);
+
+    this.#error = error;
+  }
+
+  get error() {
+    return this.#error;
+  }
+}
+
+export { MessageEvent as Message, CloseEvent as Close, ErrorEvent as Error };

@@ -21,13 +21,23 @@ export const options = Implement.Normalize.Exchange.WebSocket({
   httpVersion: Base.httpVersion,
   request: Base.request,
   controller: {
-    handleUpgrade: ({ internal, self }) => {
+    handleUpgrade: ({ internal, self, notifier }) => {
       getWebSocketServer(internal.server).handleUpgrade(
         internal.req,
         internal.socket,
         internal.head,
         (ws) => {
           WEB_SOCKET_MAP.set(self, ws);
+
+          ws.on('message', (data, isBinary) => {
+            notifier.message(isBinary ? data : data.toString(), isBinary);
+          });
+          ws.on('close', (code, reason) => {
+            notifier.close(code, reason.toString());
+          });
+          ws.on('error', (error) => {
+            notifier.error(error);
+          });
         },
       );
     },

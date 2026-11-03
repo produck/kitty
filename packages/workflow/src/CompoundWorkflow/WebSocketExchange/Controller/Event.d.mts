@@ -14,6 +14,21 @@ export declare const READY_STATE: {
   readonly CLOSED: 3;
 };
 
+/** The `message` event, carrying one inbound frame. */
+declare class MessageEvent extends Event {
+  /**
+   * @param data - Frame payload; text arrives as a string.
+   * @param isBinary - Whether the frame is binary.
+   */
+  constructor(data: string | Uint8Array, isBinary: boolean);
+
+  /** Frame payload. */
+  readonly data: string | Uint8Array;
+
+  /** Whether the frame is binary. */
+  readonly isBinary: boolean;
+}
+
 /** The `close` event, carrying the close code and reason. */
 declare class CloseEvent extends Event {
   /**
@@ -29,4 +44,15 @@ declare class CloseEvent extends Event {
   readonly reason: string;
 }
 
-export { CloseEvent as Close };
+/** The `error` event, carrying the underlying failure. */
+declare class ErrorEvent extends Event {
+  /**
+   * @param error - The failure raised by the connection.
+   */
+  constructor(error: unknown);
+
+  /** The failure raised by the connection. */
+  readonly error: unknown;
+}
+
+export { MessageEvent as Message, CloseEvent as Close, ErrorEvent as Error };

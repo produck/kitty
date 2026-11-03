@@ -2,6 +2,8 @@ import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_UPGRADED = Symbol('.#upgraded');
 const I_REJECTED = Symbol('.#rejected');
+const I_NOTIFIER = Symbol('.#notifier');
+const I_CONTEXT = Symbol('.#context');
 const I_ASSERT_PENDING = Symbol('.#assertPending()');
 const I_ASSERT_UPGRADED = Symbol('.#assertUpgraded()');
 
@@ -14,6 +16,8 @@ const _I_CLOSE = Symbol('._close()');
 export const I = deepFreeze({
   UPGRADED: I_UPGRADED,
   REJECTED: I_REJECTED,
+  NOTIFIER: I_NOTIFIER,
+  CONTEXT: I_CONTEXT,
   ASSERT: {
     PENDING: I_ASSERT_PENDING,
     UPGRADED: I_ASSERT_UPGRADED,

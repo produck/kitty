@@ -154,6 +154,26 @@ exchange kit 上，真正的握手由 handler 主动调 `controller.acceptUpgrad
 可以加一个「是否自动握手」的配置项让核心代劳，那是可选的便利，不改变
 控制权归属。
 
+### 事件派发
+
+controller 是 `EventTarget`，三个入站事件由 `Controller/Notifier` 送回
+来。notifier 由核心创建、随 context 交给实现器：
+
+| 监听器 getter                   | 事件      |
+| ------------------------------- | --------- |
+| `notifier.message(data, isBin)` | `message` |
+| `notifier.close(code, reason)`  | `close`   |
+| `notifier.error(error)`         | `error`   |
+
+上下文（`I.CONTEXT`）形状是 `{ internal, notifier }`，所有抽象槽都以它
+作第一个参数；`Implement` 层再补上 `self`。事件对象由核心构造、由核心
+派发，实现器只负责转发。官方实现在 `handleUpgrade` 的 ws 回调里挂
+`ws.on('message')` / `ws.on('close')` / `ws.on('error')`，直接把
+`notifier.*` 当监听器用 —— getter 返回的是稳定引用，`on` 与 `off` 都
+成立。
+
+`open` 不派发 —— 服务端连接在 upgrade 完成那一刻就已经打开。
+
 ### 装配形状
 
 ```js

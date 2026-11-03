@@ -56,8 +56,8 @@ export function WebSocket(options) {
   }
 
   class ImplWebSocketController extends WebSocketExchange.Controller.Abstract {
-    get [I_OPTIONS_CONTEXT]() {
-      return { self: this, internal: this[PART.$I.INTERNAL] };
+    [I_OPTIONS_CONTEXT](context) {
+      return { ...context, self: this };
     }
 
     constructor(...args) {
@@ -65,24 +65,24 @@ export function WebSocket(options) {
       Object.seal(this);
     }
 
-    [CONTROLLER._I.HANDLE_UPGRADE](_internal) {
-      handleControllerUpgrade(this[I_OPTIONS_CONTEXT]);
+    [CONTROLLER._I.HANDLE_UPGRADE](context) {
+      handleControllerUpgrade(this[I_OPTIONS_CONTEXT](context));
     }
 
-    [CONTROLLER._I.REJECT_UPGRADE](_internal, status, reason) {
-      rejectControllerUpgrade(this[I_OPTIONS_CONTEXT], status, reason);
+    [CONTROLLER._I.REJECT_UPGRADE](context, status, reason) {
+      rejectControllerUpgrade(this[I_OPTIONS_CONTEXT](context), status, reason);
     }
 
-    [CONTROLLER._I.GET_READY_STATE](_internal) {
-      return getControllerReadyState(this[I_OPTIONS_CONTEXT]);
+    [CONTROLLER._I.GET_READY_STATE](context) {
+      return getControllerReadyState(this[I_OPTIONS_CONTEXT](context));
     }
 
-    [CONTROLLER._I.SEND](_internal, data) {
-      sendController(this[I_OPTIONS_CONTEXT], data);
+    [CONTROLLER._I.SEND](context, data) {
+      sendController(this[I_OPTIONS_CONTEXT](context), data);
     }
 
-    [CONTROLLER._I.CLOSE](_internal, code, reason) {
-      closeController(this[I_OPTIONS_CONTEXT], code, reason);
+    [CONTROLLER._I.CLOSE](context, code, reason) {
+      closeController(this[I_OPTIONS_CONTEXT](context), code, reason);
     }
   }
 
