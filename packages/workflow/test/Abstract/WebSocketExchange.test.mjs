@@ -45,5 +45,24 @@ describe('WebSocketExchange', () => {
       assert.equal(seen.length, 1);
       assert.equal(seen[0], state.exchange.controller);
     });
+
+    it('should stay pending until the handler accepts the upgrade', async () => {
+      const state = await Baseline.dispatch({
+        kind: 'websocket',
+        internal: { socket: socket() },
+      });
+
+      assert.equal(state.exchange.controller.upgraded, false);
+    });
+
+    it('should accept the upgrade on creation when AutoAcceptUpgrade is on', async () => {
+      const state = await Baseline.dispatch({
+        kind: 'websocket',
+        internal: { socket: socket() },
+        config: { AutoAcceptUpgrade: true },
+      });
+
+      assert.equal(state.exchange.controller.upgraded, true);
+    });
   });
 });

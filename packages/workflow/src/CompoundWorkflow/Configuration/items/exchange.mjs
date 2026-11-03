@@ -18,4 +18,9 @@ export default [
     default: ['POST', 'PUT', 'PATCH'],
     assert: P.HttpMethodList,
   },
+  {
+    key: 'AutoAcceptUpgrade',
+    default: false,
+    assert: P.Boolean,
+  },
 ];

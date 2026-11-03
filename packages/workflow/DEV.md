@@ -118,8 +118,8 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
    response 成员。
 8. **未了结的连接不是核心的责任**。`acceptUpgrade()` 与
    `rejectUpgrade()` 都不调时，原生 socket 会一直挂着（不写响应、不
-   destroy、没有超时），核心不介入 —— 收尾是下游的事。将来可以加一个
-   「自动握手」配置项，让核心在管线结束时按配置收尾，那属于可选的便利。
+   destroy、没有超时），核心不介入 —— 收尾是下游的事。默认行为不变；
+   想要反过来，用 `AutoAcceptUpgrade` 配置项（见下节）。
 
 ### 握手的挂点
 
@@ -127,6 +127,10 @@ ws 在核心层是**抽象**，不是概念：核心只有 `WebSocketExchange.Ab
 exchange kit 上，真正的握手由 handler 主动调 `controller.acceptUpgrade()`。
 这与 `ws` 的 `noServer` 模式一致：是否接受连接是用户的选择，不是核心
 的默认。
+
+想要「创建即握手」，把 `AutoAcceptUpgrade` 配成 `true`：`WebSocketExchange`
+构造末尾、controller 挂上 kit 之后立即调一次 `acceptUpgrade()`，handler
+拿到的就是已握手的连接，此时再调 `acceptUpgrade()` 会抛错。默认关闭。
 
 `WebSocketController` 上的成员：
 

@@ -10,6 +10,9 @@ export interface ExchangeConfiguration {
 
   /** Methods whose request body may be read. */
   AllowedBodyMethods: string[];
+
+  /** Accept the upgrade as soon as a websocket exchange is created. */
+  AutoAcceptUpgrade: boolean;
 }
 
 /** Request body distributor tuning. */

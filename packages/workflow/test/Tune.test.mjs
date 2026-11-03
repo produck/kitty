@@ -5,6 +5,7 @@ import * as Baseline from './Baseline/index.mjs';
 
 const INVALID_VALUES = {
   AllowedBodyMethods: ['POST', ['GET', 'NOPE'], ['GET', 1]],
+  AutoAcceptUpgrade: ['true', 1, null],
   ChunkReaderInitializeRetryInterval: ['1', -1, 1.5],
   DegradeOnChunkStashFullAndDone: ['true', 1, null],
   ForkedReadableStreamHighWaterMark: ['1', Number.NaN, -1],
@@ -23,6 +24,7 @@ const INVALID_VALUES = {
 
 const VALID_VALUES = {
   AllowedBodyMethods: ['GET'],
+  AutoAcceptUpgrade: true,
   ChunkReaderInitializeRetryInterval: 0,
   DegradeOnChunkStashFullAndDone: true,
   ForkedReadableStreamHighWaterMark: 0,

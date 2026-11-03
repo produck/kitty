@@ -3,6 +3,7 @@ import Abstract, { ShadowThis as $ } from '@produck/es-abstract';
 import { SubConstructorOf as M_Sub } from '@produck/es-abstract-member-constructor';
 
 import * as Workflow from '../../Workflow/index.mjs';
+import * as Configuration from '../Configuration/index.mjs';
 import * as Controller from './Controller/index.mjs';
 import { EXCHANGE } from './_Borrow.mjs';
 import { I, _S } from './_Symbol.mjs';
@@ -20,6 +21,10 @@ class WebSocketExchange extends Workflow.Exchange.Abstract {
 
     this[I.CONTROLLER] = controller;
     this[EXCHANGE.$I.KIT][K_CONTROLLER] = controller;
+
+    if (Configuration.Get.AutoAcceptUpgrade(this.workflow)) {
+      controller.acceptUpgrade();
+    }
   }
 
   get controller() {
