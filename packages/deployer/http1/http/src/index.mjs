@@ -8,8 +8,8 @@ import * as RawRequest from './RawRequest.mjs';
 export * as Exchange from './Exchange/index.mjs';
 export * as Deployer from './Deployer.mjs';
 
-export function useServer(...args) {
-  const server = Workflow.useServer(...args);
+export function useServer(Kit) {
+  const server = Workflow.useServer(Kit);
 
   if (!instanceOf(server, http.Server)) {
     Ow.Error.Common('The server on kit is NOT net.Server.');
@@ -18,8 +18,8 @@ export function useServer(...args) {
   return server;
 }
 
-export function useRawRequest(...args) {
-  const exchange = Workflow.useExchange(...args);
+export function useRawRequest(Kit) {
+  const exchange = Workflow.useExchange(Kit);
   const entry = RawRequest.get(exchange);
 
   if (entry === undefined) {
