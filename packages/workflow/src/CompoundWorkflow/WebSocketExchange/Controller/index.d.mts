@@ -26,6 +26,14 @@ declare class WebSocketController<
   readonly upgraded: boolean;
 
   /**
+   * Settles when the connection closes, carrying the close code and the
+   * reason. A rejected handshake settles it with a `null` code and the
+   * `'handshake rejected'` reason, because no close frame ever travels on
+   * that connection.
+   */
+  readonly closed: Promise<{ code: number | null; reason: string }>;
+
+  /**
    * Completes the handshake, turning the incoming connection into a web
    * socket. The deployer never calls it; the handler owns this step.
    *

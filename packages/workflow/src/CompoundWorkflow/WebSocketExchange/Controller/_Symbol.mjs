@@ -4,6 +4,8 @@ const I_UPGRADED = Symbol('.#upgraded');
 const I_REJECTED = Symbol('.#rejected');
 const I_NOTIFIER = Symbol('.#notifier');
 const I_CONTEXT = Symbol('.#context');
+const I_CLOSED = Symbol('.#closed');
+const I_RESOLVE_CLOSED = Symbol('.#resolveClosed()');
 const I_ASSERT_PENDING = Symbol('.#assertPending()');
 const I_ASSERT_UPGRADED = Symbol('.#assertUpgraded()');
 
@@ -18,6 +20,8 @@ export const I = deepFreeze({
   REJECTED: I_REJECTED,
   NOTIFIER: I_NOTIFIER,
   CONTEXT: I_CONTEXT,
+  CLOSED: I_CLOSED,
+  RESOLVE_CLOSED: I_RESOLVE_CLOSED,
   ASSERT: {
     PENDING: I_ASSERT_PENDING,
     UPGRADED: I_ASSERT_UPGRADED,

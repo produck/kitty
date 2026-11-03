@@ -13,15 +13,29 @@ class WebSocketController extends Workflow.Exchange.Part.Concrete {
   [I.UPGRADED] = false;
   [I.REJECTED] = false;
   [I.NOTIFIER] = null;
+  [I.CLOSED] = null;
+  [I.RESOLVE_CLOSED] = null;
 
   constructor(...args) {
     super(...args);
 
     this[I.NOTIFIER] = new Notifier.Concrete(this);
+
+    this[I.CLOSED] = new Promise((resolve) => {
+      this[I.RESOLVE_CLOSED] = resolve;
+    });
+
+    this.addEventListener('close', (event) => {
+      this[I.RESOLVE_CLOSED]({ code: event.code, reason: event.reason });
+    });
   }
 
   get [I.CONTEXT]() {
     return { internal: this[PART.$I.INTERNAL], notifier: this[I.NOTIFIER] };
+  }
+
+  get closed() {
+    return this[I.CLOSED];
   }
 
   get upgraded() {
@@ -38,6 +52,7 @@ class WebSocketController extends Workflow.Exchange.Part.Concrete {
     this[I.ASSERT.PENDING]();
     this[_I.REJECT_UPGRADE](this[I.CONTEXT], status, reason);
     this[I.REJECTED] = true;
+    this[I.RESOLVE_CLOSED]({ code: null, reason: 'handshake rejected' });
   }
 
   get readyState() {

@@ -45,6 +45,50 @@ describe('WebSocketController', () => {
     });
   });
 
+  describe('.closed', () => {
+    it('should expose one stable promise', async () => {
+      const { state } = await dispatchWithSocket();
+
+      assert.equal(
+        state.exchange.controller.closed,
+        state.exchange.controller.closed,
+      );
+    });
+
+    it('should settle with the close code and reason', async () => {
+      const { state } = await dispatchWithSocket();
+      const controller = state.exchange.controller;
+
+      state.internal.notifier.close(1000, 'bye');
+
+      assert.deepEqual(await controller.closed, { code: 1000, reason: 'bye' });
+    });
+
+    it('should settle after the local close', async () => {
+      const { state } = await dispatchWithSocket();
+      const controller = state.exchange.controller;
+
+      controller.close(1001, 'leaving');
+
+      assert.deepEqual(await controller.closed, {
+        code: 1001,
+        reason: 'leaving',
+      });
+    });
+
+    it('should settle with a null code on a rejected handshake', async () => {
+      const { state } = await dispatchPending();
+      const controller = state.exchange.controller;
+
+      controller.rejectUpgrade(403, 'Nope');
+
+      assert.deepEqual(await controller.closed, {
+        code: null,
+        reason: 'handshake rejected',
+      });
+    });
+  });
+
   describe('.acceptUpgrade()', () => {
     it('should complete the handshake on the connection', async () => {
       const { state } = await dispatchPending();

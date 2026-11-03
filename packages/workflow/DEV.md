@@ -174,6 +174,11 @@ controller 是 `EventTarget`，三个入站事件由 `Controller/Notifier` 送�
 
 `open` 不派发 —— 服务端连接在 upgrade 完成那一刻就已经打开。
 
+`controller.closed` 是同一事件的 Promise 形式：构造时建好（引用稳定），
+`close` 事件一到就 settle 成 `{ code, reason }`。被拒绝的握手没有关闭
+帧，也会立即 settle 成 `{ code: null, reason: 'handshake rejected' }`，不
+至于让 `await` 挂死。它不会 reject —— 失败通道是 `error` 事件。
+
 ### 装配形状
 
 ```js
