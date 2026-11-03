@@ -2,7 +2,7 @@ import type * as https from 'node:https';
 
 import type * as Workflow from '@produck/kitty-workflow';
 
-export { Exchange } from '@produck/kitty-deployer-http1-http';
+export { useRawRequest } from '@produck/kitty-deployer-http1-http';
 
 /** Deployer class bound to `node:https` servers, able to carry a WebSocket
  * exchange.

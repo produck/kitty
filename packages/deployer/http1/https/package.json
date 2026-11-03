@@ -12,6 +12,10 @@
     ".": {
       "import": "./src/index.mjs",
       "types": "./src/index.d.mts"
+    },
+    "./exchange/websocket": {
+      "import": "./src/Exchange/WebSocket.mjs",
+      "types": "./src/Exchange/WebSocket.d.mts"
     }
   },
   "homepage": "https://github.com/produck/kitty/tree/main/packages/deployer/http1/https#readme",

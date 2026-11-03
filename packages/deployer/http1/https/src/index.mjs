@@ -3,7 +3,7 @@ import * as https from 'node:https';
 import { instanceOf, Ow } from '@produck/argot';
 import * as Workflow from '@produck/kitty-workflow';
 
-export { Exchange } from '@produck/kitty-deployer-http1-http';
+export { useRawRequest } from '@produck/kitty-deployer-http1-http';
 export * as Deployer from './Deployer.mjs';
 
 export function useServer(Kit) {
