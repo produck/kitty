@@ -4,9 +4,6 @@ import type * as Workflow from '@produck/kitty-workflow';
 
 /** Exchange parts served by this deployer. */
 export declare const Exchange: Readonly<{
-  /** Shared accessors: both HTTP/2 and HTTP/1.x internals. */
-  Base: Readonly<Record<string, unknown>>;
-
   /** HTTP exchange: normalized ports and the produced class. */
   Http: Readonly<{
     options: ReturnType<typeof Workflow.Implement.Normalize.Exchange.Http>;

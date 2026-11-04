@@ -1,8 +1,11 @@
 import { Implement, useServer } from '@produck/kitty-workflow';
+import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
 import * as Bridge from './Bridge.mjs';
 import * as Exchange from './Exchange/index.mjs';
 import { Http2SecureServer } from './Intrinsic.mjs';
+
+const http2 = Http2Http.Exchange.Http.options;
 
 export const options = Implement.Normalize.Deployer({
   tag: '2:https',
@@ -26,14 +29,14 @@ export const options = Implement.Normalize.Deployer({
     async function streamListener(stream, headers) {
       await handleHttpExchange({ server, stream, headers });
 
-      const response = Bridge.getResponse(stream);
-
-      if (response.responded || stream.writableEnded || stream.destroyed) {
+      if (stream.headersSent || stream.writableEnded || stream.destroyed) {
         return;
       }
 
-      response.responded = true;
-      stream.respond({ ':status': response.status });
+      const internal = { server, stream, headers };
+      const status = http2.response.status.get({ internal });
+
+      stream.respond({ ':status': status });
       stream.end();
     }
 

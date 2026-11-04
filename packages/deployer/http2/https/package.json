@@ -29,6 +29,7 @@
   "name": "@produck/kitty-deployer-http2-https",
   "peerDependencies": {
     "@produck/argot": "^0.4.0",
+    "@produck/kitty-deployer-http2-http": "^0.0.0",
     "@produck/kitty-workflow": "^0.0.0"
   },
   "repository": {
