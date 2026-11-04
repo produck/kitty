@@ -9,12 +9,17 @@
     "@produck/es-abstract": "^0.5.0",
     "@produck/fugue": "^0.2.0",
     "@produck/kit": "^0.4.0",
-    "@produck/kitty-deployer-http1-http": "^0.0.0"
+    "@produck/kitty-deployer-http1-http": "^0.0.0",
+    "h2ws": "^0.1.0"
   },
   "exports": {
     ".": {
       "import": "./src/index.mjs",
       "types": "./src/index.d.mts"
+    },
+    "./exchange/websocket": {
+      "import": "./src/Exchange/WebSocket/index.mjs",
+      "types": "./src/Exchange/WebSocket/index.d.mts"
     }
   },
   "homepage": "https://github.com/produck/kitty/tree/main/packages/deployer/http2/http#readme",
@@ -29,7 +34,13 @@
   "name": "@produck/kitty-deployer-http2-http",
   "peerDependencies": {
     "@produck/argot": "^0.4.0",
-    "@produck/kitty-workflow": "^0.0.0"
+    "@produck/kitty-workflow": "^0.0.0",
+    "h2ws": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "h2ws": {
+      "optional": true
+    }
   },
   "repository": {
     "directory": "packages/deployer/http2/http",

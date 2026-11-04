@@ -14,11 +14,27 @@ export declare const Exchange: Readonly<{
   }>;
 }>;
 
+/**
+ * Deployer class bound to `node:http2` cleartext servers, able to carry a
+ * WebSocket exchange.
+ */
+type Http2HttpDeployerClass = typeof Workflow.Abstract.Deployer & {
+  /**
+   * Derives a deployer that also serves the given WebSocket exchange.
+   *
+   * @param WebSocketExchange - WebSocket exchange class to load.
+   * @returns A deployer subclass carrying that exchange.
+   */
+  withWebSocketExchange(
+    WebSocketExchange: typeof Workflow.Abstract.WebSocketExchange,
+  ): Http2HttpDeployerClass;
+};
+
 /** Deployer entry: the normalized implementation and the class. */
 export declare const Deployer: Readonly<{
   options: ReturnType<typeof Workflow.Implement.Normalize.Deployer>;
-  Http2HttpDeployer: typeof Workflow.Abstract.Deployer;
-  Http2Http: typeof Workflow.Abstract.Deployer;
+  Http2HttpDeployer: Http2HttpDeployerClass;
+  Http2Http: Http2HttpDeployerClass;
 }>;
 
 /**

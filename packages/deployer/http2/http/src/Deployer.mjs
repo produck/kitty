@@ -1,17 +1,43 @@
-import { Implement, useServer } from '@produck/kitty-workflow';
+import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
 
 import * as Bridge from './Bridge.mjs';
 import * as Exchange from './Exchange/index.mjs';
 import { Http2Server } from './Intrinsic.mjs';
 
+function isWebSocketConnect(headers) {
+  return (
+    headers[':method'] === 'CONNECT' && headers[':protocol'] === 'websocket'
+  );
+}
+
+function enableConnectProtocol(session) {
+  session.settings({ enableConnectProtocol: true });
+}
+
 export const options = Implement.Normalize.Deployer({
   tag: '2:http',
   server: Http2Server,
   exchange: { http: Exchange.Http.Exchange },
-  install({ Kit, handleHttpExchange, declareToManifest, setServerLinker }) {
+  install({
+    Kit,
+    handleHttpExchange,
+    handleWebSocketExchange,
+    hasWebSocketExchange,
+    declareToManifest,
+    setServerLinker,
+  }) {
     const server = useServer(Kit);
+    const hasWebSocket = hasWebSocketExchange();
 
     async function streamListener(stream, headers) {
+      if (hasWebSocket && isWebSocketConnect(headers)) {
+        return void (await handleWebSocketExchange({
+          server,
+          stream,
+          headers,
+        }));
+      }
+
       await handleHttpExchange({ server, stream, headers });
 
       const response = Bridge.getResponse(stream);
@@ -27,14 +53,34 @@ export const options = Implement.Normalize.Deployer({
 
     declareToManifest('stream-listener', streamListener);
 
+    if (hasWebSocket) {
+      declareToManifest('session-listener', enableConnectProtocol);
+    }
+
     setServerLinker((_context, next) => {
       server.on('stream', streamListener);
+
+      if (hasWebSocket) {
+        server.on('session', enableConnectProtocol);
+      }
 
       return next();
     });
   },
 });
 
-export class Http2HttpDeployer extends Implement.Deployer(options) {}
+export class Http2HttpDeployer extends Implement.Deployer(options) {
+  static withWebSocketExchange(WebSocketExchange) {
+    return class Http2WithWebSocketDeployer extends this {
+      static get [SYMBOL.DEPLOYER._S.TAG]() {
+        return '2:http,websocket';
+      }
+
+      static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
+        return WebSocketExchange;
+      }
+    };
+  }
+}
 
 export { Http2HttpDeployer as Http2Http };
