@@ -17,8 +17,8 @@
       "types": "./src/index.d.mts"
     },
     "./exchange/websocket": {
-      "import": "./src/Exchange/WebSocket.mjs",
-      "types": "./src/Exchange/WebSocket.d.mts"
+      "import": "./src/Exchange/WebSocket/index.mjs",
+      "types": "./src/Exchange/WebSocket/index.d.mts"
     }
   },
   "homepage": "https://github.com/produck/kitty/tree/main/packages/deployer/http2/https#readme",
