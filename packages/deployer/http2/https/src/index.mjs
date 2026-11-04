@@ -1,5 +1,6 @@
 import { instanceOf, Ow } from '@produck/argot';
 import * as Workflow from '@produck/kitty-workflow';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
 import { Http2SecureServer } from './Intrinsic.mjs';
@@ -15,6 +16,14 @@ export function useServer(Kit) {
   }
 
   return server;
+}
+
+export function useRawRequest(Kit) {
+  if (Workflow.useExchange(Kit).httpVersion !== '1.1') {
+    Ow.Error.Common('The raw request is HTTP/1.1 only.');
+  }
+
+  return Http1Http.useRawRequest(Kit);
 }
 
 export function useRawStream(Kit) {

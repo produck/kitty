@@ -207,6 +207,28 @@ describe('Exchange', () => {
         await app.close();
       }
     });
+
+    it('should reject the raw request on the http/2 exchange', async () => {
+      const app = await serve((context) => {
+        let message = 'no error';
+
+        try {
+          Http2Https.useRawRequest(context);
+        } catch (error) {
+          message = error.message;
+        }
+
+        useResponse(context).body.data = message;
+      });
+
+      try {
+        const res = await requestH2(app.port);
+
+        assert.match(res.data, /HTTP\/1\.1 only/);
+      } finally {
+        await app.close();
+      }
+    });
   });
 
   describe('>http/1.1 client', () => {
@@ -251,6 +273,32 @@ describe('Exchange', () => {
         );
 
         assert.equal(res.data, 'H1 BODY');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should hand over the raw request', async () => {
+      const app = await serve(async (context) => {
+        const chunks = [];
+
+        for await (const chunk of Http2Https.useRawRequest(context)) {
+          chunks.push(chunk);
+        }
+
+        useResponse(context).body.data = Buffer.concat(chunks)
+          .toString('utf8')
+          .toUpperCase();
+      });
+
+      try {
+        const res = await requestH1(
+          app.port,
+          { method: 'POST', headers: { 'content-type': 'text/plain' } },
+          'raw h1 body',
+        );
+
+        assert.equal(res.data, 'RAW H1 BODY');
       } finally {
         await app.close();
       }

@@ -1,3 +1,4 @@
+import type * as http from 'node:http';
 import type * as http2 from 'node:http2';
 
 import type * as Workflow from '@produck/kitty-workflow';
@@ -27,6 +28,19 @@ export declare const Deployer: Readonly<{
 export declare function useServer(
   ...args: Parameters<typeof Workflow.useServer>
 ): http2.Http2SecureServer;
+
+/**
+ * Hands over the raw `http.IncomingMessage` of the current exchange.
+ *
+ * Only available for HTTP/1.1 exchanges; an HTTP/2 exchange on the same
+ * server raises an error, since it has no incoming message.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The node request bound to the exchange.
+ */
+export declare function useRawRequest(
+  ...args: Parameters<typeof Workflow.useExchange>
+): http.IncomingMessage;
 
 /**
  * Hands over the raw `http2.ServerHttp2Stream` of the current exchange.
