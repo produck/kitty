@@ -59,24 +59,31 @@
     `response.stream` 与 `request.headers` 分派，`'stream'` 监听器
     对 CONNECT 一律跳过。h2c 不挂 `'request'`，compat 未启用，
     直接从 `'stream'` 分派即可。
-14. **客户端不得发 `sec-websocket-key`**。RFC 8441 禁止 connection
+14. **`https` 包的 WS 交换按版本路由**。与 `Exchange/Http.mjs` 同构：
+    `Exchange/WebSocket/index.mjs` 把 `http1-http` 与 `http2-http` 的
+    WS 选项按 `internal.stream` 有无合并，controller 五个端口全部走
+    `VersionRoute`。两个包各自持有自己的 Bridge，所以不能只路由
+    `handleUpgrade` 而不路由 `send` / `close` / `readyState`。
+    1.1 侧从 `'upgrade'` 事件分派（`{ server, req, socket, head }`），
+    h2 侧仍走 `'connect'`。
+15. **客户端不得发 `sec-websocket-key`**。RFC 8441 禁止 connection
     专属头，h2ws 见到 `upgrade` / `connection` / `sec-websocket-key`
     直接回 400。握手只靠 `:protocol` + `sec-websocket-version`。
-15. **不做 `protocol` / `extensions` 对外面**。h2ws 已经给了
+16. **不做 `protocol` / `extensions` 对外面**。h2ws 已经给了
     `ws.protocol`、`ws.extensions`，还有 `'headers'` 事件可改响应头；
     在没人需要之前不往公开面加槽位。
-16. **`protocol` 报告值按包覆盖**：h2c 报 `'http:'`，h2 报 `'https:'`。
-17. **请求体源要包一层**。`Readable.toWeb(ServerHttp2Stream)` 拿不到
+17. **`protocol` 报告值按包覆盖**：h2c 报 `'http:'`，h2 报 `'https:'`。
+18. **请求体源要包一层**。`Readable.toWeb(ServerHttp2Stream)` 拿不到
     数据（直读 `for await` 正常），而工作流的 distributor 只吃 web
     stream。所以 h2 侧 `body.source` 返回
     `Readable.from(stream, { objectMode: false })`：`pipe(PassThrough)`
     和 `new Readable().wrap()` 也能跑，但都会立即开流，`Readable.from`
     是惰性的、按需拉取。1.1 侧直接给 `req`。
-18. **`host` 回退到 `:authority`**。抽象层的 `request.url` 用 `host`
+19. **`host` 回退到 `:authority`**。抽象层的 `request.url` 用 `host`
     头拼绝对 URL，而 h2 用 `:authority`（RFC 9113 §8.3.1 的等价物）。
     `header.get('host')` 在没有 `host` 时回退，`header.keys()` 仍只列
     真实头名（不合成 pseudo 头）。
-19. **h2 响应状态自己存**。h2 没有可变的 status 对象，`:status` 只在
+20. **h2 响应状态自己存**。h2 没有可变的 status 对象，`:status` 只在
     `stream.respond()` 时一次性发出。所以状态与待发 headers 存在
     `Bridge` 的 `WeakMap<stream, response>` 里，写 body 时一并 respond。
     1.1 侧直接读写 `res`，不经过 Bridge。
@@ -124,12 +131,8 @@ TLS createSecureServer({ allowHTTP1: true }) 同时挂 'stream' 与 'request'
   parser 约束？h2 无 reason phrase。
 - h2ws 的版本策略：按 `^0.1.0` 使用，等它稳定后再考虑放宽。
 - 测试端 WS 客户端：h2ws 删掉了 client，`ws` 的 `setSocket` 只服务
-  服务端（`new WebSocket(null)` 会走 `_isServer`），所以测试自建帧
-  编解码（客户端帧要加掩码）。
-- `https` 包上 1.1 客户端的 WS：只实现了 h2 的 Extended CONNECT，
-  没挂 `'upgrade'` 监听器，1.1 客户端发 Upgrade 会一直挂着。需要的话
-  得让共享的 WS 交换按 `internal.stream === undefined` 分支到
-  `handleUpgrade`。
+  服务端（`new WebSocket(null)` 会走 `_isServer`），所以 h2 侧测试
+  自建帧编解码（客户端帧要加掩码）；1.1 侧直接用 `ws` 客户端。
 - `useHttp1Request` / `useHttp2Stream` 是否加第二参 `claimRaw = true`：
   传 `false` 只取对象、不 `claimRaw()`，用于只读元信息（如
   `stream.session`）。一旦加上，README 必须写清风险：返回的是活对象，

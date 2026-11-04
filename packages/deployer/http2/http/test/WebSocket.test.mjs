@@ -209,7 +209,9 @@ async function connect(port, headers = {}) {
 describe('WebSocket', () => {
   describe('::withWebSocketExchange()', () => {
     it('should tag the deployer and bind the exchange class', () => {
-      assert.equal(WithWebSocket[SYMBOL.DEPLOYER._S.TAG], '2:http,websocket');
+      const base = Deployer[SYMBOL.DEPLOYER._S.TAG];
+
+      assert.equal(WithWebSocket[SYMBOL.DEPLOYER._S.TAG], `${base},websocket`);
       assert.equal(
         WithWebSocket[SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET],
         WebSocketExchange.Exchange,

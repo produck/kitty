@@ -1,12 +1,20 @@
 import * as http2 from 'node:http2';
+import { request as request1 } from 'node:https';
 import { Readable } from 'node:stream';
 import { randomBytes } from 'node:crypto';
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { WebSocket } from 'ws';
+
 import * as Kit from '@produck/kit';
-import { Abstract, SYMBOL, useWebSocket } from '@produck/kitty-workflow';
+import {
+  Abstract,
+  SYMBOL,
+  useExchange,
+  useWebSocket,
+} from '@produck/kitty-workflow';
 import * as Http2Https from '@produck/kitty-deployer-http2-https';
 import * as WebSocketExchange from '@produck/kitty-deployer-http2-https/exchange/websocket';
 
@@ -165,10 +173,89 @@ async function connect(port) {
   };
 }
 
+function connectH1(port) {
+  const socket = new WebSocket(`wss://127.0.0.1:${port}/ws`, {
+    rejectUnauthorized: false,
+  });
+  const inbox = [];
+  const closings = [];
+  const waiters = [];
+
+  const notify = () => waiters.splice(0).forEach((resolve) => resolve());
+
+  socket.on('message', (data, isBinary) => {
+    inbox.push({ data, isBinary });
+    notify();
+  });
+
+  socket.on('close', (code, reason) => {
+    closings.push({ code, reason });
+    notify();
+  });
+
+  async function take(queue) {
+    while (queue.length === 0) {
+      await withTimeout(
+        new Promise((resolve) => waiters.push(resolve)),
+        'event',
+      );
+    }
+
+    return queue.shift();
+  }
+
+  return {
+    ready: withTimeout(
+      new Promise((resolve, reject) => {
+        socket.once('open', resolve);
+        socket.once('error', reject);
+      }),
+      'handshake',
+    ),
+    send: (data) => socket.send(data),
+    terminate: () => socket.terminate(),
+    nextMessage: () => take(inbox).then(({ data }) => data),
+    nextClose: () => take(closings),
+  };
+}
+
+function upgradeH1(port) {
+  return withTimeout(
+    new Promise((resolve, reject) => {
+      const request = request1({
+        host: '127.0.0.1',
+        port,
+        path: '/ws',
+        rejectUnauthorized: false,
+        headers: {
+          Connection: 'Upgrade',
+          Upgrade: 'websocket',
+          'Sec-WebSocket-Version': '13',
+          'Sec-WebSocket-Key': randomBytes(16).toString('base64'),
+        },
+      });
+
+      request.on('response', (response) => {
+        response.resume();
+        resolve(response.statusCode);
+      });
+      request.on('upgrade', (response, socket) => {
+        socket.destroy();
+        resolve(response.statusCode);
+      });
+      request.on('error', reject);
+      request.end();
+    }),
+    'upgrade',
+  );
+}
+
 describe('WebSocket', () => {
   describe('::withWebSocketExchange()', () => {
     it('should tag the deployer and bind the exchange class', () => {
-      assert.equal(WithWebSocket[SYMBOL.DEPLOYER._S.TAG], '2:https,websocket');
+      const base = Deployer[SYMBOL.DEPLOYER._S.TAG];
+
+      assert.equal(WithWebSocket[SYMBOL.DEPLOYER._S.TAG], `${base},websocket`);
       assert.equal(
         WithWebSocket[SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET],
         WebSocketExchange.Exchange,
@@ -177,6 +264,26 @@ describe('WebSocket', () => {
   });
 
   describe('.handleUpgrade', () => {
+    it('should answer the protocol and the version', async () => {
+      const app = await serve((context) => {
+        const controller = useWebSocket(context);
+        const exchange = useExchange(context);
+
+        controller.acceptUpgrade();
+        controller.send(`${exchange.protocol} ${exchange.httpVersion}`);
+      });
+
+      try {
+        const client = await connect(app.port);
+        const frame = await client.reader.next();
+
+        assert.equal(frame.payload.toString('utf8'), 'https: 2.0');
+
+        client.close();
+      } finally {
+        await app.close();
+      }
+    });
     it('should accept the extended CONNECT over TLS and echo a frame', async () => {
       const app = await serve((context) => {
         const controller = useWebSocket(context);
@@ -243,6 +350,96 @@ describe('WebSocket', () => {
         assert.equal(client.status, 403);
 
         client.close();
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe('>http/1.1 client', () => {
+    it('should answer the protocol and the version', async () => {
+      const app = await serve((context) => {
+        const controller = useWebSocket(context);
+        const exchange = useExchange(context);
+
+        controller.acceptUpgrade();
+        controller.send(`${exchange.protocol} ${exchange.httpVersion}`);
+      });
+
+      try {
+        const client = await connectH1(app.port);
+
+        await client.ready;
+
+        const received = await client.nextMessage();
+
+        assert.equal(String(received), 'https: 1.1');
+
+        client.terminate();
+      } finally {
+        await app.close();
+      }
+    });
+    it('should accept the upgrade and echo a frame', async () => {
+      const app = await serve((context) => {
+        const controller = useWebSocket(context);
+
+        controller.acceptUpgrade();
+        controller.addEventListener('message', (event) => {
+          controller.send(String(event.data).toUpperCase());
+        });
+      });
+
+      try {
+        const client = await connectH1(app.port);
+
+        await client.ready;
+        client.send('plain');
+
+        const received = await client.nextMessage();
+
+        assert.equal(String(received), 'PLAIN');
+
+        client.terminate();
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should close the connection from the handler', async () => {
+      const app = await serve((context) => {
+        const controller = useWebSocket(context);
+
+        controller.acceptUpgrade();
+        controller.addEventListener('message', () => {
+          controller.close(1000, 'done');
+        });
+      });
+
+      try {
+        const client = await connectH1(app.port);
+
+        await client.ready;
+        client.send('bye');
+
+        const close = await client.nextClose();
+
+        assert.equal(close.code, 1000);
+        assert.equal(String(close.reason), 'done');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should reject the upgrade with the http error', async () => {
+      const app = await serve((context) => {
+        useWebSocket(context).rejectUpgrade(403, 'no way');
+      });
+
+      try {
+        const status = await upgradeH1(app.port);
+
+        assert.equal(status, 403);
       } finally {
         await app.close();
       }

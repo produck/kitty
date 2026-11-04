@@ -16,7 +16,7 @@ function enableConnectProtocol(session) {
 }
 
 export const options = Implement.Normalize.Deployer({
-  tag: '2:https',
+  tag: '1,2:https',
   server: Http2SecureServer,
   exchange: { http: Exchange.Http.Exchange },
   install({
@@ -69,11 +69,16 @@ export const options = Implement.Normalize.Deployer({
       });
     }
 
+    async function upgradeListener(req, socket, head) {
+      await handleWebSocketExchange({ server, req, socket, head });
+    }
+
     declareToManifest('request-listener', requestListener);
     declareToManifest('stream-listener', streamListener);
 
     if (hasWebSocket) {
       declareToManifest('connect-listener', connectListener);
+      declareToManifest('upgrade-listener', upgradeListener);
       declareToManifest('session-listener', enableConnectProtocol);
     }
 
@@ -83,6 +88,7 @@ export const options = Implement.Normalize.Deployer({
 
       if (hasWebSocket) {
         server.on('connect', connectListener);
+        server.on('upgrade', upgradeListener);
         server.on('session', enableConnectProtocol);
       }
 
@@ -95,7 +101,7 @@ export class Http2HttpsDeployer extends Implement.Deployer(options) {
   static withWebSocketExchange(WebSocketExchange) {
     return class Http2WithWebSocketDeployer extends this {
       static get [SYMBOL.DEPLOYER._S.TAG]() {
-        return '2:https,websocket';
+        return '1,2:https,websocket';
       }
 
       static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
