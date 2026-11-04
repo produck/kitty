@@ -1,5 +1,6 @@
 import * as https from 'node:https';
 
+import { Ow } from '@produck/argot';
 import { Implement, SYMBOL } from '@produck/kitty-workflow';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
 
@@ -21,6 +22,10 @@ export class Http1HttpsDeployer extends Implement.Deployer(options) {
 
       static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
         return WebSocketExchange;
+      }
+
+      static withWebSocketExchange() {
+        Ow.Error.Common('The deployer MUST NOT carry another WebSocket.');
       }
     };
   }

@@ -261,6 +261,13 @@ describe('WebSocket', () => {
         WebSocketExchange.Exchange,
       );
     });
+
+    it('should refuse a second websocket derivation', () => {
+      assert.throws(
+        () => WithWebSocket.withWebSocketExchange(WebSocketExchange.Exchange),
+        /MUST NOT carry another WebSocket/,
+      );
+    });
   });
 
   describe('.handleUpgrade', () => {

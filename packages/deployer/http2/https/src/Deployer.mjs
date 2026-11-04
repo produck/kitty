@@ -1,3 +1,4 @@
+import { Ow } from '@produck/argot';
 import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
 import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
@@ -106,6 +107,10 @@ export class Http2HttpsDeployer extends Implement.Deployer(options) {
 
       static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
         return WebSocketExchange;
+      }
+
+      static withWebSocketExchange() {
+        Ow.Error.Common('The deployer MUST NOT carry another WebSocket.');
       }
     };
   }

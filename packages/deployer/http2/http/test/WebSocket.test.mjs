@@ -221,6 +221,13 @@ describe('WebSocket', () => {
         Deployer[SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.HTTP],
       );
     });
+
+    it('should refuse a second websocket derivation', () => {
+      assert.throws(
+        () => WithWebSocket.withWebSocketExchange(WebSocketExchange.Exchange),
+        /MUST NOT carry another WebSocket/,
+      );
+    });
   });
 
   describe('.handleUpgrade', () => {

@@ -409,6 +409,15 @@ describe('::withWebSocketExchange()', () => {
 
     assert.equal(Derived[SYMBOL.DEPLOYER._S.SERVER_CTOR], https.Server);
   });
+
+  it('should refuse a second websocket derivation', () => {
+    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
+
+    assert.throws(
+      () => Derived.withWebSocketExchange(WebSocketExchange),
+      /MUST NOT carry another WebSocket/,
+    );
+  });
 });
 
 describe('useServer()', () => {

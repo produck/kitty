@@ -1,3 +1,4 @@
+import { Ow } from '@produck/argot';
 import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
 
 import * as Bridge from './Bridge.mjs';
@@ -76,6 +77,10 @@ export class Http2HttpDeployer extends Implement.Deployer(options) {
 
       static get [SYMBOL.DEPLOYER._S.EXCHANGE_CTOR.WEB_SOCKET]() {
         return WebSocketExchange;
+      }
+
+      static withWebSocketExchange() {
+        Ow.Error.Common('The deployer MUST NOT carry another WebSocket.');
       }
     };
   }
