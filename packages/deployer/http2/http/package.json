@@ -12,7 +12,8 @@
   },
   "exports": {
     ".": {
-      "import": "./src/index.mjs"
+      "import": "./src/index.mjs",
+      "types": "./src/index.d.mts"
     }
   },
   "homepage": "https://github.com/produck/kitty/tree/main/packages/deployer/http2/http#readme",

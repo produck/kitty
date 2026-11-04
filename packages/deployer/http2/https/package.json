@@ -1,8 +1,44 @@
 {
+  "author": "ChaosLee",
+  "bugs": {
+    "url": "https://github.com/produck/kitty/issues"
+  },
+  "description": "HTTP/2 deployer over a TLS node:http2 server, serving HTTP/1.x clients too.",
+  "devDependencies": {
+    "@produck/argot": "^0.4.0",
+    "@produck/es-abstract": "^0.5.0",
+    "@produck/fugue": "^0.2.0",
+    "@produck/kit": "^0.4.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.mjs",
+      "types": "./src/index.d.mts"
+    }
+  },
+  "homepage": "https://github.com/produck/kitty/tree/main/packages/deployer/http2/https#readme",
+  "keywords": [
+    "deployer",
+    "h2",
+    "http2",
+    "https",
+    "kitty",
+    "workflow"
+  ],
+  "license": "MIT",
   "name": "@produck/kitty-deployer-http2-https",
+  "peerDependencies": {
+    "@produck/argot": "^0.4.0",
+    "@produck/kitty-workflow": "^0.0.0"
+  },
+  "repository": {
+    "directory": "packages/deployer/http2/https",
+    "type": "git",
+    "url": "git+https://github.com/produck/kitty.git"
+  },
   "scripts": {
     "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
-    "test": "node -e \"console.log('No tests configured')\""
+    "test": "node test/index.mjs"
   },
   "type": "module",
   "version": "0.0.0"
