@@ -2,6 +2,7 @@ import { Implement } from '@produck/kitty-workflow';
 import * as Http1WebSocket from '@produck/kitty-deployer-http1-http/exchange/websocket';
 import * as Http2WebSocket from '@produck/kitty-deployer-http2-http/exchange/websocket';
 
+import * as Base from '../Base.mjs';
 import * as VersionRoute from '../VersionRoute.mjs';
 
 const ref = {
@@ -11,48 +12,10 @@ const ref = {
 
 export const options = Implement.Normalize.Exchange.WebSocket({
   ...ref.h2,
-  server: {
-    get: ref.h2.server.get,
-    protocol: {
-      get: () => 'https:',
-    },
-  },
-  identity: {
-    get: VersionRoute.byInternal({
-      h1: ref.h1.identity.get,
-      h2: ref.h2.identity.get,
-    }),
-  },
-  httpVersion: {
-    get: VersionRoute.byContext({
-      h1: ref.h1.httpVersion.get,
-      h2: ref.h2.httpVersion.get,
-    }),
-  },
-  request: {
-    method: {
-      get: VersionRoute.byContext({
-        h1: ref.h1.request.method.get,
-        h2: ref.h2.request.method.get,
-      }),
-    },
-    URL: {
-      get: VersionRoute.byContext({
-        h1: ref.h1.request.URL.get,
-        h2: ref.h2.request.URL.get,
-      }),
-    },
-    header: {
-      get: VersionRoute.byContext({
-        h1: ref.h1.request.header.get,
-        h2: ref.h2.request.header.get,
-      }),
-      keys: VersionRoute.byContext({
-        h1: ref.h1.request.header.keys,
-        h2: ref.h2.request.header.keys,
-      }),
-    },
-  },
+  identity: Base.identity,
+  server: Base.server,
+  httpVersion: Base.httpVersion,
+  request: Base.request,
   controller: {
     handleUpgrade: VersionRoute.byContext({
       h1: ref.h1.controller.handleUpgrade,
