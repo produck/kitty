@@ -111,4 +111,8 @@ TLS createSecureServer({ allowHTTP1: true }) 同时挂 'stream' 与 'request'
 - h2ws 的版本策略：锁精确版本，还是等它稳定后再放开。
 - 测试端的 WS 客户端：h2ws 删掉了 client，需要自建
   （`http2.connect` 拿 Duplex + `ws.setSocket`）。
-- `https` 包是否补 raw 出口：两套形状下语义不同，优先级低。
+- `useHttp1Request` / `useHttp2Stream` 是否加第二参 `claimRaw = true`：
+  传 `false` 只取对象、不 `claimRaw()`，用于只读元信息（如
+  `stream.session`）。一旦加上，README 必须写清风险：返回的是活对象，
+  对它做 `for await` 或 `.on('data')` 会从 distributor 通道里抽走字节，
+  得到短 body。
