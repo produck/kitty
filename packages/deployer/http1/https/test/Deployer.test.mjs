@@ -1,3 +1,4 @@
+import * as http from 'node:http';
 import * as https from 'node:https';
 import { Readable } from 'node:stream';
 
@@ -14,6 +15,7 @@ import {
 } from '@produck/kitty-workflow';
 
 import * as Http1Https from '@produck/kitty-deployer-http1-https';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import { Exchange as WebSocketExchange } from '@produck/kitty-deployer-http1-http/exchange/websocket';
 
 import credentials from './credentials.mjs';
@@ -406,5 +408,53 @@ describe('::withWebSocketExchange()', () => {
     const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
 
     assert.equal(Derived[SYMBOL.DEPLOYER._S.SERVER_CTOR], https.Server);
+  });
+});
+
+describe('useServer()', () => {
+  it('should answer the deployed server', async () => {
+    const app = await serve((context) => {
+      const server = Http1Https.useServer(context);
+
+      useResponse(context).body.data = String(server.listening);
+    });
+
+    try {
+      const res = await request(`${app.origin}/server`);
+
+      assert.equal(await res.text(), 'true');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('should reject a plain http server', async () => {
+    const workflow = createWorkflow((context) => {
+      let message = 'no error';
+
+      try {
+        Http1Https.useServer(context);
+      } catch (error) {
+        message = error.message;
+      }
+
+      useResponse(context).body.data = message;
+    });
+    const server = http.createServer();
+
+    await workflow
+      .withDeployer(Http1Http.Deployer.Http1HttpDeployer)
+      .deploy(server);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+    const { port } = server.address();
+
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/`);
+
+      assert.match(await res.text(), /NOT https\.Server/);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });

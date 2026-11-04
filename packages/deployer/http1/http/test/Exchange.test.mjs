@@ -389,6 +389,24 @@ describe('Exchange', () => {
     });
   });
 
+  describe('useServer()', () => {
+    it('should answer the deployed server', async () => {
+      const app = await serve((context) => {
+        const server = Http1Http.useServer(context);
+
+        useResponse(context).body.data = String(server.listening);
+      });
+
+      try {
+        const res = await request(`${app.origin}/server`);
+
+        assert.equal(await res.text(), 'true');
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
   describe('connection facts', () => {
     it('should expose server, protocol and version', async () => {
       const app = await serve((context) => {
