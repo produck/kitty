@@ -1,5 +1,6 @@
 import { instanceOf, Ow } from '@produck/argot';
 import * as Workflow from '@produck/kitty-workflow';
+import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
 import { Http2SecureServer } from './Intrinsic.mjs';
 
@@ -14,4 +15,12 @@ export function useServer(Kit) {
   }
 
   return server;
+}
+
+export function useRawStream(Kit) {
+  if (Workflow.useExchange(Kit).httpVersion !== '2.0') {
+    Ow.Error.Common('The raw stream is HTTP/2 only.');
+  }
+
+  return Http2Http.useRawStream(Kit);
 }

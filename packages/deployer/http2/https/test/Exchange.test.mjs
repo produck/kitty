@@ -181,6 +181,32 @@ describe('Exchange', () => {
         await app.close();
       }
     });
+
+    it('should hand over the raw stream', async () => {
+      const app = await serve(async (context) => {
+        const chunks = [];
+
+        for await (const chunk of Http2Https.useRawStream(context)) {
+          chunks.push(chunk);
+        }
+
+        useResponse(context).body.data = Buffer.concat(chunks)
+          .toString('utf8')
+          .toUpperCase();
+      });
+
+      try {
+        const res = await requestH2(
+          app.port,
+          { ':method': 'POST' },
+          'raw h2 body',
+        );
+
+        assert.equal(res.data, 'RAW H2 BODY');
+      } finally {
+        await app.close();
+      }
+    });
   });
 
   describe('>http/1.1 client', () => {
@@ -225,6 +251,28 @@ describe('Exchange', () => {
         );
 
         assert.equal(res.data, 'H1 BODY');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should reject the raw stream on the http/1.1 exchange', async () => {
+      const app = await serve((context) => {
+        let message = 'no error';
+
+        try {
+          Http2Https.useRawStream(context);
+        } catch (error) {
+          message = error.message;
+        }
+
+        useResponse(context).body.data = message;
+      });
+
+      try {
+        const res = await requestH1(app.port);
+
+        assert.match(res.data, /HTTP\/2 only/);
       } finally {
         await app.close();
       }

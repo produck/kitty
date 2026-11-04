@@ -27,3 +27,16 @@ export declare const Deployer: Readonly<{
 export declare function useServer(
   ...args: Parameters<typeof Workflow.useServer>
 ): http2.Http2SecureServer;
+
+/**
+ * Hands over the raw `http2.ServerHttp2Stream` of the current exchange.
+ *
+ * Only available for HTTP/2 exchanges; an HTTP/1.1 exchange on the same
+ * server raises an error, since it has no h2 stream.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The h2 stream bound to the exchange.
+ */
+export declare function useRawStream(
+  ...args: Parameters<typeof Workflow.useExchange>
+): http2.ServerHttp2Stream;
