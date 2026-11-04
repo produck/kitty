@@ -53,6 +53,12 @@
 13. **CONNECT 分派靠两个伪头**。h2ws 的 `isWebSocketConnect` 做的事
     太小，deployer 自己判 `:method === 'CONNECT'` 且
     `:protocol === 'websocket'`，避免主入口为了一个谓词引 h2ws。
+    `https` 包因为挂了 `'request'` 监听器（1.1 回退），node 的
+    compat 层会接管每个 stream：没有 `'connect'` 监听器时 CONNECT
+    直接回 405。所以该包改从 `'connect'` 事件拿
+    `response.stream` 与 `request.headers` 分派，`'stream'` 监听器
+    对 CONNECT 一律跳过。h2c 不挂 `'request'`，compat 未启用，
+    直接从 `'stream'` 分派即可。
 14. **客户端不得发 `sec-websocket-key`**。RFC 8441 禁止 connection
     专属头，h2ws 见到 `upgrade` / `connection` / `sec-websocket-key`
     直接回 400。握手只靠 `:protocol` + `sec-websocket-version`。
@@ -120,8 +126,10 @@ TLS createSecureServer({ allowHTTP1: true }) 同时挂 'stream' 与 'request'
 - 测试端 WS 客户端：h2ws 删掉了 client，`ws` 的 `setSocket` 只服务
   服务端（`new WebSocket(null)` 会走 `_isServer`），所以测试自建帧
   编解码（客户端帧要加掩码）。
-- `https` 包是否也挂 `./exchange/websocket`：h2c 已验证，等 https
-  侧需要时再补。
+- `https` 包上 1.1 客户端的 WS：只实现了 h2 的 Extended CONNECT，
+  没挂 `'upgrade'` 监听器，1.1 客户端发 Upgrade 会一直挂着。需要的话
+  得让共享的 WS 交换按 `internal.stream === undefined` 分支到
+  `handleUpgrade`。
 - `useHttp1Request` / `useHttp2Stream` 是否加第二参 `claimRaw = true`：
   传 `false` 只取对象、不 `claimRaw()`，用于只读元信息（如
   `stream.session`）。一旦加上，README 必须写清风险：返回的是活对象，

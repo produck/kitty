@@ -13,11 +13,27 @@ export declare const Exchange: Readonly<{
   }>;
 }>;
 
+/**
+ * Deployer class bound to `node:http2` TLS servers, able to carry a WebSocket
+ * exchange.
+ */
+type Http2HttpsDeployerClass = typeof Workflow.Abstract.Deployer & {
+  /**
+   * Derives a deployer that also serves the given WebSocket exchange.
+   *
+   * @param WebSocketExchange - WebSocket exchange class to load.
+   * @returns A deployer subclass carrying that exchange.
+   */
+  withWebSocketExchange(
+    WebSocketExchange: typeof Workflow.Abstract.WebSocketExchange,
+  ): Http2HttpsDeployerClass;
+};
+
 /** Deployer entry: the normalized implementation and the class. */
 export declare const Deployer: Readonly<{
   options: ReturnType<typeof Workflow.Implement.Normalize.Deployer>;
-  Http2HttpsDeployer: typeof Workflow.Abstract.Deployer;
-  Http2Https: typeof Workflow.Abstract.Deployer;
+  Http2HttpsDeployer: Http2HttpsDeployerClass;
+  Http2Https: Http2HttpsDeployerClass;
 }>;
 
 /**

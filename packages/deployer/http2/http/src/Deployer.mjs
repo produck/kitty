@@ -30,15 +30,13 @@ export const options = Implement.Normalize.Deployer({
     const hasWebSocket = hasWebSocketExchange();
 
     async function streamListener(stream, headers) {
+      const internal = { server, stream, headers };
+
       if (hasWebSocket && isWebSocketConnect(headers)) {
-        return void (await handleWebSocketExchange({
-          server,
-          stream,
-          headers,
-        }));
+        return void (await handleWebSocketExchange(internal));
       }
 
-      await handleHttpExchange({ server, stream, headers });
+      await handleHttpExchange(internal);
 
       const response = Bridge.getResponse(stream);
 
