@@ -3,7 +3,7 @@ import type * as tls from 'node:tls';
 
 import type * as Workflow from '@produck/kitty-workflow';
 
-export { useRawRequest } from '@produck/kitty-deployer-http1-http';
+export { useHttp1Request } from '@produck/kitty-deployer-http1-http';
 
 /** Deployer class bound to `node:https` servers, able to carry a WebSocket
  * exchange.

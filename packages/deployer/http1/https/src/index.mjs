@@ -5,7 +5,7 @@ import * as Workflow from '@produck/kitty-workflow';
 
 import * as Bridge from './Bridge.mjs';
 
-export { useRawRequest } from '@produck/kitty-deployer-http1-http';
+export { useHttp1Request } from '@produck/kitty-deployer-http1-http';
 export * as Deployer from './Deployer.mjs';
 
 export function useServer(Kit) {

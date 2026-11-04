@@ -1,5 +1,6 @@
 import type * as http from 'node:http';
 import type * as http2 from 'node:http2';
+import type * as tls from 'node:tls';
 
 import type * as Workflow from '@produck/kitty-workflow';
 
@@ -30,6 +31,59 @@ export declare function useServer(
 ): http2.Http2SecureServer;
 
 /**
+ * Reads the SNI name the client sent during the TLS handshake.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The server name, or `undefined` when the client sent none.
+ */
+export declare function useServername(
+  ...args: Parameters<typeof Workflow.useExchange>
+): string | undefined;
+
+/**
+ * Reads the outcome of verifying the client certificate.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns Verification state and the reason it failed.
+ */
+export declare function useAuthorization(
+  ...args: Parameters<typeof Workflow.useExchange>
+): Readonly<{
+  authorized: boolean;
+  error: string | null;
+}>;
+
+/**
+ * Reads the certificate the client presented.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The peer certificate, empty when the client presented none.
+ */
+export declare function useCertificate(
+  ...args: Parameters<typeof Workflow.useExchange>
+): tls.PeerCertificate;
+
+/**
+ * Reads the cipher suite and TLS version negotiated for the connection.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The negotiated cipher.
+ */
+export declare function useCipher(
+  ...args: Parameters<typeof Workflow.useExchange>
+): tls.CipherNameAndProtocol;
+
+/**
+ * Reads the ALPN protocol negotiated for the connection.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The protocol name, or `false` when none was negotiated.
+ */
+export declare function useAlpnProtocol(
+  ...args: Parameters<typeof Workflow.useExchange>
+): string | false;
+
+/**
  * Hands over the raw `http.IncomingMessage` of the current exchange.
  *
  * Only available for HTTP/1.1 exchanges; an HTTP/2 exchange on the same
@@ -38,7 +92,7 @@ export declare function useServer(
  * @param args - Same arguments as the workflow capability.
  * @returns The node request bound to the exchange.
  */
-export declare function useRawRequest(
+export declare function useHttp1Request(
   ...args: Parameters<typeof Workflow.useExchange>
 ): http.IncomingMessage;
 
@@ -51,6 +105,6 @@ export declare function useRawRequest(
  * @param args - Same arguments as the workflow capability.
  * @returns The h2 stream bound to the exchange.
  */
-export declare function useRawStream(
+export declare function useHttp2Stream(
   ...args: Parameters<typeof Workflow.useExchange>
 ): http2.ServerHttp2Stream;

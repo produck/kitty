@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import * as http2 from 'node:http2';
 import { request as request1 } from 'node:https';
 import { Readable } from 'node:stream';
@@ -14,6 +15,7 @@ import {
 } from '@produck/kitty-workflow';
 
 import * as Kit from '@produck/kit';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as Http2Https from '@produck/kitty-deployer-http2-https';
 
 import credentials from './credentials.mjs';
@@ -48,9 +50,13 @@ function createWorkflow(handler) {
   return workflow.finalize();
 }
 
-async function serve(handler) {
+async function serve(handler, options = {}) {
   const workflow = createWorkflow(handler);
-  const server = http2.createSecureServer({ ...credentials, allowHTTP1: true });
+  const server = http2.createSecureServer({
+    ...credentials,
+    allowHTTP1: true,
+    ...options,
+  });
   const sessions = new Set();
 
   server.on('session', (session) => sessions.add(session));
@@ -73,10 +79,11 @@ async function serve(handler) {
 
 const TIMEOUT = 3000;
 
-function requestH2(port, headers = {}, body = undefined) {
+function requestH2(port, headers = {}, body = undefined, options = {}) {
   return new Promise((resolve, reject) => {
     const client = http2.connect(`https://127.0.0.1:${port}`, {
       rejectUnauthorized: false,
+      ...options,
     });
     const timer = setTimeout(() => {
       client.destroy();
@@ -139,6 +146,18 @@ function requestH1(port, options = {}, body = undefined) {
 }
 
 describe('Exchange', () => {
+  function describeTLS(context) {
+    const certificate = Http2Https.useCertificate(context);
+
+    useResponse(context).body.data = JSON.stringify({
+      servername: Http2Https.useServername(context),
+      cipher: Http2Https.useCipher(context),
+      alpn: Http2Https.useAlpnProtocol(context),
+      subject: certificate.subject ?? null,
+      authorization: Http2Https.useAuthorization(context),
+    });
+  }
+
   describe('>http2 client', () => {
     it('should answer with the protocol and the version', async () => {
       const app = await serve((context) => {
@@ -186,7 +205,7 @@ describe('Exchange', () => {
       const app = await serve(async (context) => {
         const chunks = [];
 
-        for await (const chunk of Http2Https.useRawStream(context)) {
+        for await (const chunk of Http2Https.useHttp2Stream(context)) {
           chunks.push(chunk);
         }
 
@@ -213,7 +232,7 @@ describe('Exchange', () => {
         let message = 'no error';
 
         try {
-          Http2Https.useRawRequest(context);
+          Http2Https.useHttp1Request(context);
         } catch (error) {
           message = error.message;
         }
@@ -225,6 +244,66 @@ describe('Exchange', () => {
         const res = await requestH2(app.port);
 
         assert.match(res.data, /HTTP\/1\.1 only/);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should read the TLS facts of the h2 session', async () => {
+      const app = await serve(describeTLS);
+
+      try {
+        const res = await requestH2(app.port, {}, undefined, {
+          servername: 'kitty.test',
+        });
+        const body = JSON.parse(res.data);
+
+        assert.equal(body.servername, 'kitty.test');
+        assert.equal(typeof body.cipher.name, 'string');
+        assert.match(body.cipher.version, /^TLSv1\.[23]$/);
+        assert.equal(body.alpn, 'h2');
+        assert.deepEqual(body.subject, null);
+        assert.deepEqual(body.authorization, {
+          authorized: false,
+          error: null,
+        });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should read the client certificate presented on the h2 session', async () => {
+      const app = await serve(describeTLS, {
+        requestCert: true,
+        rejectUnauthorized: false,
+      });
+
+      try {
+        const res = await requestH2(app.port, {}, undefined, {
+          servername: 'kitty.test',
+          key: credentials.key,
+          cert: credentials.cert,
+        });
+        const body = JSON.parse(res.data);
+
+        assert.equal(body.subject.CN, 'localhost');
+        assert.deepEqual(body.authorization, {
+          authorized: false,
+          error: 'DEPTH_ZERO_SELF_SIGNED_CERT',
+        });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should end an empty response when the handler stays silent', async () => {
+      const app = await serve(() => {});
+
+      try {
+        const res = await requestH2(app.port);
+
+        assert.equal(res.status, 200);
+        assert.equal(res.data, '');
       } finally {
         await app.close();
       }
@@ -282,7 +361,7 @@ describe('Exchange', () => {
       const app = await serve(async (context) => {
         const chunks = [];
 
-        for await (const chunk of Http2Https.useRawRequest(context)) {
+        for await (const chunk of Http2Https.useHttp1Request(context)) {
           chunks.push(chunk);
         }
 
@@ -309,7 +388,7 @@ describe('Exchange', () => {
         let message = 'no error';
 
         try {
-          Http2Https.useRawStream(context);
+          Http2Https.useHttp2Stream(context);
         } catch (error) {
           message = error.message;
         }
@@ -321,6 +400,27 @@ describe('Exchange', () => {
         const res = await requestH1(app.port);
 
         assert.match(res.data, /HTTP\/2 only/);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should read the TLS facts of the http/1.1 exchange', async () => {
+      const app = await serve(describeTLS);
+
+      try {
+        const res = await requestH1(app.port, { servername: 'kitty.test' });
+        const body = JSON.parse(res.data);
+
+        assert.equal(body.servername, 'kitty.test');
+        assert.equal(typeof body.cipher.name, 'string');
+        assert.match(body.cipher.version, /^TLSv1\.[23]$/);
+        assert.equal(body.alpn, false);
+        assert.deepEqual(body.subject, null);
+        assert.deepEqual(body.authorization, {
+          authorized: false,
+          error: null,
+        });
       } finally {
         await app.close();
       }
@@ -364,6 +464,54 @@ describe('Exchange', () => {
         assert.equal(res2.headers[':status'], 202);
       } finally {
         await app.close();
+      }
+    });
+  });
+
+  describe('useServer()', () => {
+    it('should answer the deployed server', async () => {
+      const app = await serve((context) => {
+        const server = Http2Https.useServer(context);
+
+        useResponse(context).body.data = String(server.listening);
+      });
+
+      try {
+        const res = await requestH1(app.port);
+
+        assert.equal(res.data, 'true');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should reject a plain http server', async () => {
+      const workflow = createWorkflow((context) => {
+        let message = 'no error';
+
+        try {
+          Http2Https.useServer(context);
+        } catch (error) {
+          message = error.message;
+        }
+
+        useResponse(context).body.data = message;
+      });
+      const server = createServer();
+
+      await workflow
+        .withDeployer(Http1Http.Deployer.Http1HttpDeployer)
+        .deploy(server);
+      await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+      const { port } = server.address();
+
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}/`);
+
+        assert.match(await res.text(), /NOT http2\.Http2SecureServer/);
+      } finally {
+        await new Promise((resolve) => server.close(resolve));
       }
     });
   });

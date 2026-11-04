@@ -281,12 +281,12 @@ describe('Exchange', () => {
     });
   });
 
-  describe('useRawRequest()', () => {
+  describe('useHttp1Request()', () => {
     it('should hand out the raw request stream', async () => {
       const app = await serve(async (context) => {
         const chunks = [];
 
-        for await (const chunk of Http1Http.useRawRequest(context)) {
+        for await (const chunk of Http1Http.useHttp1Request(context)) {
           chunks.push(chunk);
         }
 
@@ -307,8 +307,8 @@ describe('Exchange', () => {
 
     it('should answer the same stream for a repeated call', async () => {
       const app = await serve((context) => {
-        const first = Http1Http.useRawRequest(context);
-        const second = Http1Http.useRawRequest(context);
+        const first = Http1Http.useHttp1Request(context);
+        const second = Http1Http.useHttp1Request(context);
 
         useResponse(context).body.data = first === second ? 'same' : 'other';
       });
@@ -325,7 +325,7 @@ describe('Exchange', () => {
     it('should answer a request without a body', async () => {
       const app = await serve((context) => {
         useResponse(context).body.data =
-          Http1Http.useRawRequest(context).method;
+          Http1Http.useHttp1Request(context).method;
       });
 
       try {
@@ -341,7 +341,7 @@ describe('Exchange', () => {
       const app = await serve((context) => {
         const response = useResponse(context);
 
-        Http1Http.useRawRequest(context);
+        Http1Http.useHttp1Request(context);
 
         try {
           assert.throws(() => useRequest(context).body.data, /raw stream path/);

@@ -10,6 +10,16 @@ const ref = {
   h2: Http2Http.Exchange.Http.options,
 };
 
+function bindSocket(readSocket, get) {
+  return (context, ...args) => {
+    const { self, internal } = context;
+
+    Bridge.bindExchangeSocket(self.exchange, readSocket(internal));
+
+    return get(context, ...args);
+  };
+}
+
 export const options = Implement.Normalize.Exchange.Http({
   ...ref.h2,
   server: {
@@ -56,8 +66,14 @@ export const options = Implement.Normalize.Exchange.Http({
     body: {
       source: {
         get: VersionRoute.byContext({
-          h1: ref.h1.request.body.source.get,
-          h2: ref.h2.request.body.source.get,
+          h1: bindSocket(
+            ({ req }) => req.socket,
+            ref.h1.request.body.source.get,
+          ),
+          h2: bindSocket(
+            ({ stream }) => stream.session.socket,
+            ref.h2.request.body.source.get,
+          ),
         }),
       },
     },

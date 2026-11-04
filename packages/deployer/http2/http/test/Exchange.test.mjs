@@ -233,12 +233,12 @@ describe('Exchange', () => {
     });
   });
 
-  describe('::useRawStream()', () => {
+  describe('::useHttp2Stream()', () => {
     it('should hand over the node stream and block the distributor path', async () => {
       const app = await serve(async (context) => {
         const chunks = [];
 
-        for await (const chunk of Http2Http.useRawStream(context)) {
+        for await (const chunk of Http2Http.useHttp2Stream(context)) {
           chunks.push(chunk);
         }
 

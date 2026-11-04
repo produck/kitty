@@ -54,6 +54,6 @@ export declare function useServer(
  * @param args - Same arguments as the workflow capability.
  * @returns The node request behind the exchange.
  */
-export declare function useRawRequest(
+export declare function useHttp1Request(
   ...args: Parameters<typeof Workflow.useServer>
 ): http.IncomingMessage;

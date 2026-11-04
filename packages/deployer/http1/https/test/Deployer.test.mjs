@@ -360,10 +360,10 @@ describe('Exchange', () => {
   });
 });
 
-describe('::useRawRequest()', () => {
+describe('::useHttp1Request()', () => {
   it('should answer the node request and keep the TLS facts', async () => {
     const app = await serve((context) => {
-      const req = Http1Https.useRawRequest(context);
+      const req = Http1Https.useHttp1Request(context);
 
       useResponse(context).body.data = [
         Http1Https.useServername(context),

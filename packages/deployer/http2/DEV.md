@@ -32,9 +32,10 @@
 8. **原生 `'stream'` 模型**。h2 侧 `internal` 为
    `{ server, stream, headers }`，响应走 `stream.respond()`；1.1 侧为
    `{ server, req, res }`，响应走 `res`。两套都实现在同一份端口里。
-9. **h2c 提供 `useRawStream`**。返回 `ServerHttp2Stream` 并 `claimRaw()`，
-   与 distributor 路径互斥。h2 没有 `IncomingMessage`，所以不叫
-   `useRawRequest`；`https` 包暂不提供 raw 出口（两套形状下语义不同）。
+9. **h2c 提供 `useHttp2Stream`**。返回 `ServerHttp2Stream` 并
+   `claimRaw()`，与 distributor 路径互斥。h2 没有 `IncomingMessage`，
+   所以不叫 `useHttp1Request`；`https` 包按协议给出 `useHttp1Request` /
+   `useHttp2Stream` 两个出口。
 10. **超时收尾用 `stream.close(NGHTTP2_CANCEL)`**，不能 destroy
     socket。一个 connection 上并发多条 stream，destroy 会打断同连接上
     所有其它请求。
@@ -74,8 +75,8 @@
   实现 1.1 检测，开关无效。
 - **h2 侧的兼容层 req/res**：放弃与 http1 同构的便利，因为它静默丢弃
   非法操作，失败不可见。1.1 侧天然就是原生对象，没有这个取舍。
-- **`useRawRequest`**：h2 没有 `IncomingMessage`，只能给假实现；
-  改成语义成立的 `useRawStream`。
+- **`useHttp1Request`**：h2 没有 `IncomingMessage`，只能给假实现；
+  改成语义成立的 `useHttp2Stream`。
 - **server 内省**：能读 `Symbol(options).allowHTTP1`，但它答的是另一
   个问题，且依赖内部符号，被运行时形状分派替代。
 - **server push / 子协议面**：放弃少数高级用法，因为公开面每加一个槽位

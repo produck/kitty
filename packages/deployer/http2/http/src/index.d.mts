@@ -39,6 +39,6 @@ export declare function useServer(
  * @param args - Same arguments as the workflow capability.
  * @returns The node stream behind the exchange.
  */
-export declare function useRawStream(
+export declare function useHttp2Stream(
   ...args: Parameters<typeof Workflow.useExchange>
 ): http2.ServerHttp2Stream;

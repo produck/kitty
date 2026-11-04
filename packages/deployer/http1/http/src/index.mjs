@@ -18,7 +18,7 @@ export function useServer(Kit) {
   return server;
 }
 
-export function useRawRequest(Kit) {
+export function useHttp1Request(Kit) {
   const exchange = Workflow.useExchange(Kit);
   const entry = Bridge.getRaw(exchange);
 
