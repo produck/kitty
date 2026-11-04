@@ -1,4 +1,5 @@
 import * as http from 'node:http';
+import * as http2 from 'node:http2';
 import { Readable } from 'node:stream';
 import { spawn } from 'node:child_process';
 
@@ -15,6 +16,7 @@ import {
   useResponse,
 } from '@produck/kitty-workflow';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
+import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
 const Deployer = Http1Http.Deployer.Http1HttpDeployer;
 
@@ -57,6 +59,25 @@ const TIMEOUT = 3000;
 
 function request(url, init) {
   return fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT) });
+}
+
+function h2Body(port) {
+  return new Promise((resolve, reject) => {
+    const client = http2.connect(`http://127.0.0.1:${port}`);
+    const stream = client.request({ ':path': '/' });
+    let data = '';
+
+    stream.setEncoding('utf8');
+    stream.on('data', (chunk) => (data += chunk));
+    stream.on('error', reject);
+    stream.on('end', () => {
+      client.close();
+      resolve(data);
+    });
+
+    client.on('error', reject);
+    stream.end();
+  });
 }
 
 function scenarioSource(handlerBody) {
@@ -403,6 +424,40 @@ describe('Exchange', () => {
         assert.equal(await res.text(), 'true');
       } finally {
         await app.close();
+      }
+    });
+
+    it('should reject a server that is not an http server', async () => {
+      const workflow = createWorkflow((context) => {
+        let message = 'no error';
+
+        try {
+          Http1Http.useServer(context);
+        } catch (error) {
+          message = error.message;
+        }
+
+        useResponse(context).body.data = message;
+      });
+      const server = http2.createServer();
+      const sessions = new Set();
+
+      server.on('session', (session) => sessions.add(session));
+      await workflow
+        .withDeployer(Http2Http.Deployer.Http2HttpDeployer)
+        .deploy(server);
+      await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+      const { port } = server.address();
+
+      try {
+        assert.match(await h2Body(port), /NOT net\.Server/);
+      } finally {
+        for (const session of sessions) {
+          session.destroy();
+        }
+
+        await new Promise((resolve) => server.close(resolve));
       }
     });
   });

@@ -1,3 +1,4 @@
+import * as http from 'node:http';
 import * as http2 from 'node:http2';
 import { Readable } from 'node:stream';
 
@@ -13,6 +14,7 @@ import {
 } from '@produck/kitty-workflow';
 
 import * as Kit from '@produck/kit';
+import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
 import Distributor from './Distributor.mjs';
@@ -71,6 +73,27 @@ async function serve(handler) {
 
 const TIMEOUT = 3000;
 
+async function serveHttp1(handler) {
+  const workflow = createWorkflow(handler);
+  const server = http.createServer();
+
+  await workflow
+    .withDeployer(Http1Http.Deployer.Http1HttpDeployer)
+    .deploy(server);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  const { port } = server.address();
+
+  return {
+    origin: `http://127.0.0.1:${port}`,
+    close() {
+      server.closeAllConnections();
+
+      return new Promise((resolve) => server.close(resolve));
+    },
+  };
+}
+
 function probeDistributor(context) {
   return useRequest(context).body.data;
 }
@@ -107,6 +130,46 @@ function request(port, headers = {}, body = undefined) {
 }
 
 describe('Exchange', () => {
+  describe('useServer()', () => {
+    it('should answer the deployed server', async () => {
+      const app = await serve((context) => {
+        const server = Http2Http.useServer(context);
+
+        useResponse(context).body.data = String(server.listening);
+      });
+
+      try {
+        const res = await request(app.port);
+
+        assert.equal(res.data, 'true');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should reject a server that is not an http2 server', async () => {
+      const app = await serveHttp1((context) => {
+        let message = 'no error';
+
+        try {
+          Http2Http.useServer(context);
+        } catch (error) {
+          message = error.message;
+        }
+
+        useResponse(context).body.data = message;
+      });
+
+      try {
+        const res = await fetch(app.origin);
+
+        assert.match(await res.text(), /NOT http2\.Http2Server/);
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
   describe('.response.body', () => {
     it('should answer over a real h2 connection', async () => {
       const app = await serve((context) => {
@@ -136,6 +199,25 @@ describe('Exchange', () => {
         await app.close();
       }
     });
+
+    it('should end a response that carries no body', async () => {
+      const app = await serve((context) => {
+        const response = useResponse(context);
+
+        response.header.set('x-quiet', '1');
+        response.body.data = null;
+      });
+
+      try {
+        const res = await request(app.port);
+
+        assert.equal(res.status, 200);
+        assert.equal(res.headers['x-quiet'], '1');
+        assert.equal(res.data, '');
+      } finally {
+        await app.close();
+      }
+    });
   });
 
   describe('connection facts', () => {
@@ -158,6 +240,31 @@ describe('Exchange', () => {
 
         assert.equal(res.status, 202);
         assert.match(res.data, /^Http2Server http: 2\.0$/);
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe('.response.state', () => {
+    it('should report the status, the phrase and the finished flag', async () => {
+      const app = await serve((context) => {
+        const exchange = useExchange(context);
+        const response = exchange.response;
+
+        exchange.setStatus(201, 'Created');
+        useResponse(context).body.data = [
+          response.statusCode,
+          response.statusText,
+          response.isFinished,
+        ].join(' ');
+      });
+
+      try {
+        const res = await request(app.port);
+
+        assert.equal(res.status, 201);
+        assert.equal(res.data, '201 Created false');
       } finally {
         await app.close();
       }
@@ -206,6 +313,22 @@ describe('Exchange', () => {
       }
     });
 
+    it('should answer an absent header as undefined', async () => {
+      const app = await serve((context) => {
+        useResponse(context).body.data = String(
+          useRequest(context).header.get('x-absent'),
+        );
+      });
+
+      try {
+        const res = await request(app.port);
+
+        assert.equal(res.data, 'undefined');
+      } finally {
+        await app.close();
+      }
+    });
+
     it('should read the body through the distributor', async () => {
       const app = await serve(async (context) => {
         const chunks = [];
@@ -234,6 +357,28 @@ describe('Exchange', () => {
   });
 
   describe('::useHttp2Stream()', () => {
+    it('should refuse an exchange without a bound stream', async () => {
+      const app = await serveHttp1((context) => {
+        let message = 'no error';
+
+        try {
+          Http2Http.useHttp2Stream(context);
+        } catch (error) {
+          message = error.message;
+        }
+
+        useResponse(context).body.data = message;
+      });
+
+      try {
+        const res = await fetch(app.origin);
+
+        assert.match(await res.text(), /No raw stream is bound/);
+      } finally {
+        await app.close();
+      }
+    });
+
     it('should hand over the node stream and block the distributor path', async () => {
       const app = await serve(async (context) => {
         const chunks = [];

@@ -20,7 +20,7 @@ export function toHeaderValue(value) {
     return undefined;
   }
 
-  return Array.isArray(value) ? value.join(', ') : String(value);
+  return String(value);
 }
 
 function readHeader(headers, name) {

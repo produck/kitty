@@ -281,6 +281,17 @@ describe('Workflow', () => {
 
       await assert.rejects(() => handle.compile(new fixture.Server()));
     });
+
+    it('should reject a value outside the deployer contract', () => {
+      const workflow = Baseline.createWorkflow();
+
+      workflow.finalize();
+
+      assert.throws(
+        () => workflow.withDeployer(class NotADeployer {}),
+        /sub class of Deployer/,
+      );
+    });
   });
 
   describe('integration', () => {
