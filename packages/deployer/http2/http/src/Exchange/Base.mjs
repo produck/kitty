@@ -1,3 +1,5 @@
+import { Ow } from '@produck/argot';
+
 import * as Bridge from '../Bridge.mjs';
 
 export const identity = {
@@ -57,7 +59,7 @@ export const response = {
     get: ({ internal }) => Bridge.getResponse(internal.stream).status,
   },
   statusText: {
-    get: ({ internal }) => Bridge.getResponse(internal.stream).statusText,
+    get: () => Ow.Error.Common('The status text is HTTP/1.x only.'),
   },
   finished: {
     is: ({ internal }) => internal.stream.writableEnded,

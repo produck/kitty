@@ -96,6 +96,13 @@
     JSDoc：返回的是**活对象**，对它做 `for await` 或 `.on('data')`
     会从 distributor 通道抽走字节，得到短 body。仓库没有包级 README，
     所以风险落在悬停文档里。
+22. **`statusText` 在 h2 上写入被忽略、读取直接抛错**。h2 没有
+    reason phrase 字段（RFC 9113 §8.3.2），`:status` 只有数字。所以
+    `setStatus(code, text)` 的 `text` 校验照旧（抽象层的 `HeaderValue`），
+    但落到端口上什么也不做；`response.statusText` 的读端口直接抛
+    `The status text is HTTP/1.x only.`。选抛错而不是返回空串，是为了
+    让跨协议的差异在读到的那一刻暴露，而不是悄悄给个假值。状态码、
+    响应头、body 全都不受影响：404 照样能发 HTML。
 
 ## 精简依据
 
@@ -136,8 +143,6 @@ TLS createSecureServer({ allowHTTP1: true }) 同时挂 'stream' 与 'request'
 
 ## 待定
 
-- `setStatus(code, text)` 的 `text` 在 h2 下如何处置：丢弃、还是沿用
-  parser 约束？h2 无 reason phrase。
 - h2ws 的版本策略：按 `^0.1.0` 使用，等它稳定后再考虑放宽。
 - 测试端 WS 客户端：h2ws 删掉了 client，`ws` 的 `setSocket` 只服务
   服务端（`new WebSocket(null)` 会走 `_isServer`），所以 h2 侧测试

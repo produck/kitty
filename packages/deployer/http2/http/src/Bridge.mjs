@@ -12,7 +12,6 @@ export function getRaw(exchange) {
 function createResponse() {
   return {
     status: 200,
-    statusText: '',
     headers: new Map(),
     responded: false,
   };

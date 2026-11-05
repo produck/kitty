@@ -247,7 +247,7 @@ describe('Exchange', () => {
   });
 
   describe('.response.state', () => {
-    it('should report the status, the phrase and the finished flag', async () => {
+    it('should report the status and the finished flag', async () => {
       const app = await serve((context) => {
         const exchange = useExchange(context);
         const response = exchange.response;
@@ -255,7 +255,6 @@ describe('Exchange', () => {
         exchange.setStatus(201, 'Created');
         useResponse(context).body.data = [
           response.statusCode,
-          response.statusText,
           response.isFinished,
         ].join(' ');
       });
@@ -264,7 +263,29 @@ describe('Exchange', () => {
         const res = await request(app.port);
 
         assert.equal(res.status, 201);
-        assert.equal(res.data, '201 Created false');
+        assert.equal(res.data, '201 false');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should refuse to read the status text', async () => {
+      const app = await serve((context) => {
+        let message;
+
+        try {
+          message = useExchange(context).response.statusText;
+        } catch (error) {
+          message = error.message;
+        }
+
+        useResponse(context).body.data = message;
+      });
+
+      try {
+        const res = await request(app.port);
+
+        assert.match(res.data, /status text is HTTP\/1\.x only/);
       } finally {
         await app.close();
       }

@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream';
 
+import { noop } from '@produck/argot';
 import { Implement } from '@produck/kitty-workflow';
 
 import * as Bridge from '../Bridge.mjs';
@@ -33,9 +34,7 @@ export const options = Implement.Normalize.Exchange.Http({
     },
     statusText: {
       get: Base.response.statusText.get,
-      set: ({ internal }, value) => {
-        Bridge.getResponse(internal.stream).statusText = value;
-      },
+      set: noop,
     },
     header: {
       ...Base.response.header,

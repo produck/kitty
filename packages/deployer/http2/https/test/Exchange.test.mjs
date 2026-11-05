@@ -552,6 +552,36 @@ describe('Exchange', () => {
         await app.close();
       }
     });
+
+    it('should keep the status text for the http/1.1 client only', async () => {
+      const app = await serve((context) => {
+        const exchange = useExchange(context);
+        let text;
+
+        exchange.setStatus(202, 'Accepted');
+
+        try {
+          text = exchange.response.statusText;
+        } catch (error) {
+          text = error.message;
+        }
+
+        useResponse(context).body.data = text;
+      });
+
+      try {
+        const res2 = await requestH2(app.port);
+        const res1 = await requestH1(app.port);
+
+        assert.match(res2.data, /status text is HTTP\/1\.x only/);
+        assert.equal(res2.headers[':status'], 202);
+        assert.equal(res1.status, 202);
+        assert.equal(res1.statusText, 'Accepted');
+        assert.equal(res1.data, 'Accepted');
+      } finally {
+        await app.close();
+      }
+    });
   });
 
   describe('useServer()', () => {
