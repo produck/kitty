@@ -4,7 +4,7 @@ import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
 import * as Bridge from './Bridge.mjs';
 import * as Exchange from './Exchange/index.mjs';
-import { Http2SecureServer } from './Intrinsic.mjs';
+import * as Intrinsic from './Intrinsic.mjs';
 
 const http2 = Http2Http.Exchange.Http.options;
 
@@ -18,7 +18,7 @@ function enableConnectProtocol(session) {
 
 export const options = Implement.Normalize.Deployer({
   tag: '1,2:https',
-  server: Http2SecureServer,
+  server: Intrinsic.Http2SecureServer,
   exchange: { http: Exchange.Http.Exchange },
   install({
     Kit,

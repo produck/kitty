@@ -2,7 +2,7 @@ import { instanceOf, Ow } from '@produck/argot';
 import * as Workflow from '@produck/kitty-workflow';
 
 import * as Bridge from './Bridge.mjs';
-import { Http2Server } from './Intrinsic.mjs';
+import * as Intrinsic from './Intrinsic.mjs';
 
 export * as Exchange from './Exchange/index.mjs';
 export * as Deployer from './Deployer.mjs';
@@ -10,7 +10,7 @@ export * as Deployer from './Deployer.mjs';
 export function useServer(Kit) {
   const server = Workflow.useServer(Kit);
 
-  if (!instanceOf(server, Http2Server)) {
+  if (!instanceOf(server, Intrinsic.Http2Server)) {
     Ow.Error.Common('The server on kit is NOT http2.Http2Server.');
   }
 

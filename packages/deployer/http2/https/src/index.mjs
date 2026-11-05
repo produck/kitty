@@ -3,7 +3,7 @@ import * as Workflow from '@produck/kitty-workflow';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
-import { Http2SecureServer } from './Intrinsic.mjs';
+import * as Intrinsic from './Intrinsic.mjs';
 import * as Bridge from './Bridge.mjs';
 
 export * as Exchange from './Exchange/index.mjs';
@@ -12,7 +12,7 @@ export * as Deployer from './Deployer.mjs';
 export function useServer(Kit) {
   const server = Workflow.useServer(Kit);
 
-  if (!instanceOf(server, Http2SecureServer)) {
+  if (!instanceOf(server, Intrinsic.Http2SecureServer)) {
     Ow.Error.Common('The server on kit is NOT http2.Http2SecureServer.');
   }
 

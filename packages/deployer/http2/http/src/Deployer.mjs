@@ -3,7 +3,7 @@ import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
 
 import * as Bridge from './Bridge.mjs';
 import * as Exchange from './Exchange/index.mjs';
-import { Http2Server } from './Intrinsic.mjs';
+import * as Intrinsic from './Intrinsic.mjs';
 
 function isWebSocketConnect(headers) {
   return (
@@ -17,7 +17,7 @@ function enableConnectProtocol(session) {
 
 export const options = Implement.Normalize.Deployer({
   tag: '2:http',
-  server: Http2Server,
+  server: Intrinsic.Http2Server,
   exchange: { http: Exchange.Http.Exchange },
   install({
     Kit,
