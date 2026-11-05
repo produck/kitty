@@ -84,10 +84,18 @@ export function normalizeMutableResponse(_response) {
     ThrowTypeError('args[0].response.statusText.set', 'function');
   }
 
-  const { set: _setHeader, delete: _deleteHeader } = header;
+  const {
+    set: _setHeader,
+    append: _appendHeader,
+    delete: _deleteHeader,
+  } = header;
 
   if (!Is.Type.Function(_setHeader)) {
     ThrowTypeError('args[0].response.header.set', 'function');
+  }
+
+  if (!Is.Type.Function(_appendHeader)) {
+    ThrowTypeError('args[0].response.header.append', 'function');
   }
 
   if (!Is.Type.Function(_deleteHeader)) {
@@ -97,6 +105,7 @@ export function normalizeMutableResponse(_response) {
   response.status.set = _setStatus;
   response.statusText.set = _setStatusText;
   response.header.set = _setHeader;
+  response.header.append = _appendHeader;
   response.header.delete = _deleteHeader;
 
   return response;

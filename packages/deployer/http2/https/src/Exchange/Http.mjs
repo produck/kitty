@@ -83,6 +83,10 @@ export const options = Implement.Normalize.Exchange.Http({
         h1: ref.h1.response.header.set,
         h2: ref.h2.response.header.set,
       }),
+      append: VersionRoute.byContext({
+        h1: ref.h1.response.header.append,
+        h2: ref.h2.response.header.append,
+      }),
       delete: VersionRoute.byContext({
         h1: ref.h1.response.header.delete,
         h2: ref.h2.response.header.delete,

@@ -12,12 +12,13 @@ declare class ResponseHeader<
   constructor(exchange: Exchange.Abstract<Internal>);
 
   /**
-   * Reads one header; returns `undefined` when absent.
+   * Reads one header; returns `undefined` when absent. Repeated field lines
+   * answer an array, matching the platform behavior.
    *
    * @param key - Header name, any casing.
-   * @returns The header value, or `undefined` when absent.
+   * @returns The header value, a value list, or `undefined` when absent.
    */
-  get(key: string): string | undefined;
+  get(key: string): string | string[] | undefined;
 
   /**
    * Reports whether the header exists.

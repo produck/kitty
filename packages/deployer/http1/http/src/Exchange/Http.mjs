@@ -40,6 +40,9 @@ export const options = Implement.Normalize.Exchange.Http({
       set: ({ internal }, key, value) => {
         internal.res.setHeader(key, value);
       },
+      append: ({ internal }, key, value) => {
+        internal.res.appendHeader(key, value);
+      },
       delete: ({ internal }, key) => {
         internal.res.removeHeader(key);
       },

@@ -18,6 +18,10 @@ export default SCP(
       responseFacts.setHeader(internal, key, value);
     }
 
+    [SYMBOL.EXCHANGE_RESPONSE_MUTABLE_HEADER._I.APPEND](internal, key, value) {
+      responseFacts.appendHeader(internal, key, value);
+    }
+
     [SYMBOL.EXCHANGE_RESPONSE_MUTABLE_HEADER._I.DELETE](internal, key) {
       responseFacts.deleteHeader(internal, key);
     }

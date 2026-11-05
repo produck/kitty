@@ -44,7 +44,13 @@ export const response = {
   },
   header: {
     get: ({ internal }, key) => {
-      return toHeaderValue(internal.res.getHeader(key));
+      const value = internal.res.getHeader(key);
+
+      if (value === undefined || Array.isArray(value)) {
+        return value;
+      }
+
+      return String(value);
     },
     keys: ({ internal }) => internal.res.getHeaderNames(),
   },

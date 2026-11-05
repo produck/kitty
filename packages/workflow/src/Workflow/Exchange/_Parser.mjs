@@ -67,3 +67,18 @@ export function HeaderValueOrUndefined(value) {
 
   return value;
 }
+
+export function HeaderValuesOrUndefined(value) {
+  if (
+    value !== undefined &&
+    !Is.Type.String(value) &&
+    (!Array.isArray(value) || !value.every((item) => Is.Type.String(item)))
+  ) {
+    ThrowTypeError(
+      'member',
+      'a header value string, a string list or undefined',
+    );
+  }
+
+  return value;
+}

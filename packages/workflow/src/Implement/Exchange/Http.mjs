@@ -45,6 +45,7 @@ export function Http(options) {
         get: getResponseHeader,
         keys: getResponseHeaderKeys,
         set: setResponseHeader,
+        append: appendResponseHeader,
         delete: deleteResponseHeader,
       },
       body: {
@@ -109,6 +110,10 @@ export function Http(options) {
 
     [MUTABLE_RESPONSE_HEADER._I.SET](_internal, key, value) {
       setResponseHeader(this[I_OPTIONS_CONTEXT], key, value);
+    }
+
+    [MUTABLE_RESPONSE_HEADER._I.APPEND](_internal, key, value) {
+      appendResponseHeader(this[I_OPTIONS_CONTEXT], key, value);
     }
 
     [MUTABLE_RESPONSE_HEADER._I.DELETE](_internal, key) {

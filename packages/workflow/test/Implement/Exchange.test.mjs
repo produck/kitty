@@ -37,7 +37,13 @@ function createHttpOptions(patch = {}) {
     status: { get: () => 200, set: noop },
     statusText: { get: () => 'OK', set: noop },
     finished: { is: () => false },
-    header: { get: () => undefined, keys: () => [], set: noop, delete: noop },
+    header: {
+      get: () => undefined,
+      keys: () => [],
+      set: noop,
+      append: noop,
+      delete: noop,
+    },
     body: { data: { set: noop } },
   };
 
@@ -112,6 +118,32 @@ describe('Http()', () => {
       const options = createHttpOptions();
 
       options.response.header = { get: () => undefined, keys: () => [] };
+
+      assert.throws(() => Baseline.Kitty.Implement.Exchange.Http(options));
+    });
+
+    it('should require the mutable response appender', () => {
+      const options = createHttpOptions();
+
+      options.response.header = {
+        get: () => undefined,
+        keys: () => [],
+        set: noop,
+        delete: noop,
+      };
+
+      assert.throws(() => Baseline.Kitty.Implement.Exchange.Http(options));
+    });
+
+    it('should require the mutable response remover', () => {
+      const options = createHttpOptions();
+
+      options.response.header = {
+        get: () => undefined,
+        keys: () => [],
+        set: noop,
+        append: noop,
+      };
 
       assert.throws(() => Baseline.Kitty.Implement.Exchange.Http(options));
     });
@@ -266,6 +298,18 @@ function createHttpAccessors(state) {
         set: (_context, key, value) => {
           state.responseHeaders.set(key.toLowerCase(), value);
         },
+        append: (_context, key, value) => {
+          const name = key.toLowerCase();
+          const current = state.responseHeaders.get(name);
+
+          if (current === undefined) {
+            state.responseHeaders.set(name, value);
+          } else if (Array.isArray(current)) {
+            current.push(value);
+          } else {
+            state.responseHeaders.set(name, [current, value]);
+          }
+        },
         delete: (_context, key) => {
           state.responseHeaders.delete(key.toLowerCase());
         },
@@ -412,6 +456,14 @@ describe('implemented exchange', () => {
       state.exchange.response.header.delete('x-probe');
 
       assert.deepEqual(state.exchange.response.header.keys(), []);
+
+      state.exchange.response.header.append('Set-Cookie', 'a=1');
+      state.exchange.response.header.append('set-cookie', 'b=2');
+
+      assert.deepEqual(state.exchange.response.header.get('set-cookie'), [
+        'a=1',
+        'b=2',
+      ]);
 
       const stream = new ReadableStream();
 

@@ -14,6 +14,15 @@ declare class MutableResponseHeader<
   set(key: string, value: string): void;
 
   /**
+   * Appends one header line, keeping the values already written under that
+   * name. Reads back as an array once more than one value is stored.
+   *
+   * @param key - Header name; single-valued fields are refused.
+   * @param value - Header value; must be free of control characters.
+   */
+  append(key: string, value: string): void;
+
+  /**
    * Removes a header.
    *
    * @param key - Header name, any casing.
@@ -31,6 +40,15 @@ declare class MutableResponseHeader<
    * @param value - Header value.
    */
   [_Symbol._I.SET](internal: Internal, key: string, value: string): void;
+
+  /**
+   * Implementation: appends one header line.
+   *
+   * @param internal - Connection record supplied by the deployer.
+   * @param key - Header name.
+   * @param value - Header value.
+   */
+  [_Symbol._I.APPEND](internal: Internal, key: string, value: string): void;
 
   /**
    * Implementation: removes one header.

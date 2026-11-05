@@ -457,6 +457,29 @@ describe('Exchange', () => {
   });
 
   describe('.response.header', () => {
+    it('should append repeated values under one name', async () => {
+      const app = await serve((context) => {
+        const response = useResponse(context);
+
+        response.header.append('set-cookie', 'a=1');
+        response.header.append('Set-Cookie', 'b=2');
+        response.header.append('x-list', 'one');
+        response.header.append('x-list', 'two');
+        response.header.append('x-list', 'three');
+
+        response.body.data = String(response.header.get('x-list'));
+      });
+
+      try {
+        const res = await request(app.port);
+
+        assert.equal(res.data, 'one,two,three');
+        assert.deepEqual(res.headers['set-cookie'], ['a=1', 'b=2']);
+        assert.equal(res.headers['x-list'], 'one, two, three');
+      } finally {
+        await app.close();
+      }
+    });
     it('should set, read and delete a header', async () => {
       const app = await serve((context) => {
         const response = useResponse(context);

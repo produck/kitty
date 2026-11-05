@@ -44,6 +44,19 @@ export const options = Implement.Normalize.Exchange.Http({
           value,
         );
       },
+      append: ({ internal }, key, value) => {
+        const { headers } = Bridge.getResponse(internal.stream);
+        const name = key.toLowerCase();
+        const current = headers.get(name);
+
+        if (current === undefined) {
+          headers.set(name, value);
+        } else if (Array.isArray(current)) {
+          current.push(value);
+        } else {
+          headers.set(name, [current, value]);
+        }
+      },
       delete: ({ internal }, key) => {
         Bridge.getResponse(internal.stream).headers.delete(key.toLowerCase());
       },

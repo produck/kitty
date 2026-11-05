@@ -32,7 +32,7 @@ export default Abstract(
   Abstract({
     [_I.GET]: M.Method()
       .args(M.Any, M.String)
-      .returns(P.HeaderValueOrUndefined),
+      .returns(P.HeaderValuesOrUndefined),
     [_I.KEYS]: M.Method().args(M.Any).returns(P.Iterable),
   }),
 );

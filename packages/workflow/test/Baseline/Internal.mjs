@@ -41,6 +41,19 @@ export function deleteHeader(internal, key) {
   internal.responseHeaders.delete(key.toLowerCase());
 }
 
+export function appendHeader(internal, key, value) {
+  const name = key.toLowerCase();
+  const current = internal.responseHeaders.get(name);
+
+  if (current === undefined) {
+    internal.responseHeaders.set(name, value);
+  } else if (Array.isArray(current)) {
+    current.push(value);
+  } else {
+    internal.responseHeaders.set(name, [current, value]);
+  }
+}
+
 export function listHeaders(internal) {
   return [...internal.responseHeaders.keys()];
 }
@@ -81,6 +94,7 @@ export const responseFacts = Object.freeze({
   header: readHeader,
   keys: listHeaders,
   setHeader: writeHeader,
+  appendHeader: appendHeader,
   deleteHeader: deleteHeader,
 });
 

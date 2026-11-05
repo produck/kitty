@@ -52,7 +52,7 @@ export interface Header {
    * @param key - Header name.
    * @returns The header value, or `undefined`.
    */
-  get(context: unknown, key: string): string | undefined;
+  get(context: unknown, key: string): string | string[] | undefined;
 
   /**
    * Lists every header name.
@@ -73,6 +73,15 @@ export interface MutableHeader extends Header {
    * @param value - Header value.
    */
   set(context: unknown, key: string, value: string): void;
+
+  /**
+   * Appends one header line.
+   *
+   * @param context - Raw connection context.
+   * @param key - Header name.
+   * @param value - Header value.
+   */
+  append(context: unknown, key: string, value: string): void;
 
   /**
    * Removes one header.

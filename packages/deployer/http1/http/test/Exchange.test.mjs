@@ -435,6 +435,29 @@ describe('Exchange', () => {
         await app.close();
       }
     });
+
+    it('should append repeated values under one name', async () => {
+      const app = await serve((context) => {
+        const response = useResponse(context);
+
+        response.header.append('set-cookie', 'a=1');
+        response.header.append('Set-Cookie', 'b=2');
+        response.header.append('x-list', 'one');
+        response.header.append('x-list', 'two');
+
+        response.body.data = String(response.header.get('x-list'));
+      });
+
+      try {
+        const res = await request(`${app.origin}/append`);
+
+        assert.equal(await res.text(), 'one,two');
+        assert.deepEqual(res.headers.getSetCookie(), ['a=1', 'b=2']);
+        assert.equal(res.headers.get('x-list'), 'one, two');
+      } finally {
+        await app.close();
+      }
+    });
   });
 
   describe('useServer()', () => {
