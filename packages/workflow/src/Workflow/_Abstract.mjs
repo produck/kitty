@@ -1,10 +1,11 @@
-import { Ow, ThrowTypeError } from '@produck/argot';
+import { CONSTRUCTOR, Ow, ThrowTypeError } from '@produck/argot';
 import * as Kit from '@produck/kit';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import * as Composer from '@produck/compose';
 
-import { I, $I, _I } from './_Symbol.mjs';
+import { I, S, $I, _I } from './_Symbol.mjs';
 import * as Deployment from './Deployment/index.mjs';
+import * as HeaderSpecification from './HeaderSpecification/index.mjs';
 import * as P from './_Parser.mjs';
 
 const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
@@ -12,6 +13,14 @@ const DEFAULT_PASSTHROUGH = (_ctx, next) => next();
 export const K_WORKFLOW = Symbol('WorkflowKit.Workflow');
 
 class Workflow {
+  static get HeaderSpecification() {
+    if (!Object.hasOwn(this, S.HEADER_SPECIFICATION)) {
+      this[S.HEADER_SPECIFICATION] = new HeaderSpecification.Concrete();
+    }
+
+    return this[S.HEADER_SPECIFICATION];
+  }
+
   [I.HANDLER_LIST] = [];
   [$I.PIPELINE] = DEFAULT_PASSTHROUGH;
 
@@ -22,12 +31,19 @@ class Workflow {
 
     const WorkflowKit = ExternalKit('Kitty<Workflow>');
 
+    this[CONSTRUCTOR] = new.target;
     this[I.KIT] = WorkflowKit;
     WorkflowKit[K_WORKFLOW] = $(this);
   }
+
   get [$I.KIT]() {
     return this[I.KIT];
   }
+
+  get [$I.HEADER_SPECIFICATION]() {
+    return this[CONSTRUCTOR].HeaderSpecification;
+  }
+
   [$I.COMPOSE.PREPEND](...handler) {
     this[$I.PIPELINE] = Composer.compose(...handler, this[$I.PIPELINE]);
   }

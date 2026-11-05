@@ -7,13 +7,24 @@ import Distributor from './Distributor.mjs';
 const DEFAULT_NORMALIZE = () => ({ stream: null, length: 0 });
 
 export function createWorkflowClass(options = {}) {
-  const { normalize = DEFAULT_NORMALIZE, deployers = [] } = options;
+  const {
+    base = Abstract.Workflow,
+    normalize = DEFAULT_NORMALIZE,
+    deployers = [],
+    specification = undefined,
+  } = options;
 
-  const Workflow = class extends Abstract.Workflow {
+  const Workflow = class extends base {
     [SYMBOL.WORKFLOW._I.NORMALIZE_HTTP_RESPONSE_BODY_DATA](value) {
       return normalize(value);
     }
   };
+
+  if (specification !== undefined) {
+    Object.defineProperty(Workflow, 'HeaderSpecification', {
+      value: specification,
+    });
+  }
 
   for (const Deployer of deployers) {
     Workflow.DeployerRegistry.register(Deployer);

@@ -2,8 +2,7 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 
 import * as Header from '../Header/index.mjs';
 import * as P from './_Parser.mjs';
-import { PART } from './_Borrow.mjs';
-import * as Single from './_Appendable.mjs';
+import { HEADER_SPECIFICATION, PART, WORKFLOW } from './_Borrow.mjs';
 import { _I } from './_Symbol.mjs';
 
 class MutableResponseHeader extends Header.Abstract {
@@ -16,7 +15,10 @@ class MutableResponseHeader extends Header.Abstract {
   append(key, value) {
     P.HeaderName(key);
     P.HeaderValue(value);
-    Single.assertAppendable(key);
+
+    const specification = this.workflow[WORKFLOW.$I.HEADER_SPECIFICATION];
+
+    specification[HEADER_SPECIFICATION.$I.ASSERT_APPENDABLE](key);
     this[_I.APPEND](this[PART.$I.INTERNAL], key, value);
   }
 

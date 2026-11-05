@@ -44,14 +44,6 @@ export function ServerProtocol(value) {
   return value;
 }
 
-export function HeaderName(value) {
-  if (!Is.Type.String(value) || value.length === 0) {
-    ThrowTypeError('member', 'a non-empty header name string');
-  }
-
-  return value;
-}
-
 export function HeaderValue(value) {
   if (!Is.Type.String(value)) {
     ThrowTypeError('member', 'a header value string');
