@@ -3,82 +3,22 @@
  * ready-to-use products.
  */
 export declare const Abstract: Readonly<{
-  /**
-   * Compound workflow: pipeline + mixin + deployment entry; declares the
-   * response body normalization slot.
-   */
   Workflow: typeof import('./CompoundWorkflow/index.d.mts').Abstract;
-
-  /**
-   * Deployer: instance-level abstraction; `_I.INSTALL` is the only deployment
-   * definition entry.
-   */
   Deployer: typeof import('./CompoundWorkflow/Deployer/index.d.mts').Abstract;
-
-  /**
-   * Plugin: attaches capabilities to the workflow kit; can only be mixed in
-   * before finalize.
-   */
   Plugin: typeof import('./CompoundWorkflow/Plugin/index.d.mts').Abstract;
-
-  /**
-   * Exchange shell: protocol agnostic; request and response are provided by
-   * subclasses.
-   */
   Exchange: typeof import('./Workflow/Exchange/index.d.mts').Abstract;
-
-  /**
-   * Request part: `method` and `url` come from abstract slots; `url` accepts
-   * relative targets.
-   */
   ExchangeRequest: typeof import('./Workflow/Exchange/Request/index.d.mts').Abstract;
-
-  /** Request header part: read-only view; `get` is case-insensitive. */
   ExchangeRequestHeader: typeof import('./Workflow/Exchange/Request/Header/index.d.mts').Abstract;
-
-  /** Response part: `statusCode` / `statusText` / `isFinished`. */
   ExchangeResponse: typeof import('./Workflow/Exchange/Response/index.d.mts').Abstract;
-
-  /** Response header part: read-only view; `get` is case-insensitive. */
   ExchangeResponseHeader: typeof import('./Workflow/Exchange/Response/Header/index.d.mts').Abstract;
-
-  /** Mutable response: `setStatus` writes status code and reason phrase. */
   ExchangeMutableResponse: typeof import('./Workflow/Exchange/MutableResponse/index.d.mts').Abstract;
-
-  /** Mutable response header: `set` / `delete` / `clear`. */
   ExchangeMutableHeader: typeof import('./Workflow/Exchange/Response/MutableHeader/index.d.mts').Abstract;
-
-  /**
-   * HTTP exchange: `mode` is always `'http'`; carries request and response
-   * bodies.
-   */
   HttpExchange: typeof import('./CompoundWorkflow/HttpExchange/index.d.mts').Abstract;
-
-  /**
-   * HTTP request: its body is readable only for methods allowed by
-   * `AllowedBodyMethods`.
-   */
   HttpRequest: typeof import('./CompoundWorkflow/HttpExchange/Request/index.d.mts').Abstract;
-
-  /** HTTP request body: every `data` access forks a fresh stream. */
   HttpRequestBody: typeof import('./CompoundWorkflow/HttpExchange/Request/Body/index.d.mts').Abstract;
-
-  /** HTTP response: carries a writable body. */
   HttpResponse: typeof import('./CompoundWorkflow/HttpExchange/Response/index.d.mts').Abstract;
-
-  /**
-   * HTTP response body: write entry; `data` is shaped as
-   * `{ stream, length }`.
-   */
   HttpResponseBody: typeof import('./CompoundWorkflow/HttpExchange/Response/Body/index.d.mts').Abstract;
-
-  /**
-   * WebSocket exchange: represents the whole connection; the controller is the
-   * subject.
-   */
   WebSocketExchange: typeof import('./CompoundWorkflow/WebSocketExchange/index.d.mts').Abstract;
-
-  /** WebSocket controller: `readyState` / `send` / `close`. */
   WebSocketController: typeof import('./CompoundWorkflow/WebSocketExchange/Controller/index.d.mts').Abstract;
 }>;
 
@@ -184,28 +124,24 @@ export declare const SYMBOL: Readonly<{
   /** Deployer: install entry plus static slots. */
   DEPLOYER: Readonly<{
     _I: typeof import('./CompoundWorkflow/Deployer/_Symbol.d.mts')._I;
-
     _S: typeof import('./CompoundWorkflow/Deployer/_Symbol.d.mts')._S;
   }>;
 
   /** Plugin: install entry plus static slots. */
   PLUGIN: Readonly<{
     _I: typeof import('./CompoundWorkflow/Plugin/_Symbol.d.mts')._I;
-
     _S: typeof import('./CompoundWorkflow/Plugin/_Symbol.d.mts')._S;
   }>;
 
   /** Abstract slots of the exchange shell. */
   EXCHANGE: Readonly<{
     _I: typeof import('./Workflow/Exchange/_Symbol.d.mts')._I;
-
     _S: typeof import('./Workflow/Exchange/_Symbol.d.mts')._S;
   }>;
 
   /** Abstract slots of the request part. */
   EXCHANGE_REQUEST: Readonly<{
     _I: typeof import('./Workflow/Exchange/Request/_Symbol.d.mts')._I;
-
     _S: typeof import('./Workflow/Exchange/Request/_Symbol.d.mts')._S;
   }>;
 
@@ -217,7 +153,6 @@ export declare const SYMBOL: Readonly<{
   /** Abstract slots of the response part. */
   EXCHANGE_RESPONSE: Readonly<{
     _I: typeof import('./Workflow/Exchange/Response/_Symbol.d.mts')._I;
-
     _S: typeof import('./Workflow/Exchange/Response/_Symbol.d.mts')._S;
   }>;
 
@@ -272,32 +207,24 @@ export declare const SYMBOL: Readonly<{
   }>;
 }>;
 
-/** Controller event constants and the `Close` event class. */
-export declare const WebSocketControllerEvent: typeof import('./CompoundWorkflow/WebSocketExchange/Controller/Event.d.mts');
-
-/** Configuration writer; its key set matches `Configuration`. */
 export declare const Tune: typeof import('./CompoundWorkflow/Configuration/index.d.mts').Tune;
 
-/** Configuration reader; valid only for a workflow that installed it. */
 export declare const Get: typeof import('./CompoundWorkflow/Configuration/index.d.mts').Get;
+
+/** Capability namespace keyed by part: `Use.Server`, `Use.Exchange`, ... */
+export declare const Use: typeof import('./Use.d.mts');
 
 /** Implementation definer: hands out a whole set of constructors at once. */
 export declare const Implement: typeof import('./Implement/index.d.mts');
 
-/** Reads the owning workflow from a kit. */
 export declare const useWorkflow: typeof import('./Capability.d.mts').useWorkflow;
 
-/** Reads the target server from a kit. */
 export declare const useServer: typeof import('./Capability.d.mts').useServer;
 
-/** Reads the current exchange from a kit. */
 export declare const useExchange: typeof import('./Capability.d.mts').useExchange;
 
-/** Reads the current request part from a kit. */
 export declare const useRequest: typeof import('./Capability.d.mts').useRequest;
 
-/** Reads the current response part from a kit. */
 export declare const useResponse: typeof import('./Capability.d.mts').useResponse;
 
-/** Reads the WebSocket controller from a kit. */
 export declare const useWebSocket: typeof import('./Capability.d.mts').useWebSocket;

@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import * as Baseline from '../Baseline/index.mjs';
-
-const KittyEvent = Baseline.Kitty.WebSocketControllerEvent;
+import * as KittyEvent from '../../src/CompoundWorkflow/WebSocketExchange/Controller/Event.mjs';
 
 describe('WebSocketControllerEvent', () => {
   describe('::TYPE', () => {

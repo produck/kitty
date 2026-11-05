@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import * as Baseline from '../Baseline/index.mjs';
+import * as ControllerEvent from '../../src/CompoundWorkflow/WebSocketExchange/Controller/Event.mjs';
 
 function createSocket() {
   return { readyState: 1, sent: [], closed: null };
@@ -304,11 +305,8 @@ describe('WebSocketController', () => {
 
       const [event] = received;
 
-      assert.ok(event instanceof Baseline.Kitty.WebSocketControllerEvent.Close);
-      assert.equal(
-        event.type,
-        Baseline.Kitty.WebSocketControllerEvent.TYPE.CLOSE,
-      );
+      assert.ok(event instanceof ControllerEvent.Close);
+      assert.equal(event.type, ControllerEvent.TYPE.CLOSE);
       assert.equal(event.code, 1000);
       assert.equal(event.reason, 'done');
     });
@@ -342,13 +340,8 @@ describe('WebSocketController', () => {
 
       const [event] = received;
 
-      assert.ok(
-        event instanceof Baseline.Kitty.WebSocketControllerEvent.Message,
-      );
-      assert.equal(
-        event.type,
-        Baseline.Kitty.WebSocketControllerEvent.TYPE.MESSAGE,
-      );
+      assert.ok(event instanceof ControllerEvent.Message);
+      assert.equal(event.type, ControllerEvent.TYPE.MESSAGE);
       assert.equal(event.data, 'probe');
       assert.equal(event.isBinary, false);
     });
@@ -367,10 +360,7 @@ describe('WebSocketController', () => {
 
       assert.equal(received.length, 1);
       assert.equal(received[0].error, error);
-      assert.equal(
-        received[0].type,
-        Baseline.Kitty.WebSocketControllerEvent.TYPE.ERROR,
-      );
+      assert.equal(received[0].type, ControllerEvent.TYPE.ERROR);
     });
   });
 });

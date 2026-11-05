@@ -1,10 +1,8 @@
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
-import {
-  Abstract,
-  SYMBOL,
-  WebSocketControllerEvent,
-} from '@produck/kitty-workflow';
+import { Abstract, SYMBOL } from '@produck/kitty-workflow';
+
+import * as WebSocketControllerEvent from '../../src/CompoundWorkflow/WebSocketExchange/Controller/Event.mjs';
 
 export default SCP(
   class WebSocketController extends Abstract.WebSocketController {
