@@ -100,9 +100,9 @@ export declare function useAlpnProtocol(
 ): string | false;
 
 /**
- * Hands over the raw `http.IncomingMessage` of the current exchange.
+ * Hands over the raw `http.IncomingMessage` and claims the raw path.
  *
- * Only available for HTTP/1.1 exchanges; an HTTP/2 exchange on the same
+ * Only available for HTTP/1.x exchanges; an HTTP/2 exchange on the same
  * server raises an error, since it has no incoming message.
  *
  * @param args - Same arguments as the workflow capability.
@@ -113,14 +113,36 @@ export declare function useHttp1Request(
 ): http.IncomingMessage;
 
 /**
- * Hands over the raw `http2.ServerHttp2Stream` of the current exchange.
+ * Hands over the raw `http.IncomingMessage` without claiming the raw path,
+ * leaving the body with the distributor. For inspection only.
  *
- * Only available for HTTP/2 exchanges; an HTTP/1.1 exchange on the same
+ * @param args - Same arguments as the workflow capability.
+ * @returns The node request bound to the exchange.
+ */
+export declare function inspectHttp1Request(
+  ...args: Parameters<typeof Workflow.useExchange>
+): http.IncomingMessage;
+
+/**
+ * Hands over the raw `http2.ServerHttp2Stream` and claims the raw path.
+ *
+ * Only available for HTTP/2 exchanges; an HTTP/1.x exchange on the same
  * server raises an error, since it has no h2 stream.
  *
  * @param args - Same arguments as the workflow capability.
  * @returns The h2 stream bound to the exchange.
  */
 export declare function useHttp2Stream(
+  ...args: Parameters<typeof Workflow.useExchange>
+): http2.ServerHttp2Stream;
+
+/**
+ * Hands over the raw `http2.ServerHttp2Stream` without claiming the raw
+ * path, leaving the body with the distributor. For inspection only.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The h2 stream bound to the exchange.
+ */
+export declare function inspectHttp2Stream(
   ...args: Parameters<typeof Workflow.useExchange>
 ): http2.ServerHttp2Stream;

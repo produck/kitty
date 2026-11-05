@@ -303,6 +303,33 @@ describe('Exchange', () => {
   });
 
   describe('useHttp1Request()', () => {
+    it('should keep the distributor path when inspecting', async () => {
+      const app = await serve(async (context) => {
+        const peeked = Http1Http.inspectHttp1Request(context);
+        const chunks = [];
+
+        for await (const chunk of useRequest(context).body.data) {
+          chunks.push(chunk);
+        }
+
+        useResponse(context).body.data = [
+          peeked.method,
+          Buffer.concat(chunks).toString(),
+        ].join(' ');
+      });
+
+      try {
+        const res = await request(`${app.origin}/peek`, {
+          body: 'intact',
+          method: 'POST',
+        });
+
+        assert.equal(await res.text(), 'POST intact');
+      } finally {
+        await app.close();
+      }
+    });
+
     it('should hand out the raw request stream', async () => {
       const app = await serve(async (context) => {
         const chunks = [];

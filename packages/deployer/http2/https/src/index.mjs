@@ -50,18 +50,39 @@ export function useAlpnProtocol(Kit) {
   return getSocket(Kit).alpnProtocol;
 }
 
-export function useHttp1Request(Kit) {
-  if (Workflow.useExchange(Kit).httpVersion !== '1.1') {
-    Ow.Error.Common('The raw request is HTTP/1.1 only.');
+const VERSION_MESSAGE = {
+  ['1']: 'The raw request is HTTP/1.x only.',
+  ['2']: 'The raw stream is HTTP/2 only.',
+};
+
+function assertProtocol(Kit, major) {
+  const { httpVersion } = Workflow.useExchange(Kit);
+
+  if (!httpVersion.startsWith(`${major}.`)) {
+    Ow.Error.Common(VERSION_MESSAGE[major]);
   }
+}
+
+export function useHttp1Request(Kit) {
+  assertProtocol(Kit, '1');
 
   return Http1Http.useHttp1Request(Kit);
 }
 
+export function inspectHttp1Request(Kit) {
+  assertProtocol(Kit, '1');
+
+  return Http1Http.inspectHttp1Request(Kit);
+}
+
 export function useHttp2Stream(Kit) {
-  if (Workflow.useExchange(Kit).httpVersion !== '2.0') {
-    Ow.Error.Common('The raw stream is HTTP/2 only.');
-  }
+  assertProtocol(Kit, '2');
 
   return Http2Http.useHttp2Stream(Kit);
+}
+
+export function inspectHttp2Stream(Kit) {
+  assertProtocol(Kit, '2');
+
+  return Http2Http.inspectHttp2Stream(Kit);
 }

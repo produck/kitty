@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import * as http2 from 'node:http2';
 import { request as request1 } from 'node:https';
 import { Readable } from 'node:stream';
+import { connect as tlsConnect } from 'node:tls';
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -113,6 +114,26 @@ function requestH2(port, headers = {}, body = undefined, options = {}) {
   });
 }
 
+function requestHttp10(port) {
+  return new Promise((resolve, reject) => {
+    const socket = tlsConnect(
+      { host: '127.0.0.1', port, rejectUnauthorized: false },
+      () => {
+        socket.write(
+          ['GET /raw HTTP/1.0', 'Host: 127.0.0.1', '', ''].join('\r\n'),
+        );
+      },
+    );
+
+    let data = '';
+
+    socket.setEncoding('utf8');
+    socket.on('data', (chunk) => (data += chunk));
+    socket.on('error', reject);
+    socket.on('end', () => resolve(data.split('\r\n\r\n')[1] ?? ''));
+  });
+}
+
 function requestH1(port, options = {}, body = undefined) {
   return new Promise((resolve, reject) => {
     const req = request1(
@@ -201,6 +222,30 @@ describe('Exchange', () => {
       }
     });
 
+    it('should keep the distributor path when inspecting', async () => {
+      const app = await serve(async (context) => {
+        const peeked = Http2Https.inspectHttp2Stream(context);
+        const chunks = [];
+
+        for await (const chunk of useRequest(context).body.data) {
+          chunks.push(chunk);
+        }
+
+        useResponse(context).body.data = [
+          peeked.id,
+          Buffer.concat(chunks).toString('utf8'),
+        ].join(' ');
+      });
+
+      try {
+        const res = await requestH2(app.port, { ':method': 'POST' }, 'intact');
+
+        assert.match(res.data, /^\d+ intact$/);
+      } finally {
+        await app.close();
+      }
+    });
+
     it('should hand over the raw stream', async () => {
       const app = await serve(async (context) => {
         const chunks = [];
@@ -243,7 +288,7 @@ describe('Exchange', () => {
       try {
         const res = await requestH2(app.port);
 
-        assert.match(res.data, /HTTP\/1\.1 only/);
+        assert.match(res.data, /HTTP\/1\.x only/);
       } finally {
         await app.close();
       }
@@ -357,6 +402,34 @@ describe('Exchange', () => {
       }
     });
 
+    it('should keep the distributor path when inspecting', async () => {
+      const app = await serve(async (context) => {
+        const peeked = Http2Https.inspectHttp1Request(context);
+        const chunks = [];
+
+        for await (const chunk of useRequest(context).body.data) {
+          chunks.push(chunk);
+        }
+
+        useResponse(context).body.data = [
+          peeked.method,
+          Buffer.concat(chunks).toString('utf8'),
+        ].join(' ');
+      });
+
+      try {
+        const res = await requestH1(
+          app.port,
+          { method: 'POST', headers: { 'content-type': 'text/plain' } },
+          'intact',
+        );
+
+        assert.equal(res.data, 'POST intact');
+      } finally {
+        await app.close();
+      }
+    });
+
     it('should hand over the raw request', async () => {
       const app = await serve(async (context) => {
         const chunks = [];
@@ -378,6 +451,19 @@ describe('Exchange', () => {
         );
 
         assert.equal(res.data, 'RAW H1 BODY');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should hand over the raw request of an http/1.0 client', async () => {
+      const app = await serve((context) => {
+        useResponse(context).body.data =
+          Http2Https.useHttp1Request(context).httpVersion;
+      });
+
+      try {
+        assert.equal(await requestHttp10(app.port), '1.0');
       } finally {
         await app.close();
       }

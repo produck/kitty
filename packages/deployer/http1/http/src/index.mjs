@@ -18,7 +18,7 @@ export function useServer(Kit) {
   return server;
 }
 
-export function useHttp1Request(Kit) {
+function findRawRequest(Kit) {
   const exchange = Workflow.useExchange(Kit);
   const entry = Bridge.getRaw(exchange);
 
@@ -26,7 +26,17 @@ export function useHttp1Request(Kit) {
     Ow.Error.Common('No raw request is bound to the exchange.');
   }
 
+  return entry;
+}
+
+export function useHttp1Request(Kit) {
+  const entry = findRawRequest(Kit);
+
   entry.body.claimRaw();
 
   return entry.raw;
+}
+
+export function inspectHttp1Request(Kit) {
+  return findRawRequest(Kit).raw;
 }

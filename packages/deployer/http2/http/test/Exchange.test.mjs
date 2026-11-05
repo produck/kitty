@@ -357,6 +357,30 @@ describe('Exchange', () => {
   });
 
   describe('::useHttp2Stream()', () => {
+    it('should keep the distributor path when inspecting', async () => {
+      const app = await serve(async (context) => {
+        const peeked = Http2Http.inspectHttp2Stream(context);
+        const chunks = [];
+
+        for await (const chunk of useRequest(context).body.data) {
+          chunks.push(chunk);
+        }
+
+        useResponse(context).body.data = [
+          peeked.id,
+          Buffer.concat(chunks).toString(),
+        ].join(' ');
+      });
+
+      try {
+        const res = await request(app.port, { ':method': 'POST' }, 'intact');
+
+        assert.match(res.data, /^\d+ intact$/);
+      } finally {
+        await app.close();
+      }
+    });
+
     it('should refuse an exchange without a bound stream', async () => {
       const app = await serveHttp1((context) => {
         let message = 'no error';

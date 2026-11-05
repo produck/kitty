@@ -17,7 +17,7 @@ export function useServer(Kit) {
   return server;
 }
 
-export function useHttp2Stream(Kit) {
+function findRawStream(Kit) {
   const exchange = Workflow.useExchange(Kit);
   const entry = Bridge.getRaw(exchange);
 
@@ -25,7 +25,17 @@ export function useHttp2Stream(Kit) {
     Ow.Error.Common('No raw stream is bound to the exchange.');
   }
 
+  return entry;
+}
+
+export function useHttp2Stream(Kit) {
+  const entry = findRawStream(Kit);
+
   entry.body.claimRaw();
 
   return entry.stream;
+}
+
+export function inspectHttp2Stream(Kit) {
+  return findRawStream(Kit).stream;
 }

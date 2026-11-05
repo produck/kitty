@@ -87,6 +87,15 @@
     `stream.respond()` 时一次性发出。所以状态与待发 headers 存在
     `Bridge` 的 `WeakMap<stream, response>` 里，写 body 时一并 respond。
     1.1 侧直接读写 `res`，不经过 Bridge。
+21. **raw 出口按意图拆成 `use*` / `inspect*` 两个函数**。`use*`（`useHttp1Request`
+    / `useHttp2Stream`）拿走原始路径，distributor 随即失效；`inspect*`
+    只取对象、不 `claimRaw()`，用于只读元信息（`req.socket`、
+    `stream.session`）。不用布尔参数：`false` 这种位置开关读不出意图，
+    而且"危险行为是默认值"本身就不该靠记忆区分。两者共享同一个查找
+    函数，https 包再共享一个版本断言。风险写进两个 `inspect*` 的声明
+    JSDoc：返回的是**活对象**，对它做 `for await` 或 `.on('data')`
+    会从 distributor 通道抽走字节，得到短 body。仓库没有包级 README，
+    所以风险落在悬停文档里。
 
 ## 精简依据
 
@@ -133,8 +142,3 @@ TLS createSecureServer({ allowHTTP1: true }) 同时挂 'stream' 与 'request'
 - 测试端 WS 客户端：h2ws 删掉了 client，`ws` 的 `setSocket` 只服务
   服务端（`new WebSocket(null)` 会走 `_isServer`），所以 h2 侧测试
   自建帧编解码（客户端帧要加掩码）；1.1 侧直接用 `ws` 客户端。
-- `useHttp1Request` / `useHttp2Stream` 是否加第二参 `claimRaw = true`：
-  传 `false` 只取对象、不 `claimRaw()`，用于只读元信息（如
-  `stream.session`）。一旦加上，README 必须写清风险：返回的是活对象，
-  对它做 `for await` 或 `.on('data')` 会从 distributor 通道里抽走字节，
-  得到短 body。

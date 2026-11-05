@@ -48,13 +48,24 @@ export declare function useServer(
 ): http2.Http2Server;
 
 /**
- * Claims the raw stream path of the exchange and answers the node stream.
- * Once claimed, the request body is no longer readable through the
- * distributor.
+ * Answers the node stream behind the exchange and claims the raw path:
+ * `request.body.data` throws afterwards.
  *
  * @param args - Same arguments as the workflow capability.
  * @returns The node stream behind the exchange.
  */
 export declare function useHttp2Stream(
+  ...args: Parameters<typeof Workflow.useExchange>
+): http2.ServerHttp2Stream;
+
+/**
+ * Answers the node stream without claiming the raw path, so the
+ * distributor keeps the body. The stream is for inspection only;
+ * consuming it steals bytes from the distributor.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The node stream behind the exchange.
+ */
+export declare function inspectHttp2Stream(
   ...args: Parameters<typeof Workflow.useExchange>
 ): http2.ServerHttp2Stream;

@@ -48,12 +48,24 @@ export declare function useServer(
 ): http.Server;
 
 /**
- * Claims the raw request path of the exchange and answers the node request.
- * Calling it again keeps answering the same request.
+ * Answers the node request behind the exchange and claims the raw path:
+ * `request.body.data` throws afterwards.
  *
  * @param args - Same arguments as the workflow capability.
  * @returns The node request behind the exchange.
  */
 export declare function useHttp1Request(
-  ...args: Parameters<typeof Workflow.useServer>
+  ...args: Parameters<typeof Workflow.useExchange>
+): http.IncomingMessage;
+
+/**
+ * Answers the node request without claiming the raw path, so the
+ * distributor keeps the body. The request is for inspection only;
+ * consuming it steals bytes from the distributor.
+ *
+ * @param args - Same arguments as the workflow capability.
+ * @returns The node request behind the exchange.
+ */
+export declare function inspectHttp1Request(
+  ...args: Parameters<typeof Workflow.useExchange>
 ): http.IncomingMessage;
