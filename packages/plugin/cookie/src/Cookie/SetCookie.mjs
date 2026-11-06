@@ -1,6 +1,6 @@
 import { Is, ThrowTypeError } from '@produck/argot';
 
-const AV_OCTETS = /^[\x21-\x3a\x3c-\x7e]+$/;
+import * as P from './_Parser.mjs';
 
 const SAME_SITE_MAP = new Map([
   ['strict', 'Strict'],
@@ -33,7 +33,7 @@ export function normalizeOptions(_options = {}) {
     sameSite: _sameSite = options.sameSite,
   } = _options;
 
-  if (Is.Type.String(_path) && AV_OCTETS.test(_path)) {
+  if (Is.Type.String(_path) && P.AV_OCTETS.test(_path)) {
     options.path = _path;
   } else {
     ThrowTypeError('args[0].path', 'non-empty string of av-octet characters');
@@ -53,7 +53,7 @@ export function normalizeOptions(_options = {}) {
 
   if (
     _domain === null ||
-    (Is.Type.String(_domain) && AV_OCTETS.test(_domain))
+    (Is.Type.String(_domain) && P.AV_OCTETS.test(_domain))
   ) {
     options.domain = _domain;
   } else {

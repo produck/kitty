@@ -1,6 +1,6 @@
 import type { Concrete as CookieParser } from './Parser/index.d.mts';
 
-declare class Cookie {
+declare abstract class Cookie {
   readonly size: number;
 
   has(name: string): boolean;
@@ -21,9 +21,9 @@ declare class Cookie {
 declare namespace Cookie {
   interface Options {
     path?: string;
-    domain?: string;
-    maxAge?: number;
-    expires?: Date;
+    domain?: string | null;
+    maxAge?: number | null;
+    expires?: Date | null;
     secure?: boolean;
     httpOnly?: boolean;
     sameSite?: 'strict' | 'lax' | 'none';

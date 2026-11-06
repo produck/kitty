@@ -7,7 +7,11 @@
   "devDependencies": {
     "@produck/argot": "^0.4.0",
     "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/es-abstract": "^0.5.0",
+    "@produck/fugue": "^0.2.0",
     "@produck/kit": "^0.4.0",
+    "@produck/kitty-deployer-http1-http": "^0.0.0",
+    "@produck/kitty-deployer-http2-http": "^0.0.0",
     "@produck/kitty-workflow": "^0.0.0"
   },
   "exports": {
@@ -32,6 +36,7 @@
   "peerDependencies": {
     "@produck/argot": "^0.4.0",
     "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/kit": "^0.4.0",
     "@produck/kitty-workflow": "^0.0.0"
   },
   "repository": {

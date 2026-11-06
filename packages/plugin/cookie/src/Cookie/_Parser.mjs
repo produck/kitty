@@ -1,3 +1,5 @@
+export * from '../_Parser.mjs';
+
 import { Is, ThrowTypeError } from '@produck/argot';
 
 const COOKIE_NAME = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;

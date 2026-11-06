@@ -5,9 +5,13 @@ import { Abstract as Cookie } from '../src/Cookie/index.mjs';
 import { _I as I } from '../src/Cookie/_Symbol.mjs';
 
 function createCookie(source = '') {
-  const state = { source, written: [] };
+  const state = { source, written: [], defaults: {} };
 
   class TestCookie extends Cookie {
+    get [I.DEFAULTS]() {
+      return state.defaults;
+    }
+
     [I.READ]() {
       return state.source;
     }

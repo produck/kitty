@@ -1,4 +1,10 @@
 await import('./Cookie.test.mjs');
 await import('./CookieParser.test.mjs');
+await import('./SetCookie.test.mjs');
+await import('./ExchangeCookie.test.mjs');
 await import('./Bridge.test.mjs');
+await import('./Configuration.test.mjs');
 await import('./Capability.test.mjs');
+await import('./Plugin.test.mjs');
+await import('./example/http1.mjs');
+await import('./example/http2.mjs');

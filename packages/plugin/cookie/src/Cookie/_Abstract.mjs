@@ -1,3 +1,4 @@
+import { Is, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
 import { Concrete as CookieParser } from './Parser/index.mjs';
@@ -36,11 +37,15 @@ class Cookie {
     return this.values();
   }
 
-  set(name, value, options) {
+  set(name, value, options = {}) {
+    if (!Is.PlainObject(options)) {
+      ThrowTypeError('args[2] as options', 'plain object');
+    }
+
     const record = {
       name: P.CookieName(name),
       value: P.CookieValue(value),
-      ...SetCookie.normalizeOptions(options),
+      ...SetCookie.normalizeOptions({ ...this[_I.DEFAULTS], ...options }),
     };
 
     this[_I.WRITE](SetCookie.serialize(record));
@@ -58,6 +63,7 @@ class Cookie {
 export default Abstract(
   Cookie,
   Abstract({
+    [_I.DEFAULTS]: M.Object,
     [_I.READ]: M.Method().returns(M.String),
     [_I.WRITE]: M.Method().args(M.String).returns(M.Undefined),
   }),

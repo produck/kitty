@@ -1,11 +1,24 @@
-import * as ExchangeCookie from './ExchangeCookie/index.mjs';
+import { Concrete as ExchangeCookie } from './ExchangeCookie/index.mjs';
 
-const EXCHANGE_COOKIE_MAP = new WeakMap();
+const INSTANCE_MAP = new WeakMap();
+const CONFIGURATION_MAP = new WeakMap();
 
-export function get(exchange) {
-  if (!EXCHANGE_COOKIE_MAP.has(exchange)) {
-    EXCHANGE_COOKIE_MAP.set(exchange, new ExchangeCookie.Concrete(exchange));
+export function getCookie(exchange) {
+  if (!INSTANCE_MAP.has(exchange)) {
+    INSTANCE_MAP.set(exchange, new ExchangeCookie(exchange));
   }
 
-  return EXCHANGE_COOKIE_MAP.get(exchange);
+  return INSTANCE_MAP.get(exchange);
+}
+
+export function hasConfiguration(workflow) {
+  return CONFIGURATION_MAP.has(workflow);
+}
+
+export function getConfiguration(workflow) {
+  return CONFIGURATION_MAP.get(workflow);
+}
+
+export function setConfiguration(workflow, configuration) {
+  CONFIGURATION_MAP.set(workflow, configuration);
 }
