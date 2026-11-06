@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Cookie, SYMBOL } from '@produck/kitty-plugin-cookie';
-
-const I = SYMBOL.COOKIE._I;
+import { Abstract as Cookie } from '../src/Cookie/index.mjs';
+import { _I as I } from '../src/Cookie/_Symbol.mjs';
 
 function createCookie(source = '') {
   const state = { source, written: [] };
@@ -163,12 +162,45 @@ describe('[Symbol.iterator]', () => {
 });
 
 describe('.set()', () => {
-  it('should write one line with the default options', () => {
+  const required = () => ({
+    domain: 'example.com',
+    maxAge: 60,
+    expires: new Date(Date.UTC(2020, 0, 1)),
+  });
+
+  it('should write one line without the absent attributes', () => {
     const { cookie, state } = createCookie();
 
     cookie.set('a', '1');
 
     assert.deepEqual(state.written, ['a=1; Path=/; HttpOnly; SameSite=Lax']);
+  });
+
+  it('should treat an absent attribute signal as absent', () => {
+    const { cookie, state } = createCookie();
+
+    cookie.set('a', '1', { domain: null, maxAge: null, expires: null });
+    cookie.set('a', '1', {
+      domain: undefined,
+      maxAge: undefined,
+      expires: undefined,
+    });
+
+    assert.deepEqual(state.written, [
+      'a=1; Path=/; HttpOnly; SameSite=Lax',
+      'a=1; Path=/; HttpOnly; SameSite=Lax',
+    ]);
+  });
+
+  it('should write the defaulted options beside the given ones', () => {
+    const { cookie, state } = createCookie();
+
+    cookie.set('a', '1', required());
+
+    assert.deepEqual(state.written, [
+      'a=1; Expires=Wed, 01 Jan 2020 00:00:00 GMT; Max-Age=60; ' +
+        'Domain=example.com; Path=/; HttpOnly; SameSite=Lax',
+    ]);
   });
 
   it('should write every attribute in order', () => {
@@ -193,35 +225,48 @@ describe('.set()', () => {
   it('should read a same site value in any case', () => {
     const { cookie, state } = createCookie();
 
-    cookie.set('a', '1', { sameSite: 'NONE', secure: true });
+    cookie.set('a', '1', { ...required(), sameSite: 'NONE', secure: true });
 
     assert.deepEqual(state.written, [
-      'a=1; Path=/; Secure; HttpOnly; SameSite=None',
+      'a=1; Expires=Wed, 01 Jan 2020 00:00:00 GMT; Max-Age=60; ' +
+        'Domain=example.com; Path=/; Secure; HttpOnly; SameSite=None',
+    ]);
+  });
+
+  it('should write the lax same site value', () => {
+    const { cookie, state } = createCookie();
+
+    cookie.set('a', '1', { ...required(), sameSite: 'lax' });
+
+    assert.deepEqual(state.written, [
+      'a=1; Expires=Wed, 01 Jan 2020 00:00:00 GMT; Max-Age=60; ' +
+        'Domain=example.com; Path=/; HttpOnly; SameSite=Lax',
     ]);
   });
 
   it('should keep a negative max age', () => {
     const { cookie, state } = createCookie();
 
-    cookie.set('a', '1', { maxAge: -1 });
+    cookie.set('a', '1', { ...required(), maxAge: -1 });
 
     assert.deepEqual(state.written, [
-      'a=1; Max-Age=-1; Path=/; HttpOnly; SameSite=Lax',
+      'a=1; Expires=Wed, 01 Jan 2020 00:00:00 GMT; Max-Age=-1; ' +
+        'Domain=example.com; Path=/; HttpOnly; SameSite=Lax',
     ]);
   });
 
   it('should reject a name outside the token grammar', () => {
     const { cookie, state } = createCookie();
 
-    assert.throws(() => cookie.set('a b', '1'));
+    assert.throws(() => cookie.set('a b', '1', required()));
     assert.equal(state.written.length, 0);
   });
 
   it('should reject a value outside the cookie-octet grammar', () => {
     const { cookie, state } = createCookie();
 
-    assert.throws(() => cookie.set('a', '1 2'));
-    assert.throws(() => cookie.set('a', 1));
+    assert.throws(() => cookie.set('a', '1 2', required()));
+    assert.throws(() => cookie.set('a', 1, required()));
     assert.equal(state.written.length, 0);
   });
 
@@ -236,58 +281,64 @@ describe('.set()', () => {
       assert.equal(state.written.length, 0);
     });
 
-    it('should reject an option name outside the contract', () => {
-      const { cookie } = createCookie();
-
-      assert.throws(() => cookie.set('a', '1', { pth: '/' }));
-    });
-
     it('should reject a path outside the av-octet grammar', () => {
       const { cookie } = createCookie();
 
-      assert.throws(() => cookie.set('a', '1', { path: 'a b' }));
-      assert.throws(() => cookie.set('a', '1', { path: '' }));
-      assert.throws(() => cookie.set('a', '1', { path: 1 }));
+      assert.throws(() => cookie.set('a', '1', { ...required(), path: 'a b' }));
+      assert.throws(() => cookie.set('a', '1', { ...required(), path: '' }));
+      assert.throws(() => cookie.set('a', '1', { ...required(), path: 1 }));
     });
 
     it('should reject a domain outside the av-octet grammar', () => {
       const { cookie } = createCookie();
 
-      assert.throws(() => cookie.set('a', '1', { domain: 'a;b' }));
+      assert.throws(() =>
+        cookie.set('a', '1', { ...required(), domain: 'a;b' }),
+      );
     });
 
     it('should reject a max age that is not an integer', () => {
       const { cookie } = createCookie();
 
-      assert.throws(() => cookie.set('a', '1', { maxAge: 1.5 }));
-      assert.throws(() => cookie.set('a', '1', { maxAge: '60' }));
+      assert.throws(() => cookie.set('a', '1', { ...required(), maxAge: 1.5 }));
+      assert.throws(() =>
+        cookie.set('a', '1', { ...required(), maxAge: '60' }),
+      );
     });
 
     it('should reject an expires value that is not a valid date', () => {
       const { cookie } = createCookie();
 
-      assert.throws(() => cookie.set('a', '1', { expires: 1 }));
-      assert.throws(() => cookie.set('a', '1', { expires: new Date('x') }));
+      assert.throws(() => cookie.set('a', '1', { ...required(), expires: 1 }));
+      assert.throws(() =>
+        cookie.set('a', '1', { ...required(), expires: new Date('x') }),
+      );
     });
 
     it('should reject a boolean option of another type', () => {
       const { cookie } = createCookie();
 
-      assert.throws(() => cookie.set('a', '1', { secure: 'yes' }));
-      assert.throws(() => cookie.set('a', '1', { httpOnly: 1 }));
+      assert.throws(() =>
+        cookie.set('a', '1', { ...required(), secure: 'yes' }),
+      );
+      assert.throws(() => cookie.set('a', '1', { ...required(), httpOnly: 1 }));
     });
 
     it('should reject a same site value outside the contract', () => {
       const { cookie } = createCookie();
 
-      assert.throws(() => cookie.set('a', '1', { sameSite: 'foo' }));
-      assert.throws(() => cookie.set('a', '1', { sameSite: 1 }));
+      assert.throws(() =>
+        cookie.set('a', '1', { ...required(), sameSite: 'foo' }),
+      );
+      assert.throws(() => cookie.set('a', '1', { ...required(), sameSite: 1 }));
     });
 
     it('should reject SameSite=None without Secure', () => {
       const { cookie } = createCookie();
 
-      assert.throws(() => cookie.set('a', '1', { sameSite: 'none' }));
+      assert.throws(() =>
+        cookie.set('a', '1', { ...required(), sameSite: 'none' }),
+      );
     });
   });
 });

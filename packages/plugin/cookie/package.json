@@ -6,7 +6,9 @@
   "description": "Cookie parsing and serialization plugin over kitty exchange headers.",
   "devDependencies": {
     "@produck/argot": "^0.4.0",
-    "@produck/deep-freeze-enumerable": "^1.0.0"
+    "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/kit": "^0.4.0",
+    "@produck/kitty-workflow": "^0.0.0"
   },
   "exports": {
     ".": {
@@ -29,7 +31,8 @@
   "name": "@produck/kitty-plugin-cookie",
   "peerDependencies": {
     "@produck/argot": "^0.4.0",
-    "@produck/deep-freeze-enumerable": "^1.0.0"
+    "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/kitty-workflow": "^0.0.0"
   },
   "repository": {
     "directory": "packages/plugin/cookie",

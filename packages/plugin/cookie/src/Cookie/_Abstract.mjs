@@ -2,6 +2,7 @@ import Abstract, { Member as M } from '@produck/es-abstract';
 
 import { Concrete as CookieParser } from './Parser/index.mjs';
 import * as P from './_Parser.mjs';
+import * as SetCookie from './SetCookie.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
 
 class Cookie {
@@ -39,10 +40,10 @@ class Cookie {
     const record = {
       name: P.CookieName(name),
       value: P.CookieValue(value),
-      ...P.CookieOptions(options),
+      ...SetCookie.normalizeOptions(options),
     };
 
-    this[_I.WRITE](P.serializeSetCookie(record));
+    this[_I.WRITE](SetCookie.serialize(record));
   }
 
   get [$I.PARSED]() {

@@ -31,4 +31,3 @@ declare namespace Cookie {
 }
 
 export { Cookie as Abstract };
-export { _I } from './_Symbol.d.mts';

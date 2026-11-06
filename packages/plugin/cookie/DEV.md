@@ -26,8 +26,18 @@
 
 - 读侧 `_I.READ()` 只回答原始头字符串，写侧 `_I.WRITE(line)` 只接收成品
   行：两个槽都只做传输，不含语法。
-- 签名下游派生 `Cookie` 并覆写 `set` / `get`，在调用上层实现前后改写值，
-  不需要改本包。
+- 签名等策略下游**包装** `useCookie(kit)` 的返回值（自己实现同名 `get` /
+  `set`，内部转调本包对象），不派生 `Cookie`，也不需要 `_I` 符号。
+
+### 公开面
+
+- 包导出只有 `useCookie`；`Cookie`（抽象类）、`_I` 符号、`ExchangeCookie`
+  都留在包内。
+- 主体导出只承载 `Abstract` / `Concrete`，不携带符号表（SUB-2）；包内借用
+  基类键一律走各自的 `_Borrow.mjs`（BTB-2）。
+- 原因：下游只使用、不实现。不需要安装（无 Plugin / mixin / attacher）、
+  不进管线（无 handler）、不扩展操作类（包装即可），所以没有需要跨包的
+  抽象成员，PUB-2 不强制导出符号。
 
 ## 解析器与操作类分离
 
@@ -55,9 +65,10 @@
   `import * as P from './_Parser.mjs'`）。表内部消费父表的解析器时同样
   走 `P`：同时写 `export * from '../_Parser.mjs'` 与
   `import * as P from '../_Parser.mjs'`，不在表里直接引用父表的裸名。
-- 包内表的根是 `Cookie/_Parser.mjs`：名称/值断言、头部解析、选项校验与
-  `Set-Cookie` 序列化都在这里。`src/` 根目录既无解析器也无消费点，因此
-  不设表。
+- 包内表的根是 `Cookie/_Parser.mjs`：名称/值断言与头部解析都在这里。
+  `src/` 根目录既无解析器也无消费点，因此不设表。
+- `normalizeOptions` 与 `serialize` 不住在表里：它们是去向的内部资源而不是
+  解析器，单独放在 `Cookie/SetCookie.mjs`，只由同目录的抽象类导入。
 - `Cookie/Parser/_Parser.mjs` 只重导出父表，并声明 `CookieRecord` /
   `CookieRecords`。
 - 解析器放在其消费点的最近公共祖先：`CookieName` / `CookieValue` 同时被
@@ -67,7 +78,8 @@
 ### 为什么
 
 - 固定导入形状后，解析器在目录间移动不需要改调用点。
-- 序列化与解析同属 cookie 语法，放在同一张表，消费点只需一个导入。
+- 广播只承载"检查一个值"的函数；选项归一化与序列化都是去向的内部步骤，
+  唯一的消费点就在同目录，没有跨层可达性需求，进表反而让表变成杂物箱。
 
 ## 解析口径
 
@@ -93,7 +105,9 @@
 - `set(name, value, options)` 校验后自己序列化成一行 `Set-Cookie`，再交给
   `_I.WRITE(line)`；sink 只负责把这一行追加到响应头。
 - 属性集合固定为 `path`、`domain`、`maxAge`、`expires`、`secure`、
-  `httpOnly`、`sameSite`；出现其它键直接抛错。
+  `httpOnly`、`sameSite`；`path` / `secure` / `httpOnly` / `sameSite` 有
+  具体默认值，`domain` / `maxAge` / `expires` 的默认值是 `null`
+  （表示不发送该属性，因此 session cookie 与 host-only cookie 可表达）。出现其它键直接抛错。
 - 默认值材料化进记录：`path: '/'`、`httpOnly: true`、`sameSite: 'Lax'`、
   `secure: false`。
 - `maxAge` 单位是秒，与线上 `Max-Age` 一致；`expires` 是 `Date`，序列化为
@@ -102,13 +116,13 @@
   `secure: true`，否则抛错。
 - 同名多次 `set` 产出多条 `Set-Cookie`，不实现 Koa 的 `overwrite`
   语义，也不维护"本次已写集合"。
+- 归一化器只读自己认识的七个键，未知键不读取也不报错。
 - `delete()` 暂不实现。
 
 ### 为什么
 
 - 序列化归本包：语法只有一份，实现器只该知道"往哪写一行"，否则每个
   协议适配都要重写一遍序列化。
-- 未知属性键直接报错，避免拼写错误静默失效。
 - `maxAge` 用秒：这是线上单位，换算交给调用方，避免 1000 倍的错。
 - `delete` 现在只是 `set` 的过期形态，但必须带同一 `path` / `domain`
   才生效，所以等属性落地后再补。
@@ -119,6 +133,64 @@
 2. `Priority` / `Partitioned` 是否进入属性集合。
 3. `secure` 是否由实现器按 `exchange.protocol` 推导（抽象层拿不到协议，
    只能给 `false`）。
+
+## 选项归一化
+
+### 决定
+
+- 七个属性的默认值都写在目标记录里：`path: '/'`、`secure: false`、
+  `httpOnly: true`、`sameSite: 'Lax'`，以及 `domain` / `maxAge` /
+  `expires` 的 `null`。输入在顶部一次解构成 `_x`，解构默认值取自
+  目标（显式 `undefined` 也会落到默认值），然后一节点一块：
+  `if (合法) options.x = _x; else throw`。
+- `null` 是这三项的合法默认值：校验通过并原样写入，由 `serialize` 的
+  `!== null` 保证不出现在头部。判定用 `Is.Type.*` / `Is.Instance.*`，
+  错误消息用名词短语（`non-empty string`、`boolean`、`valid Date`）。
+- 归一化器只负责给序列化器交出唯一合法形状。内部形状里“没有该属性”用哪个
+  值表示，由序列化器定义：现在是 `null`（`serialize` 跳过它），
+  `normalizeOptions` 的默认值与校验都跟着它走；序列化器若改用别的信号，
+  这里同步改。
+- 拒绝一律用字面路径：`args[0]`、`args[0].path`、`args[0].sameSite`。
+  路径从归一化器自身的参数往外拼，只允许索引插值。
+- 叶子自己校验：每个节点的判定都写在自己块内，不抽读取分支的助手；
+  av-octet 正则提为 `SetCookie.mjs` 的模块级常量 `AV_OCTETS`，path 与
+  domain 共用同一字符集（共用的是正则对象，不是读取流程）。
+- 不用键表、不做键驱动分派（NRM-17），也不额外校验未知键。
+- 归一化顺序固定：`path` → `secure` → `httpOnly` → `domain` → `maxAge` →
+  `expires` → `sameSite`；`sameSite: 'none'` 的 Secure 约束在同一块内检查，
+  因为它依赖已经写好的 `options.secure`。
+
+### 代价
+
+- 代码变长，叶子校验重复。
+- 未知键被静默忽略：拼错的键名不会报错，只是不生效。
+- 记录里允许 `null`：它到不了头部，但依赖 `serialize` 对
+  `domain` / `maxAge` / `expires` 的 `!== null` 判断；改成无条件输出就会
+  漏出去。
+
+## Bridge 与能力入口
+
+### 决定
+
+- `useCookie(kit)` = `Bridge.get(useExchange(kit))`：不经过安装期，直接由
+  exchange 派生，能力随 exchange 存在而存在。
+- `Bridge.get(exchange)` 用 `WeakMap<exchange, ExchangeCookie>` 缓存实例，
+  首次访问才构造（懒加载），同一 exchange 永远拿到同一个对象。
+- 具体主体 `ExchangeCookie` 是 `Cookie` 的派生，按 partial-constructor 规范
+  放在与 `Cookie/` **平级**的主体目录：`_Concrete.mjs`、`_Symbol.mjs`
+  （自有 `I.EXCHANGE`）、`_Borrow.mjs`（`COOKIE._I`）、`index.mjs`。
+- 实现槽写成 `[COOKIE._I.READ]()` / `[COOKIE._I.WRITE](line)`；`Cookie` 的
+  符号表只放自己的键，不放派生类的东西。
+- `_I.READ()` 取 `exchange.request.header.get('cookie') ?? ''`，
+  `_I.WRITE(line)` 追加到 `exchange.response.header`。
+- ws exchange 没有 `response`，写入直接抛 `The exchange has no response.`。
+- `Bridge` 通过主体导出 `./ExchangeCookie/index.mjs` 取 `Concrete`，不直接
+  引用 `_Concrete.mjs`。
+
+### 代价
+
+- 读侧与写侧都依赖 `exchange.request` / `exchange.response` 这两个公开
+  成员，exchange 家族若改名，本层要跟着改。
 
 ## 与社区实现的差异
 
@@ -131,7 +203,7 @@
 - `maxAge` 用秒：Koa / Express 用毫秒，Fastify / Hono 用秒，本包取线上
   单位。
 - 默认 `sameSite: 'Lax'` 并显式写进头部；社区多数默认不发送该属性。
-- 未知选项键抛错；社区多数静默忽略。
+- 未知选项键不检查，与社区一致。
 
 ### 原因
 
