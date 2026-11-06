@@ -33,15 +33,41 @@
 
 ### 决定
 
+- `CookieParser` 是 `Cookie` 的内部类，住在 `Cookie/Parser/`，不从包入口
+  导出。
 - `CookieParser` 从记录的可迭代对象初始化，不认识 HTTP 头。
 - `Cookie` 抽象操作类负责方向：`_I.READ()` 与 `_I.WRITE(line)`。
-- 头解析 `parseCookieHeader` 住在 `CookieParser/_Parser.mjs`，不对外
-  导出；解析入口只有抽象类的读面。
+- 头解析 `parseCookieHeader` 住在 `Cookie/_Parser.mjs`，不对外导出；解析
+  入口只有抽象类的读面。
 
 ### 代价
 
 - 应用拿到的是记录集合，不是普通对象；取纯值要多一层 `.value`。
 - 记录按引用保存，外部改写记录内容会反映到集合里。
+
+## 解析器广播
+
+### 决定
+
+- 采用 Directory Parser Broadcast：每个模块目录一张 `_Parser.mjs`，先
+  `export * from '../_Parser.mjs'`，再声明本目录的解析器。
+- 消费点只导入**本目录**的表，统一用命名空间 `P`（如
+  `import * as P from './_Parser.mjs'`）。表内部消费父表的解析器时同样
+  走 `P`：同时写 `export * from '../_Parser.mjs'` 与
+  `import * as P from '../_Parser.mjs'`，不在表里直接引用父表的裸名。
+- 包内表的根是 `Cookie/_Parser.mjs`：名称/值断言、头部解析、选项校验与
+  `Set-Cookie` 序列化都在这里。`src/` 根目录既无解析器也无消费点，因此
+  不设表。
+- `Cookie/Parser/_Parser.mjs` 只重导出父表，并声明 `CookieRecord` /
+  `CookieRecords`。
+- 解析器放在其消费点的最近公共祖先：`CookieName` / `CookieValue` 同时被
+  `_Abstract.mjs` 与 `Parser/_Concrete.mjs` 使用，因此落在 `Cookie/`；
+  `CookieRecord` 只被 `CookieRecords` 使用，因此落在 `Cookie/Parser/`。
+
+### 为什么
+
+- 固定导入形状后，解析器在目录间移动不需要改调用点。
+- 序列化与解析同属 cookie 语法，放在同一张表，消费点只需一个导入。
 
 ## 解析口径
 

@@ -1,4 +1,4 @@
-import type { Concrete as CookieParser } from '../CookieParser/index.d.mts';
+import type { Concrete as CookieParser } from './Parser/index.d.mts';
 
 declare class Cookie {
   readonly size: number;

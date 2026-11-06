@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { CookieParser } from '@produck/kitty-plugin-cookie';
+import { Concrete as CookieParser } from '../src/Cookie/Parser/index.mjs';
 
 function createRecords() {
   return [

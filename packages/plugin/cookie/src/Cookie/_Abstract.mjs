@@ -1,10 +1,7 @@
 import Abstract, { Member as M } from '@produck/es-abstract';
 
-import CookieParser from '../CookieParser/_Concrete.mjs';
-import { parseCookieHeader } from '../CookieParser/_Parser.mjs';
-import { CookieName, CookieValue } from '../_Parser.mjs';
-import { CookieOptions } from './_Parser.mjs';
-import { serializeSetCookie } from './_Serializer.mjs';
+import { Concrete as CookieParser } from './Parser/index.mjs';
+import * as P from './_Parser.mjs';
 import { I, $I, _I } from './_Symbol.mjs';
 
 class Cookie {
@@ -40,17 +37,17 @@ class Cookie {
 
   set(name, value, options) {
     const record = {
-      name: CookieName(name),
-      value: CookieValue(value),
-      ...CookieOptions(options),
+      name: P.CookieName(name),
+      value: P.CookieValue(value),
+      ...P.CookieOptions(options),
     };
 
-    this[_I.WRITE](serializeSetCookie(record));
+    this[_I.WRITE](P.serializeSetCookie(record));
   }
 
   get [$I.PARSED]() {
     if (this[I.PARSED] === null) {
-      this[I.PARSED] = new CookieParser(parseCookieHeader(this[_I.READ]()));
+      this[I.PARSED] = new CookieParser(P.parseCookieHeader(this[_I.READ]()));
     }
 
     return this[I.PARSED];
