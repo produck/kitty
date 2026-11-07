@@ -10,7 +10,7 @@ function runInstall(install) {
   const result = { error: null, workflow };
 
   try {
-    workflow.mixin(Baseline.createPlugin({ tag: 'probe', install }));
+    workflow.withPlugin(Baseline.createPlugin({ tag: 'probe', install }));
     workflow.finalize();
   } catch (error) {
     result.error = error;
@@ -89,7 +89,7 @@ describe('Plugin', () => {
         deployers: [fixture.Deployer],
       });
 
-      workflow.mixin(
+      workflow.withPlugin(
         Baseline.createPlugin({
           tag: 'probe',
           install: (kit) => {
@@ -123,7 +123,7 @@ describe('Plugin', () => {
         deployers: [fixture.Deployer],
       });
 
-      workflow.mixin(
+      workflow.withPlugin(
         Baseline.createPlugin({
           tag: 'probe',
           install: (kit) => {
@@ -159,7 +159,7 @@ describe('Plugin', () => {
       workflow.use(() => {
         order.push('main');
       });
-      workflow.mixin(
+      workflow.withPlugin(
         Baseline.createPlugin({
           tag: 'probe',
           install: (kit) => {

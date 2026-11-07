@@ -11,7 +11,7 @@ describe('capability', () => {
         const captured = [];
 
         for (const tag of ['first', 'second']) {
-          workflow.mixin(
+          workflow.withPlugin(
             Baseline.Kitty.Implement.Plugin({
               tag,
               install: (kit) => captured.push(Baseline.Kitty.useWorkflow(kit)),
@@ -64,7 +64,7 @@ describe('capability', () => {
       const workflow = Baseline.createWorkflow();
       let fromPlugin = null;
 
-      workflow.mixin(
+      workflow.withPlugin(
         Baseline.Kitty.Implement.Plugin({
           tag: 'probe',
           install: (kit) => {

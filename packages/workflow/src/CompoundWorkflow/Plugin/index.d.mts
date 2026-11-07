@@ -59,7 +59,7 @@ declare abstract class Plugin {
   [_Symbol._I.INSTALL](workflowKit: PluginKit): void;
 }
 
-/** Shape of a plugin class, used by `mixin()`. */
+/** Shape of a plugin class, used by `withPlugin()`. */
 export type Class = typeof Plugin;
 
 export { Plugin as Abstract };

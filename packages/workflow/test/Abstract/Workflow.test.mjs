@@ -68,11 +68,11 @@ describe('Workflow', () => {
     });
   });
 
-  describe('.mixin()', () => {
+  describe('.withPlugin()', () => {
     it('should reject a non-plugin constructor', () => {
       const workflow = Baseline.createWorkflow();
 
-      assert.throws(() => workflow.mixin(class {}));
+      assert.throws(() => workflow.withPlugin(class {}));
     });
 
     it('should reject after finalization', () => {
@@ -84,7 +84,7 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      assert.throws(() => workflow.mixin(Plugin));
+      assert.throws(() => workflow.withPlugin(Plugin));
     });
   });
 
@@ -305,12 +305,12 @@ describe('Workflow', () => {
         install: () => {},
       });
 
-      workflow.mixin(Plugin);
+      workflow.withPlugin(Plugin);
       workflow.finalize();
 
       await workflow.deploy(new fixture.Server());
 
-      assert.throws(() => workflow.mixin(Plugin));
+      assert.throws(() => workflow.withPlugin(Plugin));
     });
   });
 });

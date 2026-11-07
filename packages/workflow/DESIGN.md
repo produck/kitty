@@ -165,7 +165,7 @@ additions to the assembly surface are closed.
 - **Composition layer** (`CompoundWorkflow/`): extends the abstract layer
   and implements two orthogonal domains — **Plugin** and **Deployer** —
   each responsible for a distinct kind of capability injection. It owns
-  `mixin()`, `withDeployer()`, and the default configuration record.
+  `withPlugin()`, `withDeployer()`, and the default configuration record.
 
 Extension hooks:
 
@@ -192,7 +192,7 @@ constructor(kit) -> use(handler)* -> finalize()
 - **Finalization**: `finalize()` freezes the handler list, prepends it
   to the pipeline through `Composer.compose`, runs the composition
   extension, then freezes the instance. After that, `use()` and
-  `mixin()` are rejected.
+  `withPlugin()` are rejected.
 - **Compile**: `compile(server)` builds a `Deployment` and returns it
   without linking; `deployment.manifest` holds declared materials.
 - **Deploy**: `deploy(server)` builds the deployment, then calls
@@ -202,7 +202,7 @@ constructor(kit) -> use(handler)* -> finalize()
 ### Composition layer
 
 ```text
-constructor(kit) -> mixin(PluginClass)* -> use(handler)* -> finalize()
+constructor(kit) -> withPlugin(PluginClass)* -> use(handler)* -> finalize()
   -> deploy(server) / compile(server) / withDeployer(DeployerClass)
   -> Deployer.Registry lookup -> DeploymentKit prepared
   -> deployer[$I.INSTALL]() -> exchange attachers registered
@@ -277,15 +277,15 @@ own the protocol bridge.
 
 ### Kittable Items
 
-| Kit             | Derived from                       | Lifetime              |
-| --------------- | ---------------------------------- | --------------------- |
-| `ExternalKit`   | caller (default `Kit.global`)      | application           |
-| `WorkflowKit`   | `ExternalKit('Kitty<Workflow>')`   | one per workflow      |
-| `PluginKit`     | `WorkflowKit('Kitty<Plugin>')`     | one per `mixin()`     |
-| `DeploymentKit` | `WorkflowKit('Kitty<Deployment>')` | one per compile       |
-| `DeployerKit`   | `DeploymentKit('Kitty<Deployer>')` | one per deployment    |
-| `ExchangeKit`   | `DeploymentKit('Kitty<Exchange>')` | one per exchange      |
-| `HandlerKit`    | handler's own discretion           | optional, per handler |
+| Kit             | Derived from                       | Lifetime               |
+| --------------- | ---------------------------------- | ---------------------- |
+| `ExternalKit`   | caller (default `Kit.global`)      | application            |
+| `WorkflowKit`   | `ExternalKit('Kitty<Workflow>')`   | one per workflow       |
+| `PluginKit`     | `WorkflowKit('Kitty<Plugin>')`     | one per `withPlugin()` |
+| `DeploymentKit` | `WorkflowKit('Kitty<Deployment>')` | one per compile        |
+| `DeployerKit`   | `DeploymentKit('Kitty<Deployer>')` | one per deployment     |
+| `ExchangeKit`   | `DeploymentKit('Kitty<Exchange>')` | one per exchange       |
+| `HandlerKit`    | handler's own discretion           | optional, per handler  |
 
 - A one-time deployment (`withDeployer()`) names its kit
   `Kitty<Deployment:OneTime>`.
@@ -311,9 +311,9 @@ The package exports strict getters, each wrapping one symbol key:
 
 A plugin is a **class**, not a plain installer function: it may hold
 instance-level context for as long as the workflow lives. The workflow
-entry point is still named `mixin()`.
+entry point is `withPlugin()`.
 
-`mixin(PluginClass)` validates that the argument is a `Plugin`
+`withPlugin(PluginClass)` validates that the argument is a `Plugin`
 subclass, constructs it with `(WorkflowKit, workflow)`, and immediately
 runs `$I.INSTALL()` against its own `PluginKit`. There is no deferral
 queue, and no single-install enforcement — duplicate detection is the
@@ -322,7 +322,7 @@ plugin's own decision.
 ### PluginKit API
 
 `PluginKit` is derived via `WorkflowKit('Kitty<Plugin>')`, one kit per
-`mixin()` call. All methods target the workflow the plugin belongs to and
+`withPlugin()` call. All methods target the workflow the plugin belongs to and
 guard against post-finalization calls.
 
 | Method                                      | Behavior                                                    |
@@ -1140,7 +1140,7 @@ A handler with `length > 2` is rejected at registration.
 ### State guards
 
 - `finalize()`, `compile()`, `deploy()`, `withDeployer()`, `use()`, and
-  `mixin()` check `isFinalized`. Repeated finalization throws.
+  `withPlugin()` check `isFinalized`. Repeated finalization throws.
 - `withDeployer()` guards the synchronous consumption window with
   `queueMicrotask`.
 - Dispatch mutations guard on the deployment's `COMMITTED` flag.
@@ -1315,7 +1315,8 @@ Factories that turn one options record into a whole class (or class set):
   `Composer.compose()`.
 - **Compound workflow**: a workflow carrying configuration, request body
   distributor state, and the response body normaliser slot.
-- **Plugin**: a class installed with `mixin()`; receives a `PluginKit`.
+- **Plugin**: a class installed with `withPlugin()`; receives a
+  `PluginKit`.
 - **Deployer**: a class mapping one server constructor to protocol
   bridging; receives a `DeployerKit` and the deployment.
 - **Deployment**: the compiled artifact of one workflow against one

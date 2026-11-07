@@ -51,7 +51,7 @@ export interface OneTimeDeployer {
 }
 
 /**
- * Compound workflow: pipeline, mixin, configuration and deployment entry.
+ * Compound workflow: pipeline, plugin, configuration and deployment entry.
  * Declares the response body normalization slot; unusable until implemented.
  */
 declare abstract class CompoundWorkflow {
@@ -66,7 +66,7 @@ declare abstract class CompoundWorkflow {
    */
   static readonly DeployerRegistry: DeployerRegistry.Concrete;
 
-  /** Whether it is finalized; `use` / `mixin` are rejected afterwards. */
+  /** Whether it is finalized; `use` / `withPlugin` are rejected afterwards. */
   readonly isFinalized: boolean;
 
   /**
@@ -90,7 +90,7 @@ declare abstract class CompoundWorkflow {
    * @param plugin - Plugin class to install.
    * @returns This workflow.
    */
-  mixin(plugin: Plugin.Class): this;
+  withPlugin(plugin: Plugin.Class): this;
 
   /**
    * Compiles and returns the deployment without connecting to the server.

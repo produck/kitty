@@ -17,7 +17,7 @@ function createWorkflow() {
 function createInstalledWorkflow() {
   const workflow = createWorkflow();
 
-  workflow.mixin(Plugin);
+  workflow.withPlugin(Plugin);
 
   return workflow;
 }

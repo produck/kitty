@@ -30,7 +30,7 @@ function createWorkflow() {
   const workflow = new Workflow(Kit.global);
 
   workflow.setRequestBodyDistributorConstructor(Distributor);
-  workflow.mixin(Plugin);
+  workflow.withPlugin(Plugin);
   workflow.use((kit) => {
     const cookie = useCookie(kit);
     const theme = cookie.get('theme');

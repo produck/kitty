@@ -139,7 +139,7 @@ class CompoundWorkflow extends Workflow.Abstract {
     return deployer;
   }
 
-  mixin(TargetPlugin) {
+  withPlugin(TargetPlugin) {
     this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
 
     if (!isSubConstructor(TargetPlugin, Plugin.Abstract)) {
