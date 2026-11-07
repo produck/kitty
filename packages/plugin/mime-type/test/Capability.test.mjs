@@ -8,7 +8,7 @@ import {
   Plugin,
   deleteItem,
   registerItem,
-  useType,
+  useTypeTable,
 } from '@produck/kitty-plugin-mime-type';
 
 function createWorkflow() {
@@ -37,18 +37,18 @@ function createType() {
 
   workflow.withPlugin(Plugin);
 
-  return { workflow, type: useType(createPluginKit(workflow)) };
+  return { workflow, type: useTypeTable(createPluginKit(workflow)) };
 }
 
-describe('::useType()', () => {
+describe('::useTypeTable()', () => {
   it('should reject a kit without a workflow', () => {
-    assert.throws(() => useType(Kit.global));
+    assert.throws(() => useTypeTable(Kit.global));
   });
 
   it('should reject a workflow without the plugin', () => {
     const workflow = createWorkflow();
 
-    assert.throws(() => useType(createPluginKit(workflow)));
+    assert.throws(() => useTypeTable(createPluginKit(workflow)));
   });
 
   it('should read the registry of the workflow behind the kit', () => {

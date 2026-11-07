@@ -5,7 +5,7 @@ import * as Bridge from './Bridge.mjs';
 import * as TypeTable from './TypeTable/index.mjs';
 import { $I } from './TypeTable/_Symbol.mjs';
 
-export { useType } from './Capability.mjs';
+export { useTypeTable } from './Capability.mjs';
 export { Plugin } from './Plugin.mjs';
 export { Standard, Web, Media, Document } from './Preset/index.mjs';
 

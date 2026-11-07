@@ -2,7 +2,7 @@ import type * as Workflow from '@produck/kitty-workflow';
 
 import type { Item } from './TypeTable/Item.d.mts';
 
-export { useType } from './Capability.mjs';
+export { useTypeTable } from './Capability.mjs';
 export { Plugin } from './Plugin.mjs';
 export { Standard, Web, Media, Document } from './Preset/index.mjs';
 
