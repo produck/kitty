@@ -6,7 +6,7 @@ import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
 import * as Kit from '@produck/kit';
 import * as Http2Http from '@produck/kitty-deployer-http2-http';
-import { Implement, useResponse } from '@produck/kitty-workflow';
+import { Implement, Use } from '@produck/kitty-workflow';
 
 import { Get, Plugin, Tune, useCookie } from '@produck/kitty-plugin-cookie';
 
@@ -36,7 +36,7 @@ function createWorkflow() {
     const theme = cookie.get('theme');
 
     cookie.set('visited', '1');
-    useResponse(kit).body.data = JSON.stringify({
+    Use.Response(kit).body.data = JSON.stringify({
       theme: theme === undefined ? null : theme.value,
       size: cookie.size,
       names: [...cookie.keys()],

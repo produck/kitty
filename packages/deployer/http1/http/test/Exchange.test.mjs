@@ -8,13 +8,7 @@ import { describe, it } from 'node:test';
 
 import Distributor from './Distributor.mjs';
 import * as Kit from '@produck/kit';
-import {
-  Abstract,
-  SYMBOL,
-  useExchange,
-  useRequest,
-  useResponse,
-} from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
@@ -88,7 +82,7 @@ import { Readable } from 'node:stream';
 import * as Kit from '@produck/kit';
 import * as Fugue from '@produck/fugue';
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
-import { Abstract, SYMBOL, useResponse } from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
 
 const Deployer = Http1Http.Deployer.Http1HttpDeployer;
@@ -198,7 +192,7 @@ describe('Exchange', () => {
   describe('.response.body', () => {
     it('should write a body with a declared length', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         response.setStatus(201, 'Created');
         response.header.set('x-method', 'GET');
@@ -233,7 +227,7 @@ describe('Exchange', () => {
 
     it('should end an explicitly empty body', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data = null;
+        Use.Response(context).body.data = null;
       });
 
       try {
@@ -251,8 +245,8 @@ describe('Exchange', () => {
   describe('.request', () => {
     it('should expose method, url and the request body', async () => {
       const app = await serve(async (context) => {
-        const request = useRequest(context);
-        const response = useResponse(context);
+        const request = Use.Request(context);
+        const response = Use.Response(context);
         const body = await new Response(request.body.data).text();
 
         response.body.data = [
@@ -277,8 +271,8 @@ describe('Exchange', () => {
 
     it('should read a header and list the header names', async () => {
       const app = await serve((context) => {
-        const request = useRequest(context);
-        const response = useResponse(context);
+        const request = Use.Request(context);
+        const response = Use.Response(context);
         const absent = request.header.get('x-absent');
         const keys = request.header.keys();
         const listed = [...keys].includes('x-present');
@@ -308,11 +302,11 @@ describe('Exchange', () => {
         const peeked = Http1Http.inspectHttp1Request(context);
         const chunks = [];
 
-        for await (const chunk of useRequest(context).body.data) {
+        for await (const chunk of Use.Request(context).body.data) {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           peeked.method,
           Buffer.concat(chunks).toString(),
         ].join(' ');
@@ -338,7 +332,7 @@ describe('Exchange', () => {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = Buffer.concat(chunks).toString();
+        Use.Response(context).body.data = Buffer.concat(chunks).toString();
       });
 
       try {
@@ -358,7 +352,7 @@ describe('Exchange', () => {
         const first = Http1Http.useHttp1Request(context);
         const second = Http1Http.useHttp1Request(context);
 
-        useResponse(context).body.data = first === second ? 'same' : 'other';
+        Use.Response(context).body.data = first === second ? 'same' : 'other';
       });
 
       try {
@@ -372,7 +366,7 @@ describe('Exchange', () => {
 
     it('should answer a request without a body', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data =
+        Use.Response(context).body.data =
           Http1Http.useHttp1Request(context).method;
       });
 
@@ -387,12 +381,15 @@ describe('Exchange', () => {
 
     it('should close the distributor path after the claim', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         Http1Http.useHttp1Request(context);
 
         try {
-          assert.throws(() => useRequest(context).body.data, /raw stream path/);
+          assert.throws(
+            () => Use.Request(context).body.data,
+            /raw stream path/,
+          );
           response.body.data = 'rejected';
         } catch (error) {
           response.body.data = error.message;
@@ -412,7 +409,7 @@ describe('Exchange', () => {
   describe('.response.header', () => {
     it('should normalize stored header values', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         response.header.set('set-cookie', 'a=1');
         response.header.set('x-plain', 'plain');
@@ -438,7 +435,7 @@ describe('Exchange', () => {
 
     it('should append repeated values under one name', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         response.header.append('set-cookie', 'a=1');
         response.header.append('Set-Cookie', 'b=2');
@@ -460,12 +457,12 @@ describe('Exchange', () => {
     });
   });
 
-  describe('useServer()', () => {
+  describe('Use.Server()', () => {
     it('should answer the deployed server', async () => {
       const app = await serve((context) => {
         const server = Http1Http.useServer(context);
 
-        useResponse(context).body.data = String(server.listening);
+        Use.Response(context).body.data = String(server.listening);
       });
 
       try {
@@ -487,7 +484,7 @@ describe('Exchange', () => {
           message = error.message;
         }
 
-        useResponse(context).body.data = message;
+        Use.Response(context).body.data = message;
       });
       const server = http2.createServer();
       const sessions = new Set();
@@ -515,8 +512,8 @@ describe('Exchange', () => {
   describe('connection facts', () => {
     it('should expose server, protocol and version', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
-        const response = useResponse(context);
+        const exchange = Use.Exchange(context);
+        const response = Use.Response(context);
 
         response.header.set('x-a', '1');
         exchange.setStatus(202, 'Accepted');
@@ -548,7 +545,7 @@ describe('Exchange', () => {
 
     it('should let the server answer the protocol', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data = useExchange(context).protocol;
+        Use.Response(context).body.data = Use.Exchange(context).protocol;
       });
 
       try {
@@ -563,7 +560,7 @@ describe('Exchange', () => {
     it('should prefer the protocol the server reports', async () => {
       const app = await serve(
         (context) => {
-          useResponse(context).body.data = useExchange(context).protocol;
+          Use.Response(context).body.data = Use.Exchange(context).protocol;
         },
         { protocol: 'https:' },
       );
@@ -612,7 +609,7 @@ describe('Exchange', () => {
 
     it('should leak a written failure instead of finishing', async () => {
       const result = await runScenario(
-        'useResponse(context).body.data = "partial";\n' +
+        'Use.Response(context).body.data = "partial";\n' +
           'await new Promise((resolve) => setTimeout(resolve, 10));\n' +
           'throw new Error("boom");',
       );
@@ -625,7 +622,7 @@ describe('Exchange', () => {
     it('should expose the request listener as manifest material', async () => {
       const app = await serve(
         (context) => {
-          useResponse(context).body.data = 'compiled';
+          Use.Response(context).body.data = 'compiled';
         },
         { compile: true },
       );

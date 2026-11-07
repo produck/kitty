@@ -1,5 +1,5 @@
 import { Ow } from '@produck/argot';
-import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
+import { Implement, SYMBOL, Use } from '@produck/kitty-workflow';
 import * as Http2Http from '@produck/kitty-deployer-http2-http';
 
 import * as Bridge from './Bridge.mjs';
@@ -28,7 +28,7 @@ export const options = Implement.Normalize.Deployer({
     declareToManifest,
     setServerLinker,
   }) {
-    const server = useServer(Kit);
+    const server = Use.Server(Kit);
     const hasWebSocket = hasWebSocketExchange();
 
     async function requestListener(req, res) {

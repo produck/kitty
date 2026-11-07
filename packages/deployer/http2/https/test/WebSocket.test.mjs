@@ -9,12 +9,7 @@ import { describe, it } from 'node:test';
 import { WebSocket } from 'ws';
 
 import * as Kit from '@produck/kit';
-import {
-  Abstract,
-  SYMBOL,
-  useExchange,
-  useWebSocket,
-} from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 import * as Http2Https from '@produck/kitty-deployer-http2-https';
 import * as WebSocketExchange from '@produck/kitty-deployer-http2-https/exchange/websocket';
 
@@ -273,8 +268,8 @@ describe('WebSocket', () => {
   describe('.handleUpgrade', () => {
     it('should answer the protocol and the version', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
-        const exchange = useExchange(context);
+        const controller = Use.WebSocket(context);
+        const exchange = Use.Exchange(context);
 
         controller.acceptUpgrade();
         controller.send(`${exchange.protocol} ${exchange.httpVersion}`);
@@ -293,7 +288,7 @@ describe('WebSocket', () => {
     });
     it('should accept the extended CONNECT over TLS and echo a frame', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', (event) => {
@@ -321,7 +316,7 @@ describe('WebSocket', () => {
 
     it('should close the connection from the handler', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', () => {
@@ -348,7 +343,7 @@ describe('WebSocket', () => {
   describe('.rejectUpgrade', () => {
     it('should answer an http error instead of accepting the stream', async () => {
       const app = await serve((context) => {
-        useWebSocket(context).rejectUpgrade(403, 'no way');
+        Use.WebSocket(context).rejectUpgrade(403, 'no way');
       });
 
       try {
@@ -366,8 +361,8 @@ describe('WebSocket', () => {
   describe('>http/1.1 client', () => {
     it('should answer the protocol and the version', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
-        const exchange = useExchange(context);
+        const controller = Use.WebSocket(context);
+        const exchange = Use.Exchange(context);
 
         controller.acceptUpgrade();
         controller.send(`${exchange.protocol} ${exchange.httpVersion}`);
@@ -389,7 +384,7 @@ describe('WebSocket', () => {
     });
     it('should accept the upgrade and echo a frame', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', (event) => {
@@ -415,7 +410,7 @@ describe('WebSocket', () => {
 
     it('should close the connection from the handler', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', () => {
@@ -440,7 +435,7 @@ describe('WebSocket', () => {
 
     it('should reject the upgrade with the http error', async () => {
       const app = await serve((context) => {
-        useWebSocket(context).rejectUpgrade(403, 'no way');
+        Use.WebSocket(context).rejectUpgrade(403, 'no way');
       });
 
       try {

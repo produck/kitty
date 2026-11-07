@@ -7,7 +7,7 @@ import { describe, it } from 'node:test';
 import { WebSocket } from 'ws';
 
 import * as Kit from '@produck/kit';
-import { Abstract, SYMBOL, useWebSocket } from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 import * as Http1Https from '@produck/kitty-deployer-http1-https';
 import { Exchange as WebSocketExchange } from '@produck/kitty-deployer-http1-http/exchange/websocket';
 
@@ -106,7 +106,7 @@ describe('WebSocket', () => {
   describe('.handleUpgrade', () => {
     it('should accept the secure handshake and echo a text frame', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', (event) => {

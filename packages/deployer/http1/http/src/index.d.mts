@@ -44,7 +44,7 @@ export declare const Deployer: Readonly<{
  * @returns The deployed server.
  */
 export declare function useServer(
-  ...args: Parameters<typeof Workflow.useServer>
+  ...args: Parameters<typeof Workflow.Use.Server>
 ): http.Server;
 
 /**
@@ -55,7 +55,7 @@ export declare function useServer(
  * @returns The node request behind the exchange.
  */
 export declare function useHttp1Request(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http.IncomingMessage;
 
 /**
@@ -67,5 +67,5 @@ export declare function useHttp1Request(
  * @returns The node request behind the exchange.
  */
 export declare function inspectHttp1Request(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http.IncomingMessage;

@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import * as Baseline from './Baseline/index.mjs';
 
 describe('capability', () => {
-  describe('::useWorkflow()', () => {
+  describe('::Use.Workflow()', () => {
     describe('>resolution', () => {
       it('should resolve the workflow from a plugin kit', () => {
         const workflow = Baseline.createWorkflow();
@@ -14,7 +14,7 @@ describe('capability', () => {
           workflow.withPlugin(
             Baseline.Kitty.Implement.Plugin({
               tag,
-              install: (kit) => captured.push(Baseline.Kitty.useWorkflow(kit)),
+              install: (kit) => captured.push(Baseline.Kitty.Use.Workflow(kit)),
             }),
           );
         }
@@ -27,17 +27,17 @@ describe('capability', () => {
       });
 
       it('should reject a kit without the dependency', () => {
-        assert.throws(() => Baseline.Kitty.useWorkflow(Baseline.Kit.global));
+        assert.throws(() => Baseline.Kitty.Use.Workflow(Baseline.Kit.global));
       });
     });
   });
 
-  describe('::useServer()', () => {
+  describe('::Use.Server()', () => {
     describe('>resolution', () => {
       it('should resolve the server from a deployer kit', async () => {
         const captured = [];
         const fixture = Baseline.createDeployer({
-          declare: (kit) => captured.push(Baseline.Kitty.useServer(kit)),
+          declare: (kit) => captured.push(Baseline.Kitty.Use.Server(kit)),
         });
         const workflow = Baseline.createWorkflow({
           deployers: [fixture.Deployer],
@@ -54,7 +54,7 @@ describe('capability', () => {
 
     describe('>failure', () => {
       it('should reject a kit without the dependency', () => {
-        assert.throws(() => Baseline.Kitty.useServer(Baseline.Kit.global));
+        assert.throws(() => Baseline.Kitty.Use.Server(Baseline.Kit.global));
       });
     });
   });
@@ -68,7 +68,7 @@ describe('capability', () => {
         Baseline.Kitty.Implement.Plugin({
           tag: 'probe',
           install: (kit) => {
-            fromPlugin = Baseline.Kitty.useWorkflow(kit);
+            fromPlugin = Baseline.Kitty.Use.Workflow(kit);
           },
         }),
       );

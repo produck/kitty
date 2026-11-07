@@ -10,7 +10,7 @@ export * as Exchange from './Exchange/index.mjs';
 export * as Deployer from './Deployer.mjs';
 
 export function useServer(Kit) {
-  const server = Workflow.useServer(Kit);
+  const server = Workflow.Use.Server(Kit);
 
   if (!instanceOf(server, Intrinsic.Http2SecureServer)) {
     Ow.Error.Common('The server on kit is NOT http2.Http2SecureServer.');
@@ -20,7 +20,7 @@ export function useServer(Kit) {
 }
 
 function getSocket(Kit) {
-  const exchange = Workflow.useExchange(Kit);
+  const exchange = Workflow.Use.Exchange(Kit);
 
   return Bridge.getSocketByExchange(exchange);
 }
@@ -56,7 +56,7 @@ const VERSION_MESSAGE = {
 };
 
 function assertProtocol(Kit, major) {
-  const { httpVersion } = Workflow.useExchange(Kit);
+  const { httpVersion } = Workflow.Use.Exchange(Kit);
 
   if (!httpVersion.startsWith(`${major}.`)) {
     Ow.Error.Common(VERSION_MESSAGE[major]);

@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 
 import { Ow } from '@produck/argot';
-import { Implement, SYMBOL, useServer } from '@produck/kitty-workflow';
+import { Implement, SYMBOL, Use } from '@produck/kitty-workflow';
 
 import * as Bridge from './Bridge.mjs';
 import * as Exchange from './Exchange/index.mjs';
@@ -18,7 +18,7 @@ export const options = Implement.Normalize.Deployer({
     setServerLinker,
     hasWebSocketExchange,
   }) {
-    const server = useServer(Kit);
+    const server = Use.Server(Kit);
 
     async function requestListener(req, res) {
       await handleHttpExchange({ server, req, res });

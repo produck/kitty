@@ -388,7 +388,7 @@ async function dispatchImplemented(patchHttpAccessors = null) {
     install: (port) => {
       kit = port;
       port.appendExchangeAttacher((ExchangeKit) => {
-        state.exchange = Baseline.Kitty.useExchange(ExchangeKit);
+        state.exchange = Baseline.Kitty.Use.Exchange(ExchangeKit);
       });
     },
   });

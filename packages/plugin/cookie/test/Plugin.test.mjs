@@ -6,7 +6,7 @@ import { after, before, describe, it } from 'node:test';
 import * as Fugue from '@produck/fugue';
 import * as Kit from '@produck/kit';
 import * as Deployer from '@produck/kitty-deployer-http1-http';
-import { Implement, useResponse } from '@produck/kitty-workflow';
+import { Implement, Use } from '@produck/kitty-workflow';
 import { SubConstructorProxy as SCP } from '@produck/es-abstract';
 
 import { Plugin, Tune, useCookie } from '@produck/kitty-plugin-cookie';
@@ -37,7 +37,7 @@ function createWorkflow() {
     const theme = cookie.get('theme');
 
     cookie.set('visited', '1');
-    useResponse(kit).body.data = theme === undefined ? 'none' : theme.value;
+    Use.Response(kit).body.data = theme === undefined ? 'none' : theme.value;
   });
 
   return workflow;

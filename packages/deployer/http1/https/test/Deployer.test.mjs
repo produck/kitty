@@ -6,13 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import * as Kit from '@produck/kit';
-import {
-  Abstract,
-  SYMBOL,
-  useExchange,
-  useRequest,
-  useResponse,
-} from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 
 import * as Http1Https from '@produck/kitty-deployer-http1-https';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
@@ -148,7 +142,7 @@ describe('Exchange', () => {
   describe('.response.body', () => {
     it('should answer over a real TLS connection', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data = 'secure';
+        Use.Response(context).body.data = 'secure';
       });
 
       try {
@@ -166,8 +160,8 @@ describe('Exchange', () => {
   describe('connection facts', () => {
     it('should expose the https server and the protocol', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
-        const response = useResponse(context);
+        const exchange = Use.Exchange(context);
+        const response = Use.Response(context);
 
         exchange.setStatus(202, 'Accepted');
 
@@ -190,7 +184,7 @@ describe('Exchange', () => {
 
     it('should report the https protocol without the server providing one', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data = useExchange(context).protocol;
+        Use.Response(context).body.data = Use.Exchange(context).protocol;
       });
 
       try {
@@ -207,7 +201,7 @@ describe('Exchange', () => {
     function describeTLS(context) {
       const certificate = Http1Https.useCertificate(context);
 
-      useResponse(context).body.data = JSON.stringify({
+      Use.Response(context).body.data = JSON.stringify({
         servername: Http1Https.useServername(context),
         cipher: Http1Https.useCipher(context),
         alpn: Http1Https.useAlpnProtocol(context),
@@ -267,7 +261,7 @@ describe('Exchange', () => {
   describe('.response.header', () => {
     it('should set, read and delete a header', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         response.header.set('x-plain', 'plain');
         const plain = response.header.get('x-plain');
@@ -293,8 +287,8 @@ describe('Exchange', () => {
   describe('.request', () => {
     it('should read method, url and body', async () => {
       const app = await serve(async (context) => {
-        const request = useRequest(context);
-        const response = useResponse(context);
+        const request = Use.Request(context);
+        const response = Use.Response(context);
         const body = await new Response(request.body.data).text();
 
         response.body.data = [request.method, request.url.pathname, body].join(
@@ -316,8 +310,8 @@ describe('Exchange', () => {
 
     it('should read a header and list the header names', async () => {
       const app = await serve((context) => {
-        const request = useRequest(context);
-        const response = useResponse(context);
+        const request = Use.Request(context);
+        const response = Use.Response(context);
         const absent = request.header.get('x-absent');
         const listed = [...request.header.keys()].includes('x-present');
 
@@ -344,7 +338,7 @@ describe('Exchange', () => {
     it('should expose the request listener as manifest material', async () => {
       const app = await serve(
         (context) => {
-          useResponse(context).body.data = 'compiled';
+          Use.Response(context).body.data = 'compiled';
         },
         { compile: true },
       );
@@ -367,7 +361,7 @@ describe('::useHttp1Request()', () => {
     const app = await serve((context) => {
       const req = Http1Https.useHttp1Request(context);
 
-      useResponse(context).body.data = [
+      Use.Response(context).body.data = [
         Http1Https.useServername(context),
         req.url,
       ].join(' ');
@@ -420,12 +414,12 @@ describe('::withWebSocketExchange()', () => {
   });
 });
 
-describe('useServer()', () => {
+describe('Use.Server()', () => {
   it('should answer the deployed server', async () => {
     const app = await serve((context) => {
       const server = Http1Https.useServer(context);
 
-      useResponse(context).body.data = String(server.listening);
+      Use.Response(context).body.data = String(server.listening);
     });
 
     try {
@@ -447,7 +441,7 @@ describe('useServer()', () => {
         message = error.message;
       }
 
-      useResponse(context).body.data = message;
+      Use.Response(context).body.data = message;
     });
     const server = http.createServer();
 

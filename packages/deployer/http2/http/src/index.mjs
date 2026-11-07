@@ -8,7 +8,7 @@ export * as Exchange from './Exchange/index.mjs';
 export * as Deployer from './Deployer.mjs';
 
 export function useServer(Kit) {
-  const server = Workflow.useServer(Kit);
+  const server = Workflow.Use.Server(Kit);
 
   if (!instanceOf(server, Intrinsic.Http2Server)) {
     Ow.Error.Common('The server on kit is NOT http2.Http2Server.');
@@ -18,7 +18,7 @@ export function useServer(Kit) {
 }
 
 function findRawStream(Kit) {
-  const exchange = Workflow.useExchange(Kit);
+  const exchange = Workflow.Use.Exchange(Kit);
   const entry = Bridge.getRaw(exchange);
 
   if (entry === undefined) {

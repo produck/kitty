@@ -9,7 +9,7 @@ import { WebSocket } from 'ws';
 
 import Distributor from './Distributor.mjs';
 import * as Kit from '@produck/kit';
-import { Abstract, SYMBOL, useWebSocket } from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as WebSocketExchange from '@produck/kitty-deployer-http1-http/exchange/websocket';
 
@@ -191,7 +191,7 @@ describe('WebSocket', () => {
   describe('.handleUpgrade', () => {
     it('should accept the handshake and echo a text frame', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', (event) => {
@@ -219,7 +219,7 @@ describe('WebSocket', () => {
 
     it('should echo a binary frame as a buffer', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', (event) => {
@@ -247,7 +247,7 @@ describe('WebSocket', () => {
 
     it('should answer the ready state of the connection', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.send(String(controller.readyState));
@@ -270,7 +270,7 @@ describe('WebSocket', () => {
 
     it('should close the connection from the handler', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('message', () => {
@@ -297,7 +297,7 @@ describe('WebSocket', () => {
       const closed = [];
 
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.closed.then((event) => closed.push(event));
@@ -321,7 +321,7 @@ describe('WebSocket', () => {
       const errors = [];
 
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
         controller.addEventListener('error', (event) => {
@@ -349,7 +349,7 @@ describe('WebSocket', () => {
 
     it('should report a missing raw request on the websocket exchange', async () => {
       const app = await serve((context) => {
-        const controller = useWebSocket(context);
+        const controller = Use.WebSocket(context);
 
         controller.acceptUpgrade();
 
@@ -380,7 +380,7 @@ describe('WebSocket', () => {
   describe('.rejectUpgrade', () => {
     it('should answer an http error instead of switching protocols', async () => {
       const app = await serve((context) => {
-        useWebSocket(context).rejectUpgrade(403, 'no way');
+        Use.WebSocket(context).rejectUpgrade(403, 'no way');
       });
 
       try {
@@ -401,7 +401,7 @@ describe('WebSocket', () => {
 
     it('should answer the standard phrase by default', async () => {
       const app = await serve((context) => {
-        useWebSocket(context).rejectUpgrade(400);
+        Use.WebSocket(context).rejectUpgrade(400);
       });
 
       try {

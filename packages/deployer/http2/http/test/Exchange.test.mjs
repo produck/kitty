@@ -5,13 +5,7 @@ import { Readable } from 'node:stream';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import {
-  Abstract,
-  SYMBOL,
-  useExchange,
-  useRequest,
-  useResponse,
-} from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 
 import * as Kit from '@produck/kit';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
@@ -95,7 +89,7 @@ async function serveHttp1(handler) {
 }
 
 function probeDistributor(context) {
-  return useRequest(context).body.data;
+  return Use.Request(context).body.data;
 }
 
 function request(port, headers = {}, body = undefined) {
@@ -130,12 +124,12 @@ function request(port, headers = {}, body = undefined) {
 }
 
 describe('Exchange', () => {
-  describe('useServer()', () => {
+  describe('Use.Server()', () => {
     it('should answer the deployed server', async () => {
       const app = await serve((context) => {
         const server = Http2Http.useServer(context);
 
-        useResponse(context).body.data = String(server.listening);
+        Use.Response(context).body.data = String(server.listening);
       });
 
       try {
@@ -157,7 +151,7 @@ describe('Exchange', () => {
           message = error.message;
         }
 
-        useResponse(context).body.data = message;
+        Use.Response(context).body.data = message;
       });
 
       try {
@@ -173,7 +167,7 @@ describe('Exchange', () => {
   describe('.response.body', () => {
     it('should answer over a real h2 connection', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data = 'h2c';
+        Use.Response(context).body.data = 'h2c';
       });
 
       try {
@@ -202,7 +196,7 @@ describe('Exchange', () => {
 
     it('should end a response that carries no body', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         response.header.set('x-quiet', '1');
         response.body.data = null;
@@ -223,8 +217,8 @@ describe('Exchange', () => {
   describe('connection facts', () => {
     it('should expose the server, the protocol and the version', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
-        const response = useResponse(context);
+        const exchange = Use.Exchange(context);
+        const response = Use.Response(context);
 
         exchange.setStatus(202, 'Accepted');
 
@@ -249,11 +243,11 @@ describe('Exchange', () => {
   describe('.response.state', () => {
     it('should report the status and the finished flag', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
+        const exchange = Use.Exchange(context);
         const response = exchange.response;
 
         exchange.setStatus(201, 'Created');
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           response.statusCode,
           response.isFinished,
         ].join(' ');
@@ -274,12 +268,12 @@ describe('Exchange', () => {
         let message;
 
         try {
-          message = useExchange(context).response.statusText;
+          message = Use.Exchange(context).response.statusText;
         } catch (error) {
           message = error.message;
         }
 
-        useResponse(context).body.data = message;
+        Use.Response(context).body.data = message;
       });
 
       try {
@@ -295,10 +289,10 @@ describe('Exchange', () => {
   describe('.request', () => {
     it('should read the method, the path and a header', async () => {
       const app = await serve((context) => {
-        const request = useRequest(context);
+        const request = Use.Request(context);
         const { pathname, search } = request.url;
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           request.method,
           pathname + search,
           request.header.get('x-probe'),
@@ -320,8 +314,8 @@ describe('Exchange', () => {
 
     it('should list the header names without pseudo headers', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data = [
-          ...useRequest(context).header.keys(),
+        Use.Response(context).body.data = [
+          ...Use.Request(context).header.keys(),
         ].join(',');
       });
 
@@ -336,8 +330,8 @@ describe('Exchange', () => {
 
     it('should answer an absent header as undefined', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data = String(
-          useRequest(context).header.get('x-absent'),
+        Use.Response(context).body.data = String(
+          Use.Request(context).header.get('x-absent'),
         );
       });
 
@@ -354,11 +348,11 @@ describe('Exchange', () => {
       const app = await serve(async (context) => {
         const chunks = [];
 
-        for await (const chunk of useRequest(context).body.data) {
+        for await (const chunk of Use.Request(context).body.data) {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = Buffer.concat(chunks)
+        Use.Response(context).body.data = Buffer.concat(chunks)
           .toString('utf8')
           .toUpperCase();
       });
@@ -383,11 +377,11 @@ describe('Exchange', () => {
         const peeked = Http2Http.inspectHttp2Stream(context);
         const chunks = [];
 
-        for await (const chunk of useRequest(context).body.data) {
+        for await (const chunk of Use.Request(context).body.data) {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           peeked.id,
           Buffer.concat(chunks).toString(),
         ].join(' ');
@@ -412,7 +406,7 @@ describe('Exchange', () => {
           message = error.message;
         }
 
-        useResponse(context).body.data = message;
+        Use.Response(context).body.data = message;
       });
 
       try {
@@ -440,7 +434,7 @@ describe('Exchange', () => {
           bodyState = 'blocked';
         }
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           Buffer.concat(chunks).toString('utf8'),
           bodyState,
         ].join(' ');
@@ -459,7 +453,7 @@ describe('Exchange', () => {
   describe('.response.header', () => {
     it('should append repeated values under one name', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         response.header.append('set-cookie', 'a=1');
         response.header.append('Set-Cookie', 'b=2');
@@ -482,7 +476,7 @@ describe('Exchange', () => {
     });
     it('should set, read and delete a header', async () => {
       const app = await serve((context) => {
-        const response = useResponse(context);
+        const response = Use.Response(context);
 
         response.header.set('x-plain', 'plain');
         const plain = response.header.get('x-plain');

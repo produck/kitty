@@ -44,7 +44,7 @@ export declare const Deployer: Readonly<{
  * @returns The deployed server.
  */
 export declare function useServer(
-  ...args: Parameters<typeof Workflow.useServer>
+  ...args: Parameters<typeof Workflow.Use.Server>
 ): http2.Http2Server;
 
 /**
@@ -55,7 +55,7 @@ export declare function useServer(
  * @returns The node stream behind the exchange.
  */
 export declare function useHttp2Stream(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http2.ServerHttp2Stream;
 
 /**
@@ -67,5 +67,5 @@ export declare function useHttp2Stream(
  * @returns The node stream behind the exchange.
  */
 export declare function inspectHttp2Stream(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http2.ServerHttp2Stream;

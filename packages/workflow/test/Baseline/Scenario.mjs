@@ -1,9 +1,4 @@
-import {
-  Tune,
-  useExchange,
-  useRequest,
-  useResponse,
-} from '@produck/kitty-workflow';
+import { Tune, Use } from '@produck/kitty-workflow';
 
 import { createDeployer } from './Deployer.mjs';
 import { createInternal } from './Internal.mjs';
@@ -45,14 +40,14 @@ export async function dispatch(options = {}) {
     webSocket: kind === 'websocket' || deployerOptions.webSocket === true,
     install: (kit) => {
       kit.appendExchangeAttacher((ExchangeKit) => {
-        const exchange = useExchange(ExchangeKit);
+        const exchange = Use.Exchange(ExchangeKit);
 
         state.exchange = exchange;
         state.exchangeKit = ExchangeKit;
-        state.request = useRequest(ExchangeKit);
+        state.request = Use.Request(ExchangeKit);
 
         if (kind !== 'websocket') {
-          state.response = useResponse(ExchangeKit);
+          state.response = Use.Response(ExchangeKit);
         }
 
         for (const type of PIPELINE_TYPES) {

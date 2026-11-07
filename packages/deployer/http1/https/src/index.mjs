@@ -13,7 +13,7 @@ export {
 export * as Deployer from './Deployer.mjs';
 
 export function useServer(Kit) {
-  const server = Workflow.useServer(Kit);
+  const server = Workflow.Use.Server(Kit);
 
   if (!instanceOf(server, https.Server)) {
     Ow.Error.Common('The server on kit is NOT https.Server.');
@@ -23,7 +23,7 @@ export function useServer(Kit) {
 }
 
 function getSocket(Kit) {
-  const exchange = Workflow.useExchange(Kit);
+  const exchange = Workflow.Use.Exchange(Kit);
 
   return Bridge.getSocketByExchange(exchange);
 }

@@ -1,10 +1,10 @@
-import { Implement, useWorkflow } from '@produck/kitty-workflow';
+import { Implement, Use } from '@produck/kitty-workflow';
 
 import { installConfiguration } from './Configuration.mjs';
 
 export const Plugin = Implement.Plugin({
-  tag: 'cookie',
+  tag: 'kitty.exchange.cookie',
   install(PluginKit) {
-    installConfiguration(useWorkflow(PluginKit));
+    installConfiguration(Use.Workflow(PluginKit));
   },
 });

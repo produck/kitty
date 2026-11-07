@@ -42,6 +42,7 @@
     "packages/plugin/request-content-negotiation",
     "packages/plugin/response-type",
     "packages/plugin/status",
-    "packages/kitty"
+    "packages/kitty",
+    "packages/plugin/mime-type"
   ]
 }

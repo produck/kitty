@@ -27,7 +27,7 @@ describe('WebSocketExchange', () => {
 
       assert.equal(typeof state.exchange.controller, 'object');
       assert.equal(
-        Baseline.Kitty.useWebSocket(state.exchangeKit),
+        Baseline.Kitty.Use.WebSocket(state.exchangeKit),
         state.exchange.controller,
       );
     });
@@ -38,7 +38,7 @@ describe('WebSocketExchange', () => {
         kind: 'websocket',
         internal: { socket: socket() },
         setup: (current) => {
-          seen.push(Baseline.Kitty.useWebSocket(current.exchangeKit));
+          seen.push(Baseline.Kitty.Use.WebSocket(current.exchangeKit));
         },
       });
 

@@ -7,13 +7,7 @@ import { connect as tlsConnect } from 'node:tls';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import {
-  Abstract,
-  SYMBOL,
-  useExchange,
-  useRequest,
-  useResponse,
-} from '@produck/kitty-workflow';
+import { Abstract, SYMBOL, Use } from '@produck/kitty-workflow';
 
 import * as Kit from '@produck/kit';
 import * as Http1Http from '@produck/kitty-deployer-http1-http';
@@ -170,7 +164,7 @@ describe('Exchange', () => {
   function describeTLS(context) {
     const certificate = Http2Https.useCertificate(context);
 
-    useResponse(context).body.data = JSON.stringify({
+    Use.Response(context).body.data = JSON.stringify({
       servername: Http2Https.useServername(context),
       cipher: Http2Https.useCipher(context),
       alpn: Http2Https.useAlpnProtocol(context),
@@ -182,9 +176,9 @@ describe('Exchange', () => {
   describe('>http2 client', () => {
     it('should answer with the protocol and the version', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
+        const exchange = Use.Exchange(context);
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           exchange.protocol,
           exchange.httpVersion,
         ].join(' ');
@@ -204,11 +198,11 @@ describe('Exchange', () => {
       const app = await serve(async (context) => {
         const chunks = [];
 
-        for await (const chunk of useRequest(context).body.data) {
+        for await (const chunk of Use.Request(context).body.data) {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = Buffer.concat(chunks)
+        Use.Response(context).body.data = Buffer.concat(chunks)
           .toString('utf8')
           .toUpperCase();
       });
@@ -227,11 +221,11 @@ describe('Exchange', () => {
         const peeked = Http2Https.inspectHttp2Stream(context);
         const chunks = [];
 
-        for await (const chunk of useRequest(context).body.data) {
+        for await (const chunk of Use.Request(context).body.data) {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           peeked.id,
           Buffer.concat(chunks).toString('utf8'),
         ].join(' ');
@@ -254,7 +248,7 @@ describe('Exchange', () => {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = Buffer.concat(chunks)
+        Use.Response(context).body.data = Buffer.concat(chunks)
           .toString('utf8')
           .toUpperCase();
       });
@@ -282,7 +276,7 @@ describe('Exchange', () => {
           message = error.message;
         }
 
-        useResponse(context).body.data = message;
+        Use.Response(context).body.data = message;
       });
 
       try {
@@ -358,9 +352,9 @@ describe('Exchange', () => {
   describe('>http/1.1 client', () => {
     it('should answer with the protocol and the version', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
+        const exchange = Use.Exchange(context);
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           exchange.protocol,
           exchange.httpVersion,
         ].join(' ');
@@ -380,11 +374,11 @@ describe('Exchange', () => {
       const app = await serve(async (context) => {
         const chunks = [];
 
-        for await (const chunk of useRequest(context).body.data) {
+        for await (const chunk of Use.Request(context).body.data) {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = Buffer.concat(chunks)
+        Use.Response(context).body.data = Buffer.concat(chunks)
           .toString('utf8')
           .toUpperCase();
       });
@@ -407,11 +401,11 @@ describe('Exchange', () => {
         const peeked = Http2Https.inspectHttp1Request(context);
         const chunks = [];
 
-        for await (const chunk of useRequest(context).body.data) {
+        for await (const chunk of Use.Request(context).body.data) {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = [
+        Use.Response(context).body.data = [
           peeked.method,
           Buffer.concat(chunks).toString('utf8'),
         ].join(' ');
@@ -438,7 +432,7 @@ describe('Exchange', () => {
           chunks.push(chunk);
         }
 
-        useResponse(context).body.data = Buffer.concat(chunks)
+        Use.Response(context).body.data = Buffer.concat(chunks)
           .toString('utf8')
           .toUpperCase();
       });
@@ -458,7 +452,7 @@ describe('Exchange', () => {
 
     it('should hand over the raw request of an http/1.0 client', async () => {
       const app = await serve((context) => {
-        useResponse(context).body.data =
+        Use.Response(context).body.data =
           Http2Https.useHttp1Request(context).httpVersion;
       });
 
@@ -479,7 +473,7 @@ describe('Exchange', () => {
           message = error.message;
         }
 
-        useResponse(context).body.data = message;
+        Use.Response(context).body.data = message;
       });
 
       try {
@@ -529,8 +523,8 @@ describe('Exchange', () => {
   describe('>both clients', () => {
     it('should apply the status and the headers set by the handler', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
-        const response = useResponse(context);
+        const exchange = Use.Exchange(context);
+        const response = Use.Response(context);
 
         exchange.setStatus(202, 'Accepted');
         response.header.set('x-plain', 'plain');
@@ -555,7 +549,7 @@ describe('Exchange', () => {
 
     it('should keep the status text for the http/1.1 client only', async () => {
       const app = await serve((context) => {
-        const exchange = useExchange(context);
+        const exchange = Use.Exchange(context);
         let text;
 
         exchange.setStatus(202, 'Accepted');
@@ -566,7 +560,7 @@ describe('Exchange', () => {
           text = error.message;
         }
 
-        useResponse(context).body.data = text;
+        Use.Response(context).body.data = text;
       });
 
       try {
@@ -584,12 +578,12 @@ describe('Exchange', () => {
     });
   });
 
-  describe('useServer()', () => {
+  describe('Use.Server()', () => {
     it('should answer the deployed server', async () => {
       const app = await serve((context) => {
         const server = Http2Https.useServer(context);
 
-        useResponse(context).body.data = String(server.listening);
+        Use.Response(context).body.data = String(server.listening);
       });
 
       try {
@@ -611,7 +605,7 @@ describe('Exchange', () => {
           message = error.message;
         }
 
-        useResponse(context).body.data = message;
+        Use.Response(context).body.data = message;
       });
       const server = createServer();
 

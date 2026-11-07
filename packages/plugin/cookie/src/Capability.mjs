@@ -1,7 +1,7 @@
-import { useExchange } from '@produck/kitty-workflow';
+import { Use } from '@produck/kitty-workflow';
 
 import * as Bridge from './Bridge.mjs';
 
 export function useCookie(kit) {
-  return Bridge.getCookie(useExchange(kit));
+  return Bridge.getCookie(Use.Exchange(kit));
 }

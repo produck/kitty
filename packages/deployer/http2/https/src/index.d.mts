@@ -43,7 +43,7 @@ export declare const Deployer: Readonly<{
  * @returns The deployed server.
  */
 export declare function useServer(
-  ...args: Parameters<typeof Workflow.useServer>
+  ...args: Parameters<typeof Workflow.Use.Server>
 ): http2.Http2SecureServer;
 
 /**
@@ -53,7 +53,7 @@ export declare function useServer(
  * @returns The server name, or `undefined` when the client sent none.
  */
 export declare function useServername(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): string | undefined;
 
 /**
@@ -63,7 +63,7 @@ export declare function useServername(
  * @returns Verification state and the reason it failed.
  */
 export declare function useAuthorization(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): Readonly<{
   authorized: boolean;
   error: string | null;
@@ -76,7 +76,7 @@ export declare function useAuthorization(
  * @returns The peer certificate, empty when the client presented none.
  */
 export declare function useCertificate(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): tls.PeerCertificate;
 
 /**
@@ -86,7 +86,7 @@ export declare function useCertificate(
  * @returns The negotiated cipher.
  */
 export declare function useCipher(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): tls.CipherNameAndProtocol;
 
 /**
@@ -96,7 +96,7 @@ export declare function useCipher(
  * @returns The protocol name, or `false` when none was negotiated.
  */
 export declare function useAlpnProtocol(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): string | false;
 
 /**
@@ -109,7 +109,7 @@ export declare function useAlpnProtocol(
  * @returns The node request bound to the exchange.
  */
 export declare function useHttp1Request(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http.IncomingMessage;
 
 /**
@@ -120,7 +120,7 @@ export declare function useHttp1Request(
  * @returns The node request bound to the exchange.
  */
 export declare function inspectHttp1Request(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http.IncomingMessage;
 
 /**
@@ -133,7 +133,7 @@ export declare function inspectHttp1Request(
  * @returns The h2 stream bound to the exchange.
  */
 export declare function useHttp2Stream(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http2.ServerHttp2Stream;
 
 /**
@@ -144,5 +144,5 @@ export declare function useHttp2Stream(
  * @returns The h2 stream bound to the exchange.
  */
 export declare function inspectHttp2Stream(
-  ...args: Parameters<typeof Workflow.useExchange>
+  ...args: Parameters<typeof Workflow.Use.Exchange>
 ): http2.ServerHttp2Stream;
