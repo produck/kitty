@@ -1,14 +1,14 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
 const I_IANA = Symbol('.#iana()');
-const I_ITERATE = Symbol('.#iterate()');
-const _I_EXTRA = Symbol('._extra()');
+const I_ENTRIES = Symbol('.#entries');
+const _I_EXTEND = Symbol('._extend()');
 
 export const I = deepFreeze({
   IANA: I_IANA,
-  ITERATE: I_ITERATE,
+  ENTRIES: I_ENTRIES,
 });
 
 export const _I = deepFreeze({
-  EXTRA: _I_EXTRA,
+  EXTEND: _I_EXTEND,
 });

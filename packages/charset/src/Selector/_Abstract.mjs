@@ -8,7 +8,7 @@ function copyRecord(record) {
   return {
     name: record.name,
     mibEnum: record.mibEnum,
-    preferredName: record.preferredName,
+    preferredName: record.preferredName ?? record.name,
     aliasList: [...record.aliasList],
   };
 }
@@ -25,6 +25,36 @@ function hasAlias(record, alias) {
   });
 }
 
+function assertRecord(_record) {
+  if (!Is.PlainObject(_record)) {
+    ThrowTypeError('extended record', 'plain object');
+  }
+
+  const { name, mibEnum, preferredName, aliasList } = _record;
+
+  if (!Is.Type.String(name) || name.trim().length === 0) {
+    ThrowTypeError('extended record.name', 'non-empty string');
+  }
+
+  if (!Is.PositiveInteger(mibEnum)) {
+    ThrowTypeError('extended record.mibEnum', 'positive integer');
+  }
+
+  if (preferredName !== undefined && !Is.Type.String(preferredName)) {
+    ThrowTypeError('extended record.preferredName', 'string');
+  }
+
+  if (!Is.Instance.Array(aliasList)) {
+    ThrowTypeError('extended record.aliasList', 'an array of strings');
+  }
+
+  for (const alias of aliasList) {
+    if (!Is.Type.String(alias)) {
+      ThrowTypeError('extended record.aliasList', 'an array of strings');
+    }
+  }
+}
+
 class Selector {
   *[I.IANA]() {
     for (const record of IANA_RECORD_LIST) {
@@ -32,13 +62,18 @@ class Selector {
     }
   }
 
-  *[_I.EXTRA]() {
+  *[_I.EXTEND]() {
     yield* [];
   }
 
-  *[I.ITERATE]() {
+  *[I.ENTRIES]() {
     yield* this[I.IANA]();
-    yield* this[_I.EXTRA]();
+
+    for (const _record of this[_I.EXTEND]()) {
+      assertRecord(_record);
+
+      yield copyRecord(_record);
+    }
   }
 
   findByName(name) {
@@ -48,7 +83,7 @@ class Selector {
 
     const target = normalizeText(name);
 
-    for (const record of this[I.ITERATE]()) {
+    for (const record of this[I.ENTRIES]()) {
       if (record.name.toLowerCase() === target) {
         return record;
       }
@@ -62,7 +97,7 @@ class Selector {
       ThrowTypeError('args[0] as mibEnum', 'positive integer');
     }
 
-    for (const record of this[I.ITERATE]()) {
+    for (const record of this[I.ENTRIES]()) {
       if (record.mibEnum === mibEnum) {
         return record;
       }
@@ -78,7 +113,7 @@ class Selector {
 
     const target = normalizeText(name);
 
-    for (const record of this[I.ITERATE]()) {
+    for (const record of this[I.ENTRIES]()) {
       if (record.preferredName.toLowerCase() === target) {
         return record;
       }
@@ -92,7 +127,7 @@ class Selector {
       ThrowTypeError('args[0] as alias', 'string');
     }
 
-    for (const record of this[I.ITERATE]()) {
+    for (const record of this[I.ENTRIES]()) {
       if (hasAlias(record, alias)) {
         return record;
       }
@@ -104,5 +139,5 @@ class Selector {
 
 export default Abstract(
   Selector,
-  Abstract({ [_I.EXTRA]: M.Method().returns(M.Iterable) }),
+  Abstract({ [_I.EXTEND]: M.Method().returns(M.Iterable) }),
 );
