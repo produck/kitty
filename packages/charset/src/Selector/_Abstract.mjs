@@ -2,14 +2,19 @@ import { Is, ThrowTypeError } from '@produck/argot';
 import Abstract, { Member as M } from '@produck/es-abstract';
 
 import { I, _I } from './_Symbol.mjs';
-import IANA_RECORD_LIST from './Iana.mjs';
+import IANA_RECORD_LIST, * as IANA_KEY from './Iana.mjs';
 
 function copyRecord(record) {
+  const name = record[IANA_KEY.NAME] ?? record.name;
+  const mibEnum = record[IANA_KEY.MIB_ENUM] ?? record.mibEnum;
+  const preferredName = record[IANA_KEY.PREFERRED_NAME] ?? record.preferredName;
+  const aliasList = record[IANA_KEY.ALIAS_LIST] ?? record.aliasList;
+
   return {
-    name: record.name,
-    mibEnum: record.mibEnum,
-    preferredName: record.preferredName ?? record.name,
-    aliasList: [...record.aliasList],
+    name,
+    mibEnum,
+    preferredName: preferredName ?? name,
+    aliasList: aliasList.includes(name) ? [...aliasList] : [name, ...aliasList],
   };
 }
 
