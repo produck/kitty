@@ -11,6 +11,8 @@ import {
   useTypeTable,
 } from '@produck/kitty-plugin-mime-type';
 
+import * as Charset from '../src/Preset/Charset.mjs';
+
 function createWorkflow() {
   const Workflow = Implement.Workflow({
     normalizeHttpResponseBodyData: () => ({ stream: null, length: 0 }),
@@ -55,16 +57,20 @@ describe('::useTypeTable()', () => {
     const { type } = createType();
 
     assert.deepEqual(type.findByAlias('json'), [
-      { alias: 'json', mimeType: 'application/json' },
+      { alias: 'json', mimeType: 'application/json', charsetList: Charset.ANY },
     ]);
     assert.deepEqual(type.findByMimeType('application/json'), [
-      { alias: 'json', mimeType: 'application/json' },
+      { alias: 'json', mimeType: 'application/json', charsetList: Charset.ANY },
     ]);
   });
 
   it('should follow the registry mutations of the workflow', () => {
     const { workflow, type } = createType();
-    const item = { alias: 'foo', mimeType: 'application/x-foo' };
+    const item = {
+      alias: 'foo',
+      mimeType: 'application/x-foo',
+      charsetList: [],
+    };
 
     registerItem(workflow, item);
 

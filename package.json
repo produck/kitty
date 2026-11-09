@@ -32,16 +32,15 @@
   },
   "workspaces": [
     "packages/workflow",
+    "packages/charset",
     "packages/deployer/http2/http",
     "packages/deployer/http2/https",
     "packages/deployer/http1/http",
     "packages/deployer/http1/https",
-    "packages/plugin/method",
     "packages/plugin/cookie",
     "packages/plugin/request-type",
     "packages/plugin/request-content-negotiation",
     "packages/plugin/response-type",
-    "packages/plugin/status",
     "packages/kitty",
     "packages/plugin/mime-type"
   ]

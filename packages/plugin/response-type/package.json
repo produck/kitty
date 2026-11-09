@@ -1,5 +1,8 @@
 {
   "name": "@produck/kitty-plugin-response-type",
+  "peerDependencies": {
+    "@produck/meta-iana-charset": "^0.1.0"
+  },
   "scripts": {
     "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
     "test": "node -e \"console.log('No tests configured')\""

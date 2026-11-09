@@ -1,0 +1,45 @@
+{
+  "author": "ChaosLee",
+  "bugs": {
+    "url": "https://github.com/produck/kitty/issues"
+  },
+  "description": "Charset registry with indexing and queries over the IANA character sets.",
+  "devDependencies": {
+    "@produck/argot": "^0.4.0",
+    "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/meta-iana-charset": "^0.1.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.mjs",
+      "types": "./src/index.d.mts"
+    }
+  },
+  "files": [
+    "src/**/*.mjs",
+    "src/**/*.d.mts"
+  ],
+  "homepage": "https://github.com/produck/kitty/tree/main/packages/charset#readme",
+  "keywords": [
+    "charset",
+    "iana",
+    "kitty",
+    "mibenum"
+  ],
+  "license": "MIT",
+  "name": "@produck/kitty-charset",
+  "peerDependencies": {
+    "@produck/meta-iana-charset": "^0.1.0"
+  },
+  "repository": {
+    "directory": "packages/charset",
+    "type": "git",
+    "url": "git+https://github.com/produck/kitty.git"
+  },
+  "scripts": {
+    "produck:coverage": "c8 --reporter=lcov --reporter=html --reporter=text-summary npm test",
+    "test": "node test/index.mjs"
+  },
+  "type": "module",
+  "version": "0.0.0"
+}

@@ -8,6 +8,7 @@ import { Plugin } from '@produck/kitty-plugin-mime-type';
 
 import * as Bridge from '../src/Bridge.mjs';
 import { findAll } from '../src/index.mjs';
+import * as Charset from '../src/Preset/Charset.mjs';
 
 function createWorkflow() {
   const Workflow = Implement.Workflow({
@@ -24,7 +25,7 @@ describe('::Plugin', () => {
     workflow.withPlugin(Plugin);
 
     assert.deepEqual(Bridge.getTypeTable(workflow).findByAlias('json'), [
-      { alias: 'json', mimeType: 'application/json' },
+      { alias: 'json', mimeType: 'application/json', charsetList: Charset.ANY },
     ]);
     assert.ok(findAll(workflow).length > 0);
   });

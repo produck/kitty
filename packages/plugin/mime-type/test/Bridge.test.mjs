@@ -57,16 +57,72 @@ describe('::getTypeTable()', () => {
 
 describe('::registerItem()', () => {
   it('should reject a value that is not a workflow', () => {
-    assert.throws(() => registerItem({}, { alias: 'a', mimeType: 'a/b' }));
+    assert.throws(() =>
+      registerItem({}, { alias: 'a', mimeType: 'a/b', charsetList: [] }),
+    );
   });
 
   it('should answer the normalized item', () => {
     const workflow = createWorkflow();
 
     assert.deepEqual(
-      registerItem(workflow, { alias: 'JSON', mimeType: 'Application/JSON' }),
-      { alias: 'json', mimeType: 'application/json' },
+      registerItem(workflow, {
+        alias: 'JSON',
+        mimeType: 'Application/JSON',
+        charsetList: [],
+      }),
+      { alias: 'json', mimeType: 'application/json', charsetList: [] },
     );
+  });
+
+  it('should reject a charset list outside the contract', () => {
+    const charsetListList = [
+      undefined,
+      1,
+      'utf-8',
+      ['utf-8'],
+      [0],
+      [-1],
+      [1.5],
+    ];
+
+    for (const charsetList of charsetListList) {
+      assert.throws(
+        () =>
+          registerItem(createWorkflow(), {
+            alias: 'a',
+            mimeType: 'a/b',
+            charsetList,
+          }),
+        { message: /charsetList/ },
+      );
+    }
+  });
+
+  it('should dedupe the charset list', () => {
+    const workflow = createWorkflow();
+
+    assert.deepEqual(
+      registerItem(workflow, {
+        alias: 'a',
+        mimeType: 'a/b',
+        charsetList: [106, 4, 106],
+      }).charsetList,
+      [106, 4],
+    );
+  });
+
+  it('should answer a charset list copy', () => {
+    const workflow = createWorkflow();
+    const item = registerItem(workflow, {
+      alias: 'a',
+      mimeType: 'a/b',
+      charsetList: [106],
+    });
+
+    item.charsetList.push(4);
+
+    assert.deepEqual(findAll(workflow)[0].charsetList, [106]);
   });
 
   it('should reject a value that is not an item record', () => {
@@ -103,18 +159,34 @@ describe('::registerItem()', () => {
   it('should reject one alias and mime type pair twice', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'json', mimeType: 'application/json' });
+    registerItem(workflow, {
+      alias: 'json',
+      mimeType: 'application/json',
+      charsetList: [],
+    });
 
     assert.throws(() =>
-      registerItem(workflow, { alias: 'json', mimeType: 'application/json' }),
+      registerItem(workflow, {
+        alias: 'json',
+        mimeType: 'application/json',
+        charsetList: [],
+      }),
     );
   });
 
   it('should accept one alias of two mime types', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'xml', mimeType: 'application/xml' });
-    registerItem(workflow, { alias: 'xml', mimeType: 'text/xml' });
+    registerItem(workflow, {
+      alias: 'xml',
+      mimeType: 'application/xml',
+      charsetList: [],
+    });
+    registerItem(workflow, {
+      alias: 'xml',
+      mimeType: 'text/xml',
+      charsetList: [],
+    });
 
     assert.equal(findByAlias(workflow, 'xml').length, 2);
   });
@@ -125,8 +197,8 @@ describe('::registerItems()', () => {
     const workflow = createWorkflow();
 
     registerItems(workflow, [
-      { alias: 'json', mimeType: 'application/json' },
-      { alias: 'text', mimeType: 'text/plain' },
+      { alias: 'json', mimeType: 'application/json', charsetList: [] },
+      { alias: 'text', mimeType: 'text/plain', charsetList: [] },
     ]);
 
     assert.equal(findAll(workflow).length, 2);
@@ -141,8 +213,16 @@ describe('::deleteItem()', () => {
   it('should drop the item from both indexes', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'json', mimeType: 'application/json' });
-    deleteItem(workflow, { alias: 'json', mimeType: 'application/json' });
+    registerItem(workflow, {
+      alias: 'json',
+      mimeType: 'application/json',
+      charsetList: [],
+    });
+    deleteItem(workflow, {
+      alias: 'json',
+      mimeType: 'application/json',
+      charsetList: [],
+    });
 
     assert.deepEqual(findByAlias(workflow, 'json'), []);
     assert.deepEqual(findByMimeType(workflow, 'application/json'), []);
@@ -152,12 +232,24 @@ describe('::deleteItem()', () => {
   it('should keep the alias while another mime type holds it', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'xml', mimeType: 'application/xml' });
-    registerItem(workflow, { alias: 'xml', mimeType: 'text/xml' });
-    deleteItem(workflow, { alias: 'xml', mimeType: 'application/xml' });
+    registerItem(workflow, {
+      alias: 'xml',
+      mimeType: 'application/xml',
+      charsetList: [],
+    });
+    registerItem(workflow, {
+      alias: 'xml',
+      mimeType: 'text/xml',
+      charsetList: [],
+    });
+    deleteItem(workflow, {
+      alias: 'xml',
+      mimeType: 'application/xml',
+      charsetList: [],
+    });
 
     assert.deepEqual(findByAlias(workflow, 'xml'), [
-      { alias: 'xml', mimeType: 'text/xml' },
+      { alias: 'xml', mimeType: 'text/xml', charsetList: [] },
     ]);
   });
 
@@ -165,12 +257,18 @@ describe('::deleteItem()', () => {
     const workflow = createWorkflow();
 
     assert.throws(() =>
-      deleteItem(workflow, { alias: 'json', mimeType: 'application/json' }),
+      deleteItem(workflow, {
+        alias: 'json',
+        mimeType: 'application/json',
+        charsetList: [],
+      }),
     );
   });
 
   it('should reject a value that is not a workflow', () => {
-    assert.throws(() => deleteItem({}, { alias: 'a', mimeType: 'a/b' }));
+    assert.throws(() =>
+      deleteItem({}, { alias: 'a', mimeType: 'a/b', charsetList: [] }),
+    );
   });
 });
 
@@ -178,18 +276,30 @@ describe('.findByAlias()', () => {
   it('should answer every item of the alias', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'jpeg', mimeType: 'image/jpeg' });
-    registerItem(workflow, { alias: 'jpg', mimeType: 'image/jpeg' });
+    registerItem(workflow, {
+      alias: 'jpeg',
+      mimeType: 'image/jpeg',
+      charsetList: [],
+    });
+    registerItem(workflow, {
+      alias: 'jpg',
+      mimeType: 'image/jpeg',
+      charsetList: [],
+    });
 
     assert.deepEqual(findByAlias(workflow, 'jpg'), [
-      { alias: 'jpg', mimeType: 'image/jpeg' },
+      { alias: 'jpg', mimeType: 'image/jpeg', charsetList: [] },
     ]);
   });
 
   it('should read the alias case-insensitively', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'json', mimeType: 'application/json' });
+    registerItem(workflow, {
+      alias: 'json',
+      mimeType: 'application/json',
+      charsetList: [],
+    });
 
     assert.equal(findByAlias(workflow, 'JSON').length, 1);
   });
@@ -207,19 +317,31 @@ describe('.findByMimeType()', () => {
   it('should answer every alias of the mime type', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'jpeg', mimeType: 'image/jpeg' });
-    registerItem(workflow, { alias: 'jpg', mimeType: 'image/jpeg' });
+    registerItem(workflow, {
+      alias: 'jpeg',
+      mimeType: 'image/jpeg',
+      charsetList: [],
+    });
+    registerItem(workflow, {
+      alias: 'jpg',
+      mimeType: 'image/jpeg',
+      charsetList: [],
+    });
 
     assert.deepEqual(findByMimeType(workflow, 'image/jpeg'), [
-      { alias: 'jpeg', mimeType: 'image/jpeg' },
-      { alias: 'jpg', mimeType: 'image/jpeg' },
+      { alias: 'jpeg', mimeType: 'image/jpeg', charsetList: [] },
+      { alias: 'jpg', mimeType: 'image/jpeg', charsetList: [] },
     ]);
   });
 
   it('should read the mime type case-insensitively', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'json', mimeType: 'application/json' });
+    registerItem(workflow, {
+      alias: 'json',
+      mimeType: 'application/json',
+      charsetList: [],
+    });
 
     assert.equal(findByMimeType(workflow, 'Application/JSON').length, 1);
   });
@@ -240,7 +362,11 @@ describe('::findAll()', () => {
     const left = createWorkflow();
     const right = createWorkflow();
 
-    registerItem(left, { alias: 'json', mimeType: 'application/json' });
+    registerItem(left, {
+      alias: 'json',
+      mimeType: 'application/json',
+      charsetList: [],
+    });
 
     assert.equal(findAll(left).length, 1);
     assert.deepEqual(findAll(right), []);
@@ -249,8 +375,12 @@ describe('::findAll()', () => {
   it('should answer a copy of the item list', () => {
     const workflow = createWorkflow();
 
-    registerItem(workflow, { alias: 'json', mimeType: 'application/json' });
-    findAll(workflow).push({ alias: 'x', mimeType: 'x/x' });
+    registerItem(workflow, {
+      alias: 'json',
+      mimeType: 'application/json',
+      charsetList: [],
+    });
+    findAll(workflow).push({ alias: 'x', mimeType: 'x/x', charsetList: [] });
 
     assert.equal(findAll(workflow).length, 1);
   });
