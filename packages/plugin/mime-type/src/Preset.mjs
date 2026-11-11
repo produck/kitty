@@ -273,7 +273,6 @@ import * as WHATWG_application_unknown from '@produck/meta-whatwg-mime/applicati
 import * as WHATWG_application_vnd_ms_fontobject from '@produck/meta-whatwg-mime/application/vnd.ms-fontobject';
 import * as WHATWG_application_vnd_ms_opentype from '@produck/meta-whatwg-mime/application/vnd.ms-opentype';
 import * as WHATWG_application_x_ecmascript from '@produck/meta-whatwg-mime/application/x-ecmascript';
-import * as WHATWG_application_x_gzip from '@produck/meta-whatwg-mime/application/x-gzip';
 import * as WHATWG_application_x_javascript from '@produck/meta-whatwg-mime/application/x-javascript';
 import * as WHATWG_application_x_rar_compressed from '@produck/meta-whatwg-mime/application/x-rar-compressed';
 import * as WHATWG_application_xml from '@produck/meta-whatwg-mime/application/xml';
@@ -316,6 +315,11 @@ import * as WHATWG_unknown_unknown from '@produck/meta-whatwg-mime/unknown/unkno
 import * as WHATWG_video_avi from '@produck/meta-whatwg-mime/video/avi';
 import * as WHATWG_video_mp4 from '@produck/meta-whatwg-mime/video/mp4';
 import * as WHATWG_video_webm from '@produck/meta-whatwg-mime/video/webm';
+
+import * as IANA_application_gzip from '@produck/meta-iana-media-type/application/gzip';
+
+import * as FREEDESKTOP_application_gzip from '@produck/meta-freedesktop-mime/application/gzip';
+import * as FREEDESKTOP_text_vtt from '@produck/meta-freedesktop-mime/text/vtt';
 import * as APACHE_application_ecmascript from '@produck/meta-apache-mime-extension/application/ecmascript';
 import * as APACHE_application_json from '@produck/meta-apache-mime-extension/application/json';
 import * as APACHE_application_octet_stream from '@produck/meta-apache-mime-extension/application/octet-stream';
@@ -328,6 +332,8 @@ import * as APACHE_application_xml from '@produck/meta-apache-mime-extension/app
 import * as APACHE_application_zip from '@produck/meta-apache-mime-extension/application/zip';
 import * as APACHE_audio_midi from '@produck/meta-apache-mime-extension/audio/midi';
 import * as APACHE_audio_mpeg from '@produck/meta-apache-mime-extension/audio/mpeg';
+import * as APACHE_audio_x_aiff from '@produck/meta-apache-mime-extension/audio/x-aiff';
+import * as APACHE_audio_x_wav from '@produck/meta-apache-mime-extension/audio/x-wav';
 import * as APACHE_font_collection from '@produck/meta-apache-mime-extension/font/collection';
 import * as APACHE_font_otf from '@produck/meta-apache-mime-extension/font/otf';
 import * as APACHE_font_ttf from '@produck/meta-apache-mime-extension/font/ttf';
@@ -346,10 +352,21 @@ import * as APACHE_text_javascript from '@produck/meta-apache-mime-extension/tex
 import * as APACHE_text_plain from '@produck/meta-apache-mime-extension/text/plain';
 import * as APACHE_video_mp4 from '@produck/meta-apache-mime-extension/video/mp4';
 import * as APACHE_video_webm from '@produck/meta-apache-mime-extension/video/webm';
+import * as APACHE_video_x_msvideo from '@produck/meta-apache-mime-extension/video/x-msvideo';
 
 export const MIME_TYPE = Symbol('item.mimeType');
 export const ALIAS_LIST = Symbol('item.aliasList');
 export const CHARSET_LIST = Symbol('item.charsetList');
+
+const GLOB_EXTENSION = /^\*\.([^*?[\]{}]+)$/;
+
+const toExtension = ({ pattern }) =>
+  GLOB_EXTENSION.test(pattern) && !pattern.includes('.', 2)
+    ? pattern.slice(2)
+    : null;
+
+const toExtensionList = (globList) =>
+  globList.map(toExtension).filter((extension) => extension !== null);
 
 export const CHARSET = Object.freeze({
   ANY: Object.freeze([
@@ -630,7 +647,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_application_font_otf.mediaType,
-    [ALIAS_LIST]: Object.freeze(['otf']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_font_otf.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -640,17 +657,17 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_application_font_ttf.mediaType,
-    [ALIAS_LIST]: Object.freeze(['ttf']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_font_ttf.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_font_woff.mediaType,
-    [ALIAS_LIST]: Object.freeze(['woff']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_font_woff.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_javascript.mediaType,
-    [ALIAS_LIST]: Object.freeze(['js']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_text_javascript.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -705,8 +722,11 @@ export const Web = Object.freeze([
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
-    [MIME_TYPE]: WHATWG_application_x_gzip.mediaType,
-    [ALIAS_LIST]: Object.freeze(['gz']),
+    [MIME_TYPE]: `${IANA_application_gzip.type}/${IANA_application_gzip.subtype}`,
+    [ALIAS_LIST]: Object.freeze([
+      ...FREEDESKTOP_application_gzip.aliasList,
+      ...toExtensionList(FREEDESKTOP_application_gzip.globList),
+    ]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -733,7 +753,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_audio_aiff.mediaType,
-    [ALIAS_LIST]: Object.freeze(['aiff', 'aif']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_audio_x_aiff.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -748,7 +768,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_audio_wave.mediaType,
-    [ALIAS_LIST]: Object.freeze(['wav']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_audio_x_wav.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -868,7 +888,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_text_json.mediaType,
-    [ALIAS_LIST]: Object.freeze(['json']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_application_json.extensionList]),
     [CHARSET_LIST]: CHARSET.ANY,
   },
   {
@@ -883,7 +903,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_text_vtt.mediaType,
-    [ALIAS_LIST]: Object.freeze(['vtt']),
+    [ALIAS_LIST]: toExtensionList(FREEDESKTOP_text_vtt.globList),
     [CHARSET_LIST]: CHARSET.ANY,
   },
   {
@@ -898,7 +918,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_text_xml.mediaType,
-    [ALIAS_LIST]: Object.freeze(['xml']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_application_xml.extensionList]),
     [CHARSET_LIST]: CHARSET.ANY,
   },
   {
@@ -908,7 +928,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_video_avi.mediaType,
-    [ALIAS_LIST]: Object.freeze(['avi']),
+    [ALIAS_LIST]: Object.freeze([...APACHE_video_x_msvideo.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
