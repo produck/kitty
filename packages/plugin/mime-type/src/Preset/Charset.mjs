@@ -5,3 +5,5 @@ export const ANY = Object.freeze(
     .map((record) => record.mibEnum)
     .sort((left, right) => left - right),
 );
+
+export const EMPTY = Object.freeze([]);

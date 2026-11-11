@@ -7,7 +7,7 @@ import { $I } from './TypeTable/_Symbol.mjs';
 
 export { useTypeTable } from './Capability.mjs';
 export { Plugin } from './Plugin.mjs';
-export { Standard, Web, Media, Document } from './Preset/index.mjs';
+export { Web } from './Preset/index.mjs';
 
 function assertWorkflow(value) {
   if (!(value instanceof Abstract.Workflow)) {

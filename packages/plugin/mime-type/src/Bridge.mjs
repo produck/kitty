@@ -1,11 +1,11 @@
 import { ThrowTypeError } from '@produck/argot';
 
-import { Concrete as TypeTable } from './TypeTable/index.mjs';
+import * as TypeTable from './TypeTable/index.mjs';
 
 const TABLE_MAP = new WeakMap();
 
 export function installTypeTable(workflow) {
-  const typeTable = new TypeTable(workflow);
+  const typeTable = new TypeTable.Concrete(workflow);
 
   TABLE_MAP.set(workflow, typeTable);
 

@@ -14,16 +14,20 @@ export default class TypeTable {
   }
 
   [$I.REGISTER_ITEM](item) {
-    const aliasIndex = this[I.ALIAS_INDEX];
-    const sameAlias = aliasIndex.get(item.alias) ?? [];
+    const sameType = this[I.ITEM_LIST].find((registered) => {
+      return registered.mimeType === item.mimeType;
+    });
 
-    if (sameAlias.some(({ mimeType }) => mimeType === item.mimeType)) {
-      Ow.Error.Common(`The mime type item "${item.alias}" is registered.`);
+    if (sameType !== undefined) {
+      Ow.Error.Common(`The mime type "${item.mimeType}" is registered.`);
     }
 
     this[I.ITEM_LIST].push(item);
-    attach(aliasIndex, item.alias, item);
     attach(this[I.MIME_TYPE_INDEX], item.mimeType, item);
+
+    for (const alias of item.aliasList) {
+      attach(this[I.ALIAS_INDEX], alias, item);
+    }
 
     return Item.copy(item);
   }
@@ -36,19 +40,21 @@ export default class TypeTable {
 
   [$I.DELETE_ITEM](item) {
     const itemList = this[I.ITEM_LIST];
-    const at = itemList.findIndex(
-      ({ alias, mimeType }) =>
-        alias === item.alias && mimeType === item.mimeType,
-    );
+    const at = itemList.findIndex((registered) => {
+      return registered.mimeType === item.mimeType;
+    });
 
     if (at === -1) {
-      Ow.Error.Common(`The mime type item "${item.alias}" is absent.`);
+      Ow.Error.Common(`The mime type "${item.mimeType}" is absent.`);
     }
 
     const [target] = itemList.splice(at, 1);
 
-    detach(this[I.ALIAS_INDEX], target.alias, target);
     detach(this[I.MIME_TYPE_INDEX], target.mimeType, target);
+
+    for (const alias of target.aliasList) {
+      detach(this[I.ALIAS_INDEX], alias, target);
+    }
   }
 
   findByAlias(alias) {

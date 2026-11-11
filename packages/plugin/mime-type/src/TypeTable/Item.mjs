@@ -7,6 +7,10 @@ export function isAlias(value) {
   return Is.Type.String(value) && ALIAS.test(value);
 }
 
+export function isAliasList(value) {
+  return Is.Instance.Array(value) && value.every(isAlias);
+}
+
 export function isMimeType(value) {
   return Is.Type.String(value) && MIME_TYPE.test(value);
 }
@@ -17,8 +21,8 @@ export function isCharset(value) {
 
 export function copy(value) {
   return {
-    alias: value.alias,
     mimeType: value.mimeType,
+    aliasList: [...value.aliasList],
     charsetList: [...value.charsetList],
   };
 }
@@ -29,22 +33,27 @@ export function normalizeItem(_item) {
   }
 
   const item = {};
-  const {
-    alias: _alias,
-    mimeType: _mimeType,
-    charsetList: _charsetList,
-  } = _item;
 
-  if (isAlias(_alias)) {
-    item.alias = _alias.toLowerCase();
-  } else {
-    ThrowTypeError('args[0].alias', 'non-empty string without whitespace');
-  }
+  const _mimeType = _item.mimeType;
+  const _aliasList = _item.aliasList;
+  const _charsetList = _item.charsetList;
 
   if (isMimeType(_mimeType)) {
     item.mimeType = _mimeType.toLowerCase();
   } else {
     ThrowTypeError('args[0].mimeType', 'type/subtype without parameters');
+  }
+
+  if (isAliasList(_aliasList)) {
+    const aliasSet = new Set();
+
+    for (const alias of _aliasList) {
+      aliasSet.add(alias.toLowerCase());
+    }
+
+    item.aliasList = Object.freeze([...aliasSet]);
+  } else {
+    ThrowTypeError('args[0].aliasList', 'an array of alias strings');
   }
 
   if (!Is.Instance.Array(_charsetList)) {

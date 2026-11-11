@@ -1,6 +1,12 @@
 export declare interface Item {
-  readonly alias: string;
   readonly mimeType: string;
+
+  /**
+   * Every other name the type answers to.
+   *
+   * An empty list means the type answers only to `mimeType`.
+   */
+  readonly aliasList: readonly string[];
 
   /**
    * Charset MIBenum values the type allows.
@@ -11,6 +17,8 @@ export declare interface Item {
 }
 
 export declare function isAlias(value: unknown): boolean;
+
+export declare function isAliasList(value: unknown): boolean;
 
 export declare function isMimeType(value: unknown): boolean;
 
