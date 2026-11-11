@@ -4,7 +4,6 @@ import type { Item } from './TypeTable/Item.d.mts';
 
 export { useTypeTable } from './Capability.mjs';
 export { Plugin } from './Plugin.mjs';
-export { Web } from './Preset/index.mjs';
 
 export declare function registerItem(
   workflow: Workflow.Abstract.Workflow,

@@ -4,22 +4,9 @@ import { describe, it } from 'node:test';
 import * as Kit from '@produck/kit';
 import { Implement } from '@produck/kitty-workflow';
 
-import {
-  Document,
-  Media,
-  Standard,
-  Web,
-} from '@produck/kitty-plugin-mime-type';
-
 import * as Bridge from '../src/Bridge.mjs';
 import { registerItems } from '../src/index.mjs';
-
-const PRESET_LIST = [
-  ['Standard', Standard],
-  ['Web', Web],
-  ['Media', Media],
-  ['Document', Document],
-];
+import * as Preset from '../src/Preset.mjs';
 
 function createWorkflow() {
   const Workflow = Implement.Workflow({
@@ -32,29 +19,37 @@ function createWorkflow() {
   return workflow;
 }
 
-describe('::Preset', () => {
-  for (const [name, preset] of PRESET_LIST) {
-    it(`should register every ${name} item without a conflict`, () => {
-      const workflow = createWorkflow();
+function toItem(source) {
+  return {
+    mimeType: source[Preset.MIME_TYPE],
+    aliasList: [...source[Preset.ALIAS_LIST]],
+    charsetList: [...source[Preset.CHARSET_LIST]],
+  };
+}
 
-      registerItems(workflow, preset);
-
-      assert.equal(
-        new Set(preset.map(({ mimeType }) => mimeType)).size > 0,
-        true,
-      );
-      assert.equal(
-        preset.every(({ alias }) => typeof alias === 'string'),
-        true,
-      );
-    });
-  }
-
-  it('should register every preset together', () => {
+describe('::Web', () => {
+  it('should register every entry without a conflict', () => {
     const workflow = createWorkflow();
 
-    registerItems(workflow, [...Standard, ...Web, ...Media, ...Document]);
+    registerItems(workflow, Preset.Web.map(toItem));
+  });
 
-    assert.ok(Standard.length > 0);
+  it('should key every entry with the preset symbols', () => {
+    for (const entry of Preset.Web) {
+      assert.equal(typeof entry[Preset.MIME_TYPE], 'string');
+      assert.ok(Array.isArray(entry[Preset.ALIAS_LIST]));
+      assert.ok(Array.isArray(entry[Preset.CHARSET_LIST]));
+    }
+  });
+
+  it('should expose only the preset symbols', () => {
+    for (const entry of Preset.Web) {
+      assert.equal(Object.keys(entry).length, 0);
+      assert.equal(Object.getOwnPropertySymbols(entry).length, 3);
+    }
+  });
+
+  it('should be frozen', () => {
+    assert.throws(() => Preset.Web.push({}));
   });
 });

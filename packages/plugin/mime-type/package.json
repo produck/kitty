@@ -9,8 +9,10 @@
     "@produck/deep-freeze-enumerable": "^1.0.0",
     "@produck/kit": "^0.4.0",
     "@produck/kitty-workflow": "^0.0.0",
+    "@produck/meta-apache-mime-extension": "^0.1.0",
     "@produck/meta-iana-charset": "^0.1.0",
-    "@produck/meta-iana-media-type": "^0.1.0"
+    "@produck/meta-iana-media-type": "^0.1.0",
+    "@produck/meta-whatwg-mime": "^0.1.0"
   },
   "exports": {
     ".": {
@@ -35,8 +37,10 @@
     "@produck/argot": "^0.4.0",
     "@produck/deep-freeze-enumerable": "^1.0.0",
     "@produck/kitty-workflow": "^0.0.0",
+    "@produck/meta-apache-mime-extension": "^0.1.0",
     "@produck/meta-iana-charset": "^0.1.0",
-    "@produck/meta-iana-media-type": "^0.1.0"
+    "@produck/meta-iana-media-type": "^0.1.0",
+    "@produck/meta-whatwg-mime": "^0.1.0"
   },
   "repository": {
     "directory": "packages/plugin/mime-type",

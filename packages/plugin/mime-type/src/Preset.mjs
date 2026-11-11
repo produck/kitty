@@ -1,8 +1,5 @@
-import * as Charset from './Charset.mjs';
+import * as MetaCharset from '@produck/meta-iana-charset';
 
-export const MIME_TYPE = Symbol('item.mimeType');
-export const ALIAS_LIST = Symbol('item.aliasList');
-export const CHARSET_LIST = Symbol('item.charsetList');
 import * as WHATWG_application_ecmascript from '@produck/meta-whatwg-mime/application/ecmascript';
 import * as WHATWG_application_font_cff from '@produck/meta-whatwg-mime/application/font-cff';
 import * as WHATWG_application_font_otf from '@produck/meta-whatwg-mime/application/font-otf';
@@ -94,310 +91,323 @@ import * as APACHE_text_plain from '@produck/meta-apache-mime-extension/text/pla
 import * as APACHE_video_mp4 from '@produck/meta-apache-mime-extension/video/mp4';
 import * as APACHE_video_webm from '@produck/meta-apache-mime-extension/video/webm';
 
+export const MIME_TYPE = Symbol('item.mimeType');
+export const ALIAS_LIST = Symbol('item.aliasList');
+export const CHARSET_LIST = Symbol('item.charsetList');
+
+export const CHARSET = Object.freeze({
+  ANY: Object.freeze(
+    Object.values(MetaCharset.data)
+      .map((record) => record.mibEnum)
+      .sort((left, right) => left - right),
+  ),
+  EMPTY: Object.freeze([]),
+});
+
 export const Web = Object.freeze([
   {
     [MIME_TYPE]: WHATWG_application_ecmascript.mediaType,
     [ALIAS_LIST]: Object.freeze([
       ...APACHE_application_ecmascript.extensionList,
     ]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_font_cff.mediaType,
     [ALIAS_LIST]: Object.freeze(['cff']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_font_otf.mediaType,
     [ALIAS_LIST]: Object.freeze(['otf']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_font_sfnt.mediaType,
     [ALIAS_LIST]: Object.freeze(['sfnt']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_font_ttf.mediaType,
     [ALIAS_LIST]: Object.freeze(['ttf']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_font_woff.mediaType,
     [ALIAS_LIST]: Object.freeze(['woff']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_javascript.mediaType,
     [ALIAS_LIST]: Object.freeze(['js']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_json.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_application_json.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_octet_stream.mediaType,
     [ALIAS_LIST]: Object.freeze([
       ...APACHE_application_octet_stream.extensionList,
     ]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_ogg.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_application_ogg.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_pdf.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_application_pdf.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_postscript.mediaType,
     [ALIAS_LIST]: Object.freeze([
       ...APACHE_application_postscript.extensionList,
     ]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_unknown.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.EMPTY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_vnd_ms_fontobject.mediaType,
     [ALIAS_LIST]: Object.freeze([
       ...APACHE_application_vnd_ms_fontobject.extensionList,
     ]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_vnd_ms_opentype.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.EMPTY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_x_ecmascript.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.EMPTY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_x_gzip.mediaType,
     [ALIAS_LIST]: Object.freeze(['gz']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_x_javascript.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.EMPTY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_x_rar_compressed.mediaType,
     [ALIAS_LIST]: Object.freeze([
       ...APACHE_application_x_rar_compressed.extensionList,
     ]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_xml.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_application_xml.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_application_zip.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_application_zip.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_audio_aiff.mediaType,
     [ALIAS_LIST]: Object.freeze(['aiff', 'aif']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_audio_midi.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_audio_midi.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_audio_mpeg.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_audio_mpeg.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_audio_wave.mediaType,
     [ALIAS_LIST]: Object.freeze(['wav']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_font_collection.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_font_collection.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_font_otf.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_font_otf.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_font_ttf.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_font_ttf.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_font_woff.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_font_woff.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_font_woff2.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_font_woff2.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_image_bmp.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_bmp.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_image_gif.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_gif.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_image_jpeg.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_jpeg.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_image_png.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_png.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_image_svg_xml.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_svg_xml.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_image_webp.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_webp.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_image_x_icon.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_x_icon.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_text_cache_manifest.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_text_cache_manifest.extensionList]),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_ecmascript.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.ANY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_html.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_text_html.extensionList]),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_javascript.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_text_javascript.extensionList]),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_javascript1_0.mediaType,
     [ALIAS_LIST]: Object.freeze(['javascript1.0']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_javascript1_1.mediaType,
     [ALIAS_LIST]: Object.freeze(['javascript1.1']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_javascript1_2.mediaType,
     [ALIAS_LIST]: Object.freeze(['javascript1.2']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_javascript1_3.mediaType,
     [ALIAS_LIST]: Object.freeze(['javascript1.3']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_javascript1_4.mediaType,
     [ALIAS_LIST]: Object.freeze(['javascript1.4']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_javascript1_5.mediaType,
     [ALIAS_LIST]: Object.freeze(['javascript1.5']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_jscript.mediaType,
     [ALIAS_LIST]: Object.freeze(['jscript']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_json.mediaType,
     [ALIAS_LIST]: Object.freeze(['json']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_livescript.mediaType,
     [ALIAS_LIST]: Object.freeze(['livescript']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_plain.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_text_plain.extensionList]),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_vtt.mediaType,
     [ALIAS_LIST]: Object.freeze(['vtt']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_x_ecmascript.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.ANY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_x_javascript.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.ANY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_text_xml.mediaType,
     [ALIAS_LIST]: Object.freeze(['xml']),
-    [CHARSET_LIST]: Charset.ANY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_unknown_unknown.mediaType,
-    [ALIAS_LIST]: Charset.EMPTY,
-    [CHARSET_LIST]: Charset.EMPTY,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_video_avi.mediaType,
     [ALIAS_LIST]: Object.freeze(['avi']),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_video_mp4.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_video_mp4.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_video_webm.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_video_webm.extensionList]),
-    [CHARSET_LIST]: Charset.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
 ]);
