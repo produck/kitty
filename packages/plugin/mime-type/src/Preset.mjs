@@ -358,10 +358,8 @@ export const MIME_TYPE = Symbol('item.mimeType');
 export const ALIAS_LIST = Symbol('item.aliasList');
 export const CHARSET_LIST = Symbol('item.charsetList');
 
-const GLOB_EXTENSION = /^\*\.([^*?[\]{}]+)$/;
-
-const toExtensionList = (globList) =>
-  globList.map(({ pattern }) => GLOB_EXTENSION.exec(pattern)[1]);
+const toExtensionList = (globPatternList) =>
+  globPatternList.map((pattern) => pattern.slice(2));
 
 export const CHARSET = Object.freeze({
   ANY: Object.freeze([
@@ -720,7 +718,7 @@ export const Web = Object.freeze([
     [MIME_TYPE]: `${IANA_application_gzip.type}/${IANA_application_gzip.subtype}`,
     [ALIAS_LIST]: Object.freeze([
       ...FREEDESKTOP_application_gzip.aliasList,
-      ...toExtensionList(FREEDESKTOP_application_gzip.globList),
+      ...toExtensionList(FREEDESKTOP_application_gzip.globPatternList),
     ]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
@@ -898,7 +896,7 @@ export const Web = Object.freeze([
   },
   {
     [MIME_TYPE]: WHATWG_text_vtt.mediaType,
-    [ALIAS_LIST]: toExtensionList(FREEDESKTOP_text_vtt.globList),
+    [ALIAS_LIST]: toExtensionList(FREEDESKTOP_text_vtt.globPatternList),
     [CHARSET_LIST]: CHARSET.ANY,
   },
   {
