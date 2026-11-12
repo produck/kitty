@@ -29,6 +29,8 @@ export function Http(options) {
       protocol: { get: getServerProtocol },
     },
     httpVersion: { get: getHttpVersion },
+    local: { get: getLocalAddress },
+    remote: { get: getRemoteAddress },
     request: {
       method: { get: getRequestMethod },
       URL: { get: getRequestURL },
@@ -230,6 +232,14 @@ export function Http(options) {
 
     [EXCHANGE._I.SERVER.PROTOCOL.GET](_internal) {
       return getServerProtocol(this[I_OPTIONS_CONTEXT]);
+    }
+
+    [EXCHANGE._I.LOCAL](_internal) {
+      return getLocalAddress(this[I_OPTIONS_CONTEXT]);
+    }
+
+    [EXCHANGE._I.REMOTE](_internal) {
+      return getRemoteAddress(this[I_OPTIONS_CONTEXT]);
     }
 
     [EXCHANGE._I.HTTP_VERSION](_internal) {

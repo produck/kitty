@@ -13,6 +13,22 @@ export const httpVersion = {
   get: ({ internal }) => internal.req.httpVersion,
 };
 
+export const local = {
+  get: ({ internal }) => {
+    const { address, family, port } = internal.req.socket.address();
+
+    return { address, family, port };
+  },
+};
+
+export const remote = {
+  get: ({ internal }) => {
+    const { remoteAddress, remoteFamily, remotePort } = internal.req.socket;
+
+    return { address: remoteAddress, family: remoteFamily, port: remotePort };
+  },
+};
+
 export function toHeaderValue(value) {
   return value === undefined ? undefined : String(value);
 }

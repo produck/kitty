@@ -16,6 +16,16 @@ export type HttpVersion = '1.0' | '1.1' | '2.0' | '3.0';
 /** Supported server protocols. */
 export type ServerProtocol = 'http:' | 'https:';
 
+/** Address family reported by Node.js. */
+export type AddressFamily = 'IPv4' | 'IPv6';
+
+/** Socket address of one side of the connection. */
+export declare interface Address {
+  readonly address: string;
+  readonly family: AddressFamily;
+  readonly port: number;
+}
+
 /**
  * Exchange shell: protocol agnostic; declares the request part and the facts
  * shared by every protocol. The concrete protocol comes from subclasses;
@@ -36,6 +46,12 @@ declare class Exchange<Internal = object> extends EventTarget {
 
   /** Server instance that owns this connection. */
   readonly server: net.Server;
+
+  /** Local address of the connection. */
+  readonly local: Address;
+
+  /** Remote address of the connection. */
+  readonly remote: Address;
 
   /** Server protocol (`'http:'` / `'https:'`). */
   readonly protocol: ServerProtocol;
@@ -64,6 +80,22 @@ declare class Exchange<Internal = object> extends EventTarget {
    * @returns The exchange mode.
    */
   [_Symbol._I.MODE](internal: Internal): string;
+
+  /**
+   * Implementation: reads the local address.
+   *
+   * @param internal - Connection record supplied by the deployer.
+   * @returns The local address of the connection.
+   */
+  [_Symbol._I.LOCAL](internal: Internal): Address;
+
+  /**
+   * Implementation: reads the remote address.
+   *
+   * @param internal - Connection record supplied by the deployer.
+   * @returns The remote address of the connection.
+   */
+  [_Symbol._I.REMOTE](internal: Internal): Address;
 
   /**
    * Implementation: reads the server instance.

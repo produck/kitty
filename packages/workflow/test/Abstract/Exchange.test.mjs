@@ -111,6 +111,74 @@ describe('Exchange', () => {
     });
   });
 
+  describe('.local', () => {
+    it('should read the local address from the internal record', async () => {
+      const state = await Baseline.dispatch();
+
+      assert.deepEqual(state.exchange.local, {
+        address: '127.0.0.1',
+        family: 'IPv4',
+        port: 8080,
+      });
+    });
+
+    it('should reject a family outside the address families', async () => {
+      const state = await Baseline.dispatch({
+        internal: {
+          local: { address: '127.0.0.1', family: 'IPv5', port: 8080 },
+        },
+      });
+
+      assert.throws(() => state.exchange.local);
+    });
+
+    it('should reject a non positive port', async () => {
+      const state = await Baseline.dispatch({
+        internal: {
+          local: { address: '127.0.0.1', family: 'IPv4', port: 0 },
+        },
+      });
+
+      assert.throws(() => state.exchange.local);
+    });
+
+    it('should reject a non plain address', async () => {
+      const state = await Baseline.dispatch({ internal: { local: 'local' } });
+
+      assert.throws(() => state.exchange.local);
+    });
+
+    it('should reject a non string address', async () => {
+      const state = await Baseline.dispatch({
+        internal: { local: { address: 1, family: 'IPv4', port: 8080 } },
+      });
+
+      assert.throws(() => state.exchange.local);
+    });
+
+    it('should reject a non string family', async () => {
+      const state = await Baseline.dispatch({
+        internal: {
+          local: { address: '127.0.0.1', family: 4, port: 8080 },
+        },
+      });
+
+      assert.throws(() => state.exchange.local);
+    });
+  });
+
+  describe('.remote', () => {
+    it('should read the remote address from the internal record', async () => {
+      const state = await Baseline.dispatch();
+
+      assert.deepEqual(state.exchange.remote, {
+        address: '127.0.0.1',
+        family: 'IPv4',
+        port: 40000,
+      });
+    });
+  });
+
   describe('.mode', () => {
     it('should read the exchange mode from the internal record', async () => {
       const state = await Baseline.dispatch();

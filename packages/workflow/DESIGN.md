@@ -610,10 +610,11 @@ both by keeping the deployer the sole owner of protocol semantics.
 The exchange family has three layers, each answering only its own layer:
 
 - **`Exchange`** (shell, `Workflow/Exchange/`): protocol-common facts —
-  `identity`, `server`, `protocol`, `mode`, `httpVersion`, `workflow`,
-  plus `request` and `response`. Abstract members: `_I.HTTP_VERSION`,
-  `_I.MODE`, `_I.SERVER.GET`, `_I.SERVER.PROTOCOL.GET`; static slots
-  `_S.IDENTITY`, `_S.REQUEST_CTOR`, `_S.RESPONSE_CTOR`.
+  `identity`, `server`, `protocol`, `mode`, `httpVersion`, `local`, `remote`,
+  `workflow`, plus `request` and `response`. Abstract members: `_I.HTTP_VERSION`,
+  `_I.LOCAL`, `_I.MODE`, `_I.REMOTE`, `_I.SERVER.GET`,
+  `_I.SERVER.PROTOCOL.GET`; static slots `_S.IDENTITY`, `_S.REQUEST_CTOR`,
+  `_S.RESPONSE_CTOR`.
 - **`HttpExchange`** (protocol family, `CompoundWorkflow/HttpExchange/`):
   adds the two body parts and the timeout arming; `_I.MODE` answers
   `'http'`.

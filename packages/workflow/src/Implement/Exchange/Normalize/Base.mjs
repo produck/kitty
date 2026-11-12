@@ -119,6 +119,8 @@ export default function normalizeBase(_options) {
       identity: _identity,
       server: _server,
       httpVersion: _httpVersion,
+      local: _local,
+      remote: _remote,
       request: _request,
     } = _options;
 
@@ -134,6 +136,34 @@ export default function normalizeBase(_options) {
       }
     } else {
       ThrowTypeError('args[0].identity', 'plain object');
+    }
+
+    if (Is.PlainObject(_local)) {
+      const local = (options.local = {});
+
+      const { get: _get } = _local;
+
+      if (Is.Type.Function(_get)) {
+        local.get = _get;
+      } else {
+        ThrowTypeError('args[0].local.get', 'function');
+      }
+    } else {
+      ThrowTypeError('args[0].local', 'plain object');
+    }
+
+    if (Is.PlainObject(_remote)) {
+      const remote = (options.remote = {});
+
+      const { get: _get } = _remote;
+
+      if (Is.Type.Function(_get)) {
+        remote.get = _get;
+      } else {
+        ThrowTypeError('args[0].remote.get', 'function');
+      }
+    } else {
+      ThrowTypeError('args[0].remote', 'plain object');
     }
 
     if (Is.PlainObject(_server)) {

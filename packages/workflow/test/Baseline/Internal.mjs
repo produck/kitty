@@ -16,6 +16,8 @@ const DEFAULTS = Object.freeze({
   body: null,
   socket: null,
   responseBody: null,
+  local: { address: '127.0.0.1', family: 'IPv4', port: 8080 },
+  remote: { address: '127.0.0.1', family: 'IPv4', port: 40000 },
 });
 
 export function createInternal(patch = {}) {
@@ -72,6 +74,8 @@ export const exchangeFacts = Object.freeze({
   mode: (internal) => internal.mode,
   server: (internal) => internal.server,
   protocol: (internal) => internal.protocol,
+  local: (internal) => internal.local,
+  remote: (internal) => internal.remote,
 });
 
 export const requestFacts = Object.freeze({

@@ -30,5 +30,13 @@ export default SCP(
     [SYMBOL.EXCHANGE._I.SERVER.PROTOCOL.GET](internal) {
       return exchangeFacts.protocol(internal);
     }
+
+    [SYMBOL.EXCHANGE._I.LOCAL](internal) {
+      return exchangeFacts.local(internal);
+    }
+
+    [SYMBOL.EXCHANGE._I.REMOTE](internal) {
+      return exchangeFacts.remote(internal);
+    }
   },
 );

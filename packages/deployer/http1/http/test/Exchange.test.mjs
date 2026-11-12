@@ -573,6 +573,31 @@ describe('Exchange', () => {
         await app.close();
       }
     });
+
+    it('should expose the local and the remote address', async () => {
+      const app = await serve((context) => {
+        const exchange = Use.Exchange(context);
+
+        Use.Response(context).body.data = JSON.stringify({
+          local: exchange.local,
+          remote: exchange.remote,
+        });
+      });
+
+      try {
+        const res = await request(`${app.origin}/address`);
+        const { local, remote } = JSON.parse(await res.text());
+
+        assert.equal(local.address, '127.0.0.1');
+        assert.equal(local.family, 'IPv4');
+        assert.ok(Number.isInteger(local.port) && local.port > 0);
+        assert.equal(remote.address, '127.0.0.1');
+        assert.equal(remote.family, 'IPv4');
+        assert.ok(Number.isInteger(remote.port) && remote.port > 0);
+      } finally {
+        await app.close();
+      }
+    });
   });
 
   describe('pipeline failure', () => {

@@ -29,6 +29,20 @@ export const httpVersion = {
   }),
 };
 
+export const local = {
+  get: VersionRoute.byContext({
+    h1: ref.h1.local.get,
+    h2: ref.h2.local.get,
+  }),
+};
+
+export const remote = {
+  get: VersionRoute.byContext({
+    h1: ref.h1.remote.get,
+    h2: ref.h2.remote.get,
+  }),
+};
+
 export const request = {
   method: {
     get: VersionRoute.byContext({

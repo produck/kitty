@@ -22,6 +22,14 @@ export default function normalizeHttp(_options) {
     }
 
     {
+      options.local = $base.local;
+    }
+
+    {
+      options.remote = $base.remote;
+    }
+
+    {
       const request = (options.request = $base.request);
       const { body: _body } = _request;
 

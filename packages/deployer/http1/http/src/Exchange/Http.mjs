@@ -9,6 +9,8 @@ export const options = Implement.Normalize.Exchange.Http({
   identity: Base.identity,
   server: Base.server,
   httpVersion: Base.httpVersion,
+  local: Base.local,
+  remote: Base.remote,
   request: {
     ...Base.request,
     body: {

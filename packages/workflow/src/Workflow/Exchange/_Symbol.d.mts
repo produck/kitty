@@ -1,5 +1,7 @@
 declare const _I_HTTP_VERSION: unique symbol;
+declare const _I_LOCAL_GET: unique symbol;
 declare const _I_MODE_GET: unique symbol;
+declare const _I_REMOTE_GET: unique symbol;
 declare const _I_SERVER_GET: unique symbol;
 declare const _I_SERVER_PROTOCOL_GET: unique symbol;
 
@@ -8,8 +10,14 @@ export declare const _I: {
   /** HTTP version accessor. */
   readonly HTTP_VERSION: typeof _I_HTTP_VERSION;
 
+  /** Local address accessor. */
+  readonly LOCAL: typeof _I_LOCAL_GET;
+
   /** Exchange mode accessor. */
   readonly MODE: typeof _I_MODE_GET;
+
+  /** Remote address accessor. */
+  readonly REMOTE: typeof _I_REMOTE_GET;
 
   /** Server accessors. */
   readonly SERVER: {

@@ -18,6 +18,12 @@ function createBaseOptions() {
       protocol: { get: () => 'http:' },
     },
     httpVersion: { get: () => '1.1' },
+    local: {
+      get: () => ({ address: '127.0.0.1', family: 'IPv4', port: 8080 }),
+    },
+    remote: {
+      get: () => ({ address: '127.0.0.1', family: 'IPv4', port: 40000 }),
+    },
     request: {
       method: { get: () => 'GET' },
       URL: { get: () => 'http://baseline.test/' },
@@ -86,6 +92,38 @@ describe('Http()', () => {
       assert.throws(() =>
         Baseline.Kitty.Implement.Exchange.Http(
           createHttpOptions({ httpVersion: undefined }),
+        ),
+      );
+    });
+
+    it('should require the local address option', () => {
+      assert.throws(() =>
+        Baseline.Kitty.Implement.Exchange.Http(
+          createHttpOptions({ local: undefined }),
+        ),
+      );
+    });
+
+    it('should require the local address getter', () => {
+      assert.throws(() =>
+        Baseline.Kitty.Implement.Exchange.Http(
+          createHttpOptions({ local: {} }),
+        ),
+      );
+    });
+
+    it('should require the remote address option', () => {
+      assert.throws(() =>
+        Baseline.Kitty.Implement.Exchange.Http(
+          createHttpOptions({ remote: undefined }),
+        ),
+      );
+    });
+
+    it('should require the remote address getter', () => {
+      assert.throws(() =>
+        Baseline.Kitty.Implement.Exchange.Http(
+          createHttpOptions({ remote: {} }),
         ),
       );
     });
@@ -243,6 +281,8 @@ function createState(Server) {
     server: new Server(),
     protocol: 'http:',
     httpVersion: '1.1',
+    local: { address: '127.0.0.1', family: 'IPv4', port: 8080 },
+    remote: { address: '127.0.0.1', family: 'IPv4', port: 40000 },
     method: 'POST',
     url: 'http://baseline.test/probe',
     requestHeaders: new Map([['x-probe', 'yes']]),
@@ -273,6 +313,8 @@ function createHttpAccessors(state) {
       protocol: { get: () => state.protocol },
     },
     httpVersion: { get: () => state.httpVersion },
+    local: { get: () => state.local },
+    remote: { get: () => state.remote },
     request: {
       method: { get: () => state.method },
       URL: { get: () => state.url },
@@ -333,6 +375,8 @@ function createWebSocketAccessors(state) {
       protocol: { get: () => state.protocol },
     },
     httpVersion: { get: () => state.httpVersion },
+    local: { get: () => state.local },
+    remote: { get: () => state.remote },
     request: {
       method: { get: () => 'GET' },
       URL: { get: () => state.url },
@@ -422,6 +466,8 @@ describe('implemented exchange', () => {
       assert.equal(state.exchange.protocol, state.protocol);
       assert.equal(state.exchange.httpVersion, state.httpVersion);
       assert.equal(state.exchange.mode, 'http');
+      assert.deepEqual(state.exchange.local, state.local);
+      assert.deepEqual(state.exchange.remote, state.remote);
     });
 
     it('should drive the request header and body accessors', async () => {
@@ -512,6 +558,8 @@ describe('implemented exchange', () => {
       assert.equal(state.exchange.server, state.server);
       assert.equal(state.exchange.protocol, state.protocol);
       assert.equal(state.exchange.httpVersion, state.httpVersion);
+      assert.deepEqual(state.exchange.local, state.local);
+      assert.deepEqual(state.exchange.remote, state.remote);
       assert.equal(state.exchange.request.header.get('X-Probe'), 'yes');
       assert.deepEqual(state.exchange.request.header.keys(), ['x-probe']);
     });

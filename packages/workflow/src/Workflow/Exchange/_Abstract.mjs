@@ -69,6 +69,14 @@ class Exchange extends EventTarget {
     return this[_I.SERVER.GET](this[I.INTERNAL]);
   }
 
+  get local() {
+    return this[_I.LOCAL](this[I.INTERNAL]);
+  }
+
+  get remote() {
+    return this[_I.REMOTE](this[I.INTERNAL]);
+  }
+
   get protocol() {
     return this[_I.SERVER.PROTOCOL.GET](this[I.INTERNAL]);
   }
@@ -90,7 +98,9 @@ export default Abstract(
   Exchange,
   Abstract({
     [_I.HTTP_VERSION]: M.Method().args(M.Any).returns(P.HttpVersion),
+    [_I.LOCAL]: M.Method().args(M.Any).returns(P.Address),
     [_I.MODE]: M.Method().args(M.Any).returns(M.String),
+    [_I.REMOTE]: M.Method().args(M.Any).returns(P.Address),
     [_I.SERVER.GET]: M.Method().args(M.Any).returns(M.Instance(net.Server)),
     [_I.SERVER.PROTOCOL.GET]: M.Method().args(M.Any).returns(P.ServerProtocol),
   }),

@@ -43,6 +43,35 @@ export interface HttpVersion {
   get(context: unknown): '1.0' | '1.1' | '2.0' | '3.0' | null;
 }
 
+/** Socket address reported to consumers. */
+export interface Address {
+  readonly address: string;
+  readonly family: 'IPv4' | 'IPv6';
+  readonly port: number;
+}
+
+/** Local address accessor. */
+export interface Local {
+  /**
+   * Returns the local address of the connection.
+   *
+   * @param context - Raw connection context.
+   * @returns The local address.
+   */
+  get(context: unknown): Address;
+}
+
+/** Remote address accessor. */
+export interface Remote {
+  /**
+   * Returns the remote address of the connection.
+   *
+   * @param context - Raw connection context.
+   * @returns The remote address.
+   */
+  get(context: unknown): Address;
+}
+
 /** Read-only header accessors. */
 export interface Header {
   /**
@@ -261,6 +290,12 @@ export interface BaseOptions {
 
   /** HTTP version accessor. */
   httpVersion: HttpVersion;
+
+  /** Local address accessor. */
+  local: Local;
+
+  /** Remote address accessor. */
+  remote: Remote;
 
   /** Request accessors. */
   request: Request;

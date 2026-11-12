@@ -17,6 +17,23 @@ export const httpVersion = {
   get: () => '2.0',
 };
 
+export const local = {
+  get: ({ internal }) => {
+    const { address, family, port } = internal.stream.session.socket.address();
+
+    return { address, family, port };
+  },
+};
+
+export const remote = {
+  get: ({ internal }) => {
+    const { remoteAddress, remoteFamily, remotePort } =
+      internal.stream.session.socket;
+
+    return { address: remoteAddress, family: remoteFamily, port: remotePort };
+  },
+};
+
 export function toHeaderValue(value) {
   if (value === undefined) {
     return undefined;

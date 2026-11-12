@@ -27,13 +27,17 @@ export const $S = deepFreeze({
 });
 
 const _I_HTTP_VERSION = Symbol('._getHttpVersion()');
+const _I_LOCAL_GET = Symbol('._getLocal()');
 const _I_MODE_GET = Symbol('._getMode()');
+const _I_REMOTE_GET = Symbol('._getRemote()');
 const _I_SERVER_GET = Symbol('._getServer()');
 const _I_SERVER_PROTOCOL_GET = Symbol('._getServerProtocol()');
 
 export const _I = deepFreeze({
   HTTP_VERSION: _I_HTTP_VERSION,
+  LOCAL: _I_LOCAL_GET,
   MODE: _I_MODE_GET,
+  REMOTE: _I_REMOTE_GET,
   SERVER: {
     GET: _I_SERVER_GET,
     PROTOCOL: {

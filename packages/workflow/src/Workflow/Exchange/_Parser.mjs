@@ -44,6 +44,30 @@ export function ServerProtocol(value) {
   return value;
 }
 
+const ADDRESS_FAMILIES = Object.freeze(['IPv4', 'IPv6']);
+
+export function Address(value) {
+  if (!Is.PlainObject(value)) {
+    ThrowTypeError('member', 'a plain address object');
+  }
+
+  const { address, family, port } = value;
+
+  if (!Is.Type.String(address)) {
+    ThrowTypeError('member.address', 'a string');
+  }
+
+  if (!Is.Type.String(family) || !ADDRESS_FAMILIES.includes(family)) {
+    ThrowTypeError('member.family', '\'IPv4\' | \'IPv6\'');
+  }
+
+  if (!Is.PositiveInteger(port)) {
+    ThrowTypeError('member.port', 'a positive integer');
+  }
+
+  return value;
+}
+
 export function HeaderValue(value) {
   if (!Is.Type.String(value)) {
     ThrowTypeError('member', 'a header value string');

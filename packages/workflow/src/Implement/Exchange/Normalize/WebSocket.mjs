@@ -22,6 +22,14 @@ export default function normalizeWebSocket(_options) {
     }
 
     {
+      options.local = $base.local;
+    }
+
+    {
+      options.remote = $base.remote;
+    }
+
+    {
       options.request = $base.request;
     }
 
