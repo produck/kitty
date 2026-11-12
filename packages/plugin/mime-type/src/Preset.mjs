@@ -360,13 +360,8 @@ export const CHARSET_LIST = Symbol('item.charsetList');
 
 const GLOB_EXTENSION = /^\*\.([^*?[\]{}]+)$/;
 
-const toExtension = ({ pattern }) =>
-  GLOB_EXTENSION.test(pattern) && !pattern.includes('.', 2)
-    ? pattern.slice(2)
-    : null;
-
 const toExtensionList = (globList) =>
-  globList.map(toExtension).filter((extension) => extension !== null);
+  globList.map(({ pattern }) => GLOB_EXTENSION.exec(pattern)[1]);
 
 export const CHARSET = Object.freeze({
   ANY: Object.freeze([
