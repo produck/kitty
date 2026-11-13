@@ -1,3 +1,6 @@
+// RFC 9110 §12.4.2: qvalue is `0` [ "." *3DIGIT ] / `1` [ "." *3("0") ].
+// An absent or malformed weight is not "excluded"; only an explicit value
+// outside the range is clamped, and anything unparsable weighs nothing.
 function parseQuality(_text) {
   const quality = Number.parseFloat(_text);
 
@@ -8,6 +11,10 @@ function parseQuality(_text) {
   return quality > 1 ? 1 : quality;
 }
 
+// RFC 9110 §12.4.1: a missing negotiation field implies no preference.
+// §5.6.1.2: a recipient must tolerate stray empty list elements.
+// §12.4.2: entries carry an optional `q` weight; parameter names are
+// case-insensitive while charset names are matched case-insensitively per §8.3.2.
 export function SpecList(_value) {
   if (typeof _value !== 'string') {
     return [];

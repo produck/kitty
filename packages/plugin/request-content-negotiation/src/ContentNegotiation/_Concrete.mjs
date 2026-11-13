@@ -7,6 +7,9 @@ const MEDIA = 'media';
 const TOKEN = 'token';
 const LANGUAGE = 'language';
 
+// RFC 9110 §12.5.1 Accept, §12.5.2 Accept-Charset, §12.5.3 Accept-Encoding,
+// §12.5.4 Accept-Language.
+
 const ACCEPT = 'accept';
 const ACCEPT_ENCODING = 'accept-encoding';
 const ACCEPT_CHARSET = 'accept-charset';
@@ -36,6 +39,9 @@ export default class ContentNegotiation {
 
     const specList = this[I.SPEC_LIST](ACCEPT_ENCODING, '*');
 
+    // RFC 9110 §12.5.3: content codings are compared case-insensitively.
+    // §8.4.1.1 and §8.4.1.3 note that `x-compress` and `x-gzip` are deprecated
+    // aliases, which this matcher deliberately ignores.
     return this[I.BEST](TOKEN, specList, candidateList);
   }
 
@@ -44,6 +50,9 @@ export default class ContentNegotiation {
 
     const specList = this[I.SPEC_LIST](ACCEPT_CHARSET, '*');
 
+    // RFC 9110 §12.5.2 marks Accept-Charset as deprecated and only requires
+    // case-insensitive name matching (§8.3.2). The field carries no aliasing
+    // rule, so a candidate has to name the charset exactly.
     return this[I.BEST](TOKEN, specList, candidateList);
   }
 
@@ -71,6 +80,8 @@ export default class ContentNegotiation {
     const value = this[I.EXCHANGE].request.header.get(name);
     const specList = P.SpecList(value);
 
+    // RFC 9110 §12.4.1: an absent field means no preference, so every
+    // candidate stays acceptable; the wildcard carries the default weight.
     return specList.length === 0 ? [{ value: defaultValue, q: 1 }] : specList;
   }
 
@@ -106,6 +117,9 @@ export default class ContentNegotiation {
   [I.QUALITY](kind, specList, formList) {
     let quality = 0;
 
+    // RFC 9110 §12.5.1: the most specific matching media range decides the
+    // weight. The list arrives sorted by descending weight, so the first
+    // match is also the most preferred one.
     for (const { value, q } of specList) {
       if (q <= quality) {
         break;
@@ -140,6 +154,9 @@ function mediaMatch(specValue, form) {
     return false;
   }
 
+  // RFC 9110 §12.5.1: `*/*` covers every type, `type/*` covers every subtype
+  // of that type. A wildcard on the candidate side still has to be covered
+  // by the range.
   if (candidate.subtype === '*') {
     return (
       candidate.type === '*' ||
@@ -155,6 +172,9 @@ function mediaMatch(specValue, form) {
   return spec.subtype === '*' || spec.subtype === candidate.subtype;
 }
 
+// RFC 4647 §3.3.1 Basic Filtering: a range matches a tag when it equals the
+// tag or is a prefix of it ending at a hyphen boundary. The relation is
+// one-way; a more specific range never matches a shorter tag.
 function languageMatch(range, tag) {
   if (range === '*') {
     return true;
