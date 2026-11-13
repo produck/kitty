@@ -261,3 +261,21 @@ describe('candidate gate', () => {
     });
   });
 });
+
+describe('destructuring', () => {
+  it('should answer a bound function per member', () => {
+    const negotiation = createNegotiation({
+      accept: 'application/json',
+      'accept-encoding': 'gzip',
+      'accept-charset': 'utf-8',
+      'accept-language': 'en',
+    });
+    const { accept, acceptEncoding, acceptCharset, acceptLanguage } =
+      negotiation;
+
+    assert.equal(accept('json'), 'json');
+    assert.equal(acceptEncoding('gzip'), 'gzip');
+    assert.equal(acceptCharset('utf-8'), 'utf-8');
+    assert.equal(acceptLanguage('en'), 'en');
+  });
+});

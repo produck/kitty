@@ -16,9 +16,14 @@ export default class ContentNegotiation {
   constructor(exchange, typeTable) {
     this[I.EXCHANGE] = exchange;
     this[I.TYPE_TABLE] = typeTable;
+
+    this.accept = (...args) => this[I.ACCEPT](...args);
+    this.acceptEncoding = (...args) => this[I.ACCEPT_ENCODING](...args);
+    this.acceptCharset = (...args) => this[I.ACCEPT_CHARSET](...args);
+    this.acceptLanguage = (...args) => this[I.ACCEPT_LANGUAGE](...args);
   }
 
-  accept(...candidateList) {
+  [I.ACCEPT](...candidateList) {
     this[I.ASSERT](candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT, '*/*');
@@ -26,7 +31,7 @@ export default class ContentNegotiation {
     return this[I.BEST](MEDIA, specList, candidateList);
   }
 
-  acceptEncoding(...candidateList) {
+  [I.ACCEPT_ENCODING](...candidateList) {
     this[I.ASSERT](candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT_ENCODING, '*');
@@ -34,7 +39,7 @@ export default class ContentNegotiation {
     return this[I.BEST](TOKEN, specList, candidateList);
   }
 
-  acceptCharset(...candidateList) {
+  [I.ACCEPT_CHARSET](...candidateList) {
     this[I.ASSERT](candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT_CHARSET, '*');
@@ -42,7 +47,7 @@ export default class ContentNegotiation {
     return this[I.BEST](TOKEN, specList, candidateList);
   }
 
-  acceptLanguage(...candidateList) {
+  [I.ACCEPT_LANGUAGE](...candidateList) {
     this[I.ASSERT](candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT_LANGUAGE, '*');

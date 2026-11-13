@@ -6,13 +6,13 @@ declare type TypeTable = ReturnType<typeof useTypeTable>;
 declare class ContentNegotiation {
   constructor(exchange: Workflow.Exchange, typeTable: TypeTable);
 
-  accept(...candidateList: string[]): string | false;
+  readonly accept: (...candidateList: string[]) => string | false;
 
-  acceptEncoding(...candidateList: string[]): string | false;
+  readonly acceptEncoding: (...candidateList: string[]) => string | false;
 
-  acceptCharset(...candidateList: string[]): string | false;
+  readonly acceptCharset: (...candidateList: string[]) => string | false;
 
-  acceptLanguage(...candidateList: string[]): string | false;
+  readonly acceptLanguage: (...candidateList: string[]) => string | false;
 }
 
 export { ContentNegotiation as Concrete };
