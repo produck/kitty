@@ -228,6 +228,30 @@ describe('.acceptLanguage()', () => {
     assert.equal(negotiation.acceptLanguage('zh-CN'), 'zh-CN');
   });
 
+  it('should match a compound range against a more specific tag', () => {
+    const negotiation = createNegotiation({ 'accept-language': 'zh-Hans' });
+
+    assert.equal(negotiation.acceptLanguage('zh-Hans-CN'), 'zh-Hans-CN');
+  });
+
+  it('should not match a more specific range against a shorter tag', () => {
+    const negotiation = createNegotiation({ 'accept-language': 'en-US' });
+
+    assert.equal(negotiation.acceptLanguage('en'), false);
+  });
+
+  it('should require the range boundary to follow a hyphen', () => {
+    const negotiation = createNegotiation({ 'accept-language': 'zh' });
+
+    assert.equal(negotiation.acceptLanguage('zho'), false);
+  });
+
+  it('should compare languages case insensitively', () => {
+    const negotiation = createNegotiation({ 'accept-language': 'ZH-HANS' });
+
+    assert.equal(negotiation.acceptLanguage('zh-Hans-CN'), 'zh-Hans-CN');
+  });
+
   it('should match any language', () => {
     const negotiation = createNegotiation({ 'accept-language': '*' });
 

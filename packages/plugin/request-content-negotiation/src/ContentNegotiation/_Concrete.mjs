@@ -155,10 +155,14 @@ function mediaMatch(specValue, form) {
   return spec.subtype === '*' || spec.subtype === candidate.subtype;
 }
 
-function languageMatch(specValue, form) {
-  if (specValue === '*' || specValue === form) {
+function languageMatch(range, tag) {
+  if (range === '*') {
     return true;
   }
 
-  return specValue.startsWith(`${form}-`) || form.startsWith(`${specValue}-`);
+  if (range === tag) {
+    return true;
+  }
+
+  return tag.startsWith(`${range}-`);
 }
