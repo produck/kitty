@@ -38,6 +38,7 @@
     "packages/deployer/http1/http",
     "packages/deployer/http1/https",
     "packages/plugin/cookie",
+    "packages/plugin/accept-charset",
     "packages/plugin/request-type",
     "packages/plugin/content-negotiation",
     "packages/plugin/response-type",

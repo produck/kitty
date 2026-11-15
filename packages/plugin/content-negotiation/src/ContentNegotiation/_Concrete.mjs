@@ -7,12 +7,11 @@ const MEDIA = 'media';
 const TOKEN = 'token';
 const LANGUAGE = 'language';
 
-// RFC 9110 §12.5.1 Accept, §12.5.2 Accept-Charset, §12.5.3 Accept-Encoding,
+// RFC 9110 §12.5.1 Accept, §12.5.3 Accept-Encoding,
 // §12.5.4 Accept-Language.
 
 const ACCEPT = 'accept';
 const ACCEPT_ENCODING = 'accept-encoding';
-const ACCEPT_CHARSET = 'accept-charset';
 const ACCEPT_LANGUAGE = 'accept-language';
 
 export default class ContentNegotiation {
@@ -22,7 +21,6 @@ export default class ContentNegotiation {
 
     this.accept = (...args) => this[I.ACCEPT](...args);
     this.acceptEncoding = (...args) => this[I.ACCEPT_ENCODING](...args);
-    this.acceptCharset = (...args) => this[I.ACCEPT_CHARSET](...args);
     this.acceptLanguage = (...args) => this[I.ACCEPT_LANGUAGE](...args);
   }
 
@@ -42,17 +40,6 @@ export default class ContentNegotiation {
     // RFC 9110 §12.5.3: content codings are compared case-insensitively.
     // §8.4.1.1 and §8.4.1.3 note that `x-compress` and `x-gzip` are deprecated
     // aliases, which this matcher deliberately ignores.
-    return this[I.BEST](TOKEN, specList, candidateList);
-  }
-
-  [I.ACCEPT_CHARSET](...candidateList) {
-    this[I.ASSERT](candidateList);
-
-    const specList = this[I.SPEC_LIST](ACCEPT_CHARSET, '*');
-
-    // RFC 9110 §12.5.2 marks Accept-Charset as deprecated and only requires
-    // case-insensitive name matching (§8.3.2). The field carries no aliasing
-    // rule, so a candidate has to name the charset exactly.
     return this[I.BEST](TOKEN, specList, candidateList);
   }
 

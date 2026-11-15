@@ -10,8 +10,6 @@ declare class ContentNegotiation {
 
   readonly acceptEncoding: (...candidateList: string[]) => string | false;
 
-  readonly acceptCharset: (...candidateList: string[]) => string | false;
-
   readonly acceptLanguage: (...candidateList: string[]) => string | false;
 }
 

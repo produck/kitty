@@ -191,28 +191,6 @@ describe('.acceptEncoding()', () => {
   });
 });
 
-describe('.acceptCharset()', () => {
-  it('should prefer the higher quality', () => {
-    const negotiation = createNegotiation({
-      'accept-charset': 'utf-8, iso-8859-1;q=0.5',
-    });
-
-    assert.equal(negotiation.acceptCharset('iso-8859-1', 'utf-8'), 'utf-8');
-  });
-
-  it('should compare case-insensitively', () => {
-    const negotiation = createNegotiation({ 'accept-charset': 'UTF-8' });
-
-    assert.equal(negotiation.acceptCharset('utf-8'), 'utf-8');
-  });
-
-  it('should answer false without an acceptable charset', () => {
-    const negotiation = createNegotiation({ 'accept-charset': 'utf-8' });
-
-    assert.equal(negotiation.acceptCharset('gbk'), false);
-  });
-});
-
 describe('.acceptLanguage()', () => {
   it('should prefer the higher quality', () => {
     const negotiation = createNegotiation({
@@ -271,7 +249,6 @@ describe('candidate gate', () => {
 
     assert.throws(() => negotiation.accept());
     assert.throws(() => negotiation.acceptEncoding());
-    assert.throws(() => negotiation.acceptCharset());
     assert.throws(() => negotiation.acceptLanguage());
   });
 
@@ -291,15 +268,12 @@ describe('destructuring', () => {
     const negotiation = createNegotiation({
       accept: 'application/json',
       'accept-encoding': 'gzip',
-      'accept-charset': 'utf-8',
       'accept-language': 'en',
     });
-    const { accept, acceptEncoding, acceptCharset, acceptLanguage } =
-      negotiation;
+    const { accept, acceptEncoding, acceptLanguage } = negotiation;
 
     assert.equal(accept('json'), 'json');
     assert.equal(acceptEncoding('gzip'), 'gzip');
-    assert.equal(acceptCharset('utf-8'), 'utf-8');
     assert.equal(acceptLanguage('en'), 'en');
   });
 });
