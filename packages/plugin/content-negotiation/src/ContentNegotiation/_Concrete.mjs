@@ -1,4 +1,4 @@
-import { Is, ThrowTypeError } from '@produck/argot';
+import * as Negotiation from '@produck/kitty-negotiation';
 
 import * as P from './_Parser.mjs';
 import { I } from './_Symbol.mjs';
@@ -25,7 +25,7 @@ export default class ContentNegotiation {
   }
 
   [I.ACCEPT](...candidateList) {
-    this[I.ASSERT](candidateList);
+    Negotiation.assertCandidateList(candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT, '*/*');
 
@@ -33,7 +33,7 @@ export default class ContentNegotiation {
   }
 
   [I.ACCEPT_ENCODING](...candidateList) {
-    this[I.ASSERT](candidateList);
+    Negotiation.assertCandidateList(candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT_ENCODING, '*');
 
@@ -44,32 +44,17 @@ export default class ContentNegotiation {
   }
 
   [I.ACCEPT_LANGUAGE](...candidateList) {
-    this[I.ASSERT](candidateList);
+    Negotiation.assertCandidateList(candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT_LANGUAGE, '*');
 
     return this[I.BEST](LANGUAGE, specList, candidateList);
   }
 
-  [I.ASSERT](candidateList) {
-    if (candidateList.length === 0) {
-      ThrowTypeError('args', 'non-empty candidate list');
-    }
-
-    for (const [index, value] of candidateList.entries()) {
-      if (!Is.Type.String(value) || value.trim().length === 0) {
-        ThrowTypeError(`args[${index}] as candidate`, 'non-empty string');
-      }
-    }
-  }
-
   [I.SPEC_LIST](name, defaultValue) {
     const value = this[I.EXCHANGE].request.header.get(name);
-    const specList = P.SpecList(value);
 
-    // RFC 9110 §12.4.1: an absent field means no preference, so every
-    // candidate stays acceptable; the wildcard carries the default weight.
-    return specList.length === 0 ? [{ value: defaultValue, q: 1 }] : specList;
+    return Negotiation.defaultSpec(Negotiation.SpecList(value), defaultValue);
   }
 
   [I.BEST](kind, specList, candidateList) {
@@ -102,22 +87,37 @@ export default class ContentNegotiation {
   }
 
   [I.QUALITY](kind, specList, formList) {
-    let quality = 0;
-
     // RFC 9110 §12.5.1: the most specific matching media range decides the
-    // weight. The list arrives sorted by descending weight, so the first
-    // match is also the most preferred one.
-    for (const { value, q } of specList) {
-      if (q <= quality) {
-        break;
+    // weight, so an explicit `range;q=0` outranks a broader wildcard.
+    return Negotiation.qualityOf(specList, (value) => {
+      if (!formList.some((form) => this[I.MATCH](kind, value, form))) {
+        return 0;
       }
 
-      if (formList.some((form) => this[I.MATCH](kind, value, form))) {
-        quality = q;
-      }
+      return this[I.SPECIFICITY](kind, value);
+    });
+  }
+
+  [I.SPECIFICITY](kind, value) {
+    if (kind === LANGUAGE) {
+      return value === '*' ? 1 : 2;
     }
 
-    return quality;
+    if (kind === TOKEN) {
+      return value === '*' ? 1 : 2;
+    }
+
+    const range = P.MediaRange(value);
+
+    if (range === null) {
+      return 0;
+    }
+
+    if (range.type === '*') {
+      return 1;
+    }
+
+    return range.subtype === '*' ? 2 : 3;
   }
 
   [I.MATCH](kind, specValue, form) {

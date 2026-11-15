@@ -7,6 +7,7 @@
   "devDependencies": {
     "@produck/argot": "^0.4.0",
     "@produck/kit": "^0.4.0",
+    "@produck/kitty-negotiation": "^0.0.0",
     "@produck/kitty-plugin-charset": "^0.0.0",
     "@produck/kitty-workflow": "^0.0.0"
   },
@@ -33,6 +34,7 @@
   "name": "@produck/kitty-plugin-accept-charset",
   "peerDependencies": {
     "@produck/argot": "^0.4.0",
+    "@produck/kitty-negotiation": "^0.0.0",
     "@produck/kitty-plugin-charset": "^0.0.0",
     "@produck/kitty-workflow": "^0.0.0"
   },

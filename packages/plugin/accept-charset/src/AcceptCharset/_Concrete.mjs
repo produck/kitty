@@ -1,6 +1,5 @@
-import { Is, ThrowTypeError } from '@produck/argot';
+import * as Negotiation from '@produck/kitty-negotiation';
 
-import * as P from './_Parser.mjs';
 import { I } from './_Symbol.mjs';
 
 // RFC 9110 §12.5.2 marks Accept-Charset as deprecated.
@@ -16,7 +15,7 @@ export default class AcceptCharset {
   }
 
   [I.ACCEPT_CHARSET](...candidateList) {
-    this[I.ASSERT](candidateList);
+    Negotiation.assertCandidateList(candidateList);
 
     const specList = this[I.SPEC_LIST](ACCEPT_CHARSET);
 
@@ -35,45 +34,23 @@ export default class AcceptCharset {
     return best;
   }
 
-  [I.ASSERT](candidateList) {
-    if (candidateList.length === 0) {
-      ThrowTypeError('args', 'non-empty candidate list');
-    }
-
-    for (const [index, value] of candidateList.entries()) {
-      if (!Is.Type.String(value) || value.trim().length === 0) {
-        ThrowTypeError(`args[${index}] as candidate`, 'non-empty string');
-      }
-    }
-  }
-
   [I.SPEC_LIST](name) {
     const value = this[I.EXCHANGE].request.header.get(name);
-    const specList = P.SpecList(value);
 
-    // RFC 9110 §12.4.1: an absent field means no preference, so every
-    // candidate stays acceptable; the wildcard carries the default weight.
-    return specList.length === 0 ? [{ value: '*', q: 1 }] : specList;
+    return Negotiation.defaultSpec(Negotiation.SpecList(value), '*');
   }
 
   [I.QUALITY](specList, form) {
-    let matchedSpecificity = -1;
-    let quality = 0;
-
-    // RFC 9110 §12.5.2: charsets are compared by name, case-insensitively
-    // (§8.3.2). An exact name is more specific than `*`, so an explicit
-    // `charset;q=0` exclusion outranks the wildcard.
-    for (const { value, q } of specList) {
-      const specificity = value === form ? 2 : value === '*' ? 1 : 0;
-
-      if (specificity === 0 || specificity <= matchedSpecificity) {
-        continue;
+    // RFC 9110 §8.3.2: charset names are compared case-insensitively and carry
+    // no aliasing, so only an exact name outranks the wildcard.
+    return Negotiation.qualityOf(specList, (value) => {
+      if (value === form) {
+        return 2;
       }
-
-      matchedSpecificity = specificity;
-      quality = q;
-    }
-
-    return quality;
+      if (value === '*') {
+        return 1;
+      }
+      return 0;
+    });
   }
 }

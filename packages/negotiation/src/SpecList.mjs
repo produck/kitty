@@ -14,7 +14,7 @@ function parseQuality(_text) {
 // RFC 9110 §12.4.1: a missing negotiation field implies no preference.
 // §5.6.1.2: a recipient must tolerate stray empty list elements.
 // §12.4.2: entries carry an optional `q` weight; parameter names are
-// case-insensitive while charset names are matched case-insensitively per §8.3.2.
+// case-insensitive.
 export function SpecList(_value) {
   if (typeof _value !== 'string') {
     return [];
@@ -43,5 +43,5 @@ export function SpecList(_value) {
     specList.push({ value, q });
   }
 
-  return specList.sort((left, right) => right.q - left.q);
+  return specList;
 }

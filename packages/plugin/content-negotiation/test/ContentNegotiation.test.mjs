@@ -189,6 +189,13 @@ describe('.acceptEncoding()', () => {
 
     assert.equal(negotiation.acceptEncoding('gzip'), 'gzip');
   });
+
+  it('should let a zero weight exclusion outrank the wildcard', () => {
+    const negotiation = createNegotiation({ 'accept-encoding': 'gzip;q=0, *' });
+
+    assert.equal(negotiation.acceptEncoding('gzip'), false);
+    assert.equal(negotiation.acceptEncoding('gzip', 'br'), 'br');
+  });
 });
 
 describe('.acceptLanguage()', () => {

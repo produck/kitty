@@ -8,6 +8,7 @@
     "@produck/argot": "^0.4.0",
     "@produck/deep-freeze-enumerable": "^1.0.0",
     "@produck/kit": "^0.4.0",
+    "@produck/kitty-negotiation": "^0.0.0",
     "@produck/kitty-plugin-mime-type": "^0.0.0",
     "@produck/kitty-workflow": "^0.0.0"
   },
@@ -34,6 +35,7 @@
   "peerDependencies": {
     "@produck/argot": "^0.4.0",
     "@produck/deep-freeze-enumerable": "^1.0.0",
+    "@produck/kitty-negotiation": "^0.0.0",
     "@produck/kitty-plugin-mime-type": "^0.0.0",
     "@produck/kitty-workflow": "^0.0.0"
   },

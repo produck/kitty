@@ -33,6 +33,7 @@
   "workspaces": [
     "packages/workflow",
     "packages/charset",
+    "packages/negotiation",
     "packages/deployer/http2/http",
     "packages/deployer/http2/https",
     "packages/deployer/http1/http",

@@ -8,9 +8,9 @@ const I_ACCEPT_LANGUAGE = Symbol('.#acceptLanguage()');
 const I_SPEC_LIST = Symbol('.#specList()');
 const I_FORM_LIST = Symbol('.#formList()');
 const I_QUALITY = Symbol('.#quality()');
+const I_SPECIFICITY = Symbol('.#specificity()');
 const I_MATCH = Symbol('.#match()');
 const I_BEST = Symbol('.#best()');
-const I_ASSERT = Symbol('.#assert()');
 
 export const I = deepFreeze({
   EXCHANGE: I_EXCHANGE,
@@ -21,7 +21,7 @@ export const I = deepFreeze({
   SPEC_LIST: I_SPEC_LIST,
   FORM_LIST: I_FORM_LIST,
   QUALITY: I_QUALITY,
+  SPECIFICITY: I_SPECIFICITY,
   MATCH: I_MATCH,
   BEST: I_BEST,
-  ASSERT: I_ASSERT,
 });
