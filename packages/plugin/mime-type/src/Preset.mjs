@@ -317,8 +317,19 @@ import * as WHATWG_video_mp4 from '@produck/meta-whatwg-mime/video/mp4';
 import * as WHATWG_video_webm from '@produck/meta-whatwg-mime/video/webm';
 
 import * as IANA_application_gzip from '@produck/meta-iana-media-type/application/gzip';
+import * as IANA_application_manifest_json from '@produck/meta-iana-media-type/application/manifest+json';
+import * as IANA_application_wasm from '@produck/meta-iana-media-type/application/wasm';
+import * as IANA_application_x_www_form_urlencoded from '@produck/meta-iana-media-type/application/x-www-form-urlencoded';
+import * as IANA_audio_ogg from '@produck/meta-iana-media-type/audio/ogg';
+import * as IANA_image_apng from '@produck/meta-iana-media-type/image/apng';
+import * as IANA_image_avif from '@produck/meta-iana-media-type/image/avif';
+import * as IANA_multipart_form_data from '@produck/meta-iana-media-type/multipart/form-data';
+import * as IANA_text_css from '@produck/meta-iana-media-type/text/css';
+import * as IANA_text_markdown from '@produck/meta-iana-media-type/text/markdown';
 
 import * as FREEDESKTOP_application_gzip from '@produck/meta-freedesktop-mime/application/gzip';
+import * as FREEDESKTOP_audio_ogg from '@produck/meta-freedesktop-mime/audio/ogg';
+import * as FREEDESKTOP_text_markdown from '@produck/meta-freedesktop-mime/text/markdown';
 import * as FREEDESKTOP_text_vtt from '@produck/meta-freedesktop-mime/text/vtt';
 import * as APACHE_application_ecmascript from '@produck/meta-apache-mime-extension/application/ecmascript';
 import * as APACHE_application_json from '@produck/meta-apache-mime-extension/application/json';
@@ -327,6 +338,7 @@ import * as APACHE_application_ogg from '@produck/meta-apache-mime-extension/app
 import * as APACHE_application_pdf from '@produck/meta-apache-mime-extension/application/pdf';
 import * as APACHE_application_postscript from '@produck/meta-apache-mime-extension/application/postscript';
 import * as APACHE_application_vnd_ms_fontobject from '@produck/meta-apache-mime-extension/application/vnd.ms-fontobject';
+import * as APACHE_application_wasm from '@produck/meta-apache-mime-extension/application/wasm';
 import * as APACHE_application_x_rar_compressed from '@produck/meta-apache-mime-extension/application/x-rar-compressed';
 import * as APACHE_application_xml from '@produck/meta-apache-mime-extension/application/xml';
 import * as APACHE_application_zip from '@produck/meta-apache-mime-extension/application/zip';
@@ -340,6 +352,7 @@ import * as APACHE_font_ttf from '@produck/meta-apache-mime-extension/font/ttf';
 import * as APACHE_font_woff from '@produck/meta-apache-mime-extension/font/woff';
 import * as APACHE_font_woff2 from '@produck/meta-apache-mime-extension/font/woff2';
 import * as APACHE_image_bmp from '@produck/meta-apache-mime-extension/image/bmp';
+import * as APACHE_image_avif from '@produck/meta-apache-mime-extension/image/avif';
 import * as APACHE_image_gif from '@produck/meta-apache-mime-extension/image/gif';
 import * as APACHE_image_jpeg from '@produck/meta-apache-mime-extension/image/jpeg';
 import * as APACHE_image_png from '@produck/meta-apache-mime-extension/image/png';
@@ -347,6 +360,7 @@ import * as APACHE_image_svg_xml from '@produck/meta-apache-mime-extension/image
 import * as APACHE_image_webp from '@produck/meta-apache-mime-extension/image/webp';
 import * as APACHE_image_x_icon from '@produck/meta-apache-mime-extension/image/x-icon';
 import * as APACHE_text_cache_manifest from '@produck/meta-apache-mime-extension/text/cache-manifest';
+import * as APACHE_text_css from '@produck/meta-apache-mime-extension/text/css';
 import * as APACHE_text_html from '@produck/meta-apache-mime-extension/text/html';
 import * as APACHE_text_javascript from '@produck/meta-apache-mime-extension/text/javascript';
 import * as APACHE_text_plain from '@produck/meta-apache-mime-extension/text/plain';
@@ -634,6 +648,11 @@ export const Web = Object.freeze([
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
+    [MIME_TYPE]: `${IANA_text_css.type}/${IANA_text_css.subtype}`,
+    [ALIAS_LIST]: Object.freeze([...APACHE_text_css.extensionList]),
+    [CHARSET_LIST]: CHARSET.ANY,
+  },
+  {
     [MIME_TYPE]: WHATWG_application_font_cff.mediaType,
     [ALIAS_LIST]: Object.freeze(['cff']),
     [CHARSET_LIST]: CHARSET.EMPTY,
@@ -661,7 +680,7 @@ export const Web = Object.freeze([
   {
     [MIME_TYPE]: WHATWG_application_javascript.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_text_javascript.extensionList]),
-    [CHARSET_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_application_json.mediaType,
@@ -673,6 +692,21 @@ export const Web = Object.freeze([
     [ALIAS_LIST]: Object.freeze([
       ...APACHE_application_octet_stream.extensionList,
     ]),
+    [CHARSET_LIST]: CHARSET.EMPTY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_application_manifest_json.type}/${IANA_application_manifest_json.subtype}`,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_application_wasm.type}/${IANA_application_wasm.subtype}`,
+    [ALIAS_LIST]: Object.freeze([...APACHE_application_wasm.extensionList]),
+    [CHARSET_LIST]: CHARSET.EMPTY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_application_x_www_form_urlencoded.type}/${IANA_application_x_www_form_urlencoded.subtype}`,
+    [ALIAS_LIST]: CHARSET.EMPTY,
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -737,7 +771,7 @@ export const Web = Object.freeze([
   {
     [MIME_TYPE]: WHATWG_application_xml.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_application_xml.extensionList]),
-    [CHARSET_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.ANY,
   },
   {
     [MIME_TYPE]: WHATWG_application_zip.mediaType,
@@ -757,6 +791,14 @@ export const Web = Object.freeze([
   {
     [MIME_TYPE]: WHATWG_audio_mpeg.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_audio_mpeg.extensionList]),
+    [CHARSET_LIST]: CHARSET.EMPTY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_audio_ogg.type}/${IANA_audio_ogg.subtype}`,
+    [ALIAS_LIST]: Object.freeze([
+      ...FREEDESKTOP_audio_ogg.aliasList,
+      ...toExtensionList(FREEDESKTOP_audio_ogg.globPatternList),
+    ]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -792,6 +834,16 @@ export const Web = Object.freeze([
   {
     [MIME_TYPE]: WHATWG_image_bmp.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_image_bmp.extensionList]),
+    [CHARSET_LIST]: CHARSET.EMPTY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_image_apng.type}/${IANA_image_apng.subtype}`,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_image_avif.type}/${IANA_image_avif.subtype}`,
+    [ALIAS_LIST]: Object.freeze([...APACHE_image_avif.extensionList]),
     [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
@@ -832,6 +884,14 @@ export const Web = Object.freeze([
   {
     [MIME_TYPE]: WHATWG_text_ecmascript.mediaType,
     [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.ANY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_text_markdown.type}/${IANA_text_markdown.subtype}`,
+    [ALIAS_LIST]: Object.freeze([
+      ...FREEDESKTOP_text_markdown.aliasList,
+      ...toExtensionList(FREEDESKTOP_text_markdown.globPatternList),
+    ]),
     [CHARSET_LIST]: CHARSET.ANY,
   },
   {
@@ -913,6 +973,11 @@ export const Web = Object.freeze([
     [MIME_TYPE]: WHATWG_text_xml.mediaType,
     [ALIAS_LIST]: Object.freeze([...APACHE_application_xml.extensionList]),
     [CHARSET_LIST]: CHARSET.ANY,
+  },
+  {
+    [MIME_TYPE]: `${IANA_multipart_form_data.type}/${IANA_multipart_form_data.subtype}`,
+    [ALIAS_LIST]: CHARSET.EMPTY,
+    [CHARSET_LIST]: CHARSET.EMPTY,
   },
   {
     [MIME_TYPE]: WHATWG_unknown_unknown.mediaType,
