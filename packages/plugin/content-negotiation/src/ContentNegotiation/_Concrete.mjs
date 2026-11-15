@@ -38,8 +38,6 @@ export default class ContentNegotiation {
     const specList = this[I.SPEC_LIST](ACCEPT_ENCODING, '*');
 
     // RFC 9110 §12.5.3: content codings are compared case-insensitively.
-    // §8.4.1.1 and §8.4.1.3 note that `x-compress` and `x-gzip` are deprecated
-    // aliases, which this matcher deliberately ignores.
     return this[I.BEST](TOKEN, specList, candidateList);
   }
 
@@ -76,6 +74,10 @@ export default class ContentNegotiation {
 
   [I.FORM_LIST](kind, candidate) {
     const value = candidate.trim().toLowerCase();
+
+    if (kind === TOKEN) {
+      return codingFormList(value);
+    }
 
     if (kind !== MEDIA || value.includes('/')) {
       return [value];
@@ -126,7 +128,7 @@ export default class ContentNegotiation {
     }
 
     if (kind === TOKEN) {
-      return specValue === '*' || specValue === form;
+      return specValue === '*' || codingFormList(specValue).includes(form);
     }
 
     return mediaMatch(specValue, form);
@@ -172,4 +174,23 @@ function languageMatch(range, tag) {
   }
 
   return tag.startsWith(`${range}-`);
+}
+
+// RFC 9110 §8.4.1.1: a recipient SHOULD consider `x-compress` equivalent to
+// `compress`. §8.4.1.3: a recipient SHOULD consider `x-gzip` equivalent to
+// `gzip`. Both are registered as deprecated aliases (§18.6), so each name
+// answers the whole equivalence class in whichever direction it is used.
+const CODING_EQUIVALENT_LIST = [
+  ['compress', 'x-compress'],
+  ['gzip', 'x-gzip'],
+];
+
+function codingFormList(value) {
+  for (const equivalentList of CODING_EQUIVALENT_LIST) {
+    if (equivalentList.includes(value)) {
+      return equivalentList;
+    }
+  }
+
+  return [value];
 }

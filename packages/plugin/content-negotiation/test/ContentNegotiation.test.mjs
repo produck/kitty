@@ -196,6 +196,38 @@ describe('.acceptEncoding()', () => {
     assert.equal(negotiation.acceptEncoding('gzip'), false);
     assert.equal(negotiation.acceptEncoding('gzip', 'br'), 'br');
   });
+
+  it('should answer a candidate for the deprecated x-gzip alias', () => {
+    const negotiation = createNegotiation({ 'accept-encoding': 'x-gzip' });
+
+    assert.equal(negotiation.acceptEncoding('gzip'), 'gzip');
+  });
+
+  it('should answer a candidate for the deprecated x-compress alias', () => {
+    const negotiation = createNegotiation({ 'accept-encoding': 'x-compress' });
+
+    assert.equal(negotiation.acceptEncoding('compress'), 'compress');
+  });
+
+  it('should match a deprecated alias on the candidate side', () => {
+    const negotiation = createNegotiation({ 'accept-encoding': 'gzip' });
+
+    assert.equal(negotiation.acceptEncoding('x-gzip'), 'x-gzip');
+  });
+
+  it('should keep the aliasing classes apart', () => {
+    const negotiation = createNegotiation({ 'accept-encoding': 'x-gzip' });
+
+    assert.equal(negotiation.acceptEncoding('compress'), false);
+  });
+
+  it('should apply an alias exclusion to the canonical name', () => {
+    const negotiation = createNegotiation({
+      'accept-encoding': 'x-gzip;q=0, br',
+    });
+
+    assert.equal(negotiation.acceptEncoding('gzip', 'br'), 'br');
+  });
 });
 
 describe('.acceptLanguage()', () => {
