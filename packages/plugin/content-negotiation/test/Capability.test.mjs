@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import * as Kit from '@produck/kit';
 
-import { useContentNegotiation } from '@produck/kitty-plugin-request-content-negotiation';
+import { useContentNegotiation } from '@produck/kitty-plugin-content-negotiation';
 
 describe('::useContentNegotiation()', () => {
   it('should reject a kit without an exchange', () => {

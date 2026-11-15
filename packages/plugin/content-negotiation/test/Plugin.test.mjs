@@ -5,7 +5,7 @@ import * as Kit from '@produck/kit';
 import { Implement } from '@produck/kitty-workflow';
 import { Plugin as MimeTypePlugin } from '@produck/kitty-plugin-mime-type';
 
-import { Plugin } from '@produck/kitty-plugin-request-content-negotiation';
+import { Plugin } from '@produck/kitty-plugin-content-negotiation';
 
 function createWorkflow() {
   const Workflow = Implement.Workflow({

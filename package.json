@@ -39,7 +39,7 @@
     "packages/deployer/http1/https",
     "packages/plugin/cookie",
     "packages/plugin/request-type",
-    "packages/plugin/request-content-negotiation",
+    "packages/plugin/content-negotiation",
     "packages/plugin/response-type",
     "packages/kitty",
     "packages/plugin/mime-type",

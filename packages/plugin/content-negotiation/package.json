@@ -21,7 +21,7 @@
     "src/**/*.mjs",
     "src/**/*.d.mts"
   ],
-  "homepage": "https://github.com/produck/kitty/tree/main/packages/plugin/request-content-negotiation#readme",
+  "homepage": "https://github.com/produck/kitty/tree/main/packages/plugin/content-negotiation#readme",
   "keywords": [
     "kitty",
     "negotiation",
@@ -30,7 +30,7 @@
     "workflow"
   ],
   "license": "MIT",
-  "name": "@produck/kitty-plugin-request-content-negotiation",
+  "name": "@produck/kitty-plugin-content-negotiation",
   "peerDependencies": {
     "@produck/argot": "^0.4.0",
     "@produck/deep-freeze-enumerable": "^1.0.0",
@@ -38,7 +38,7 @@
     "@produck/kitty-workflow": "^0.0.0"
   },
   "repository": {
-    "directory": "packages/plugin/request-content-negotiation",
+    "directory": "packages/plugin/content-negotiation",
     "type": "git",
     "url": "git+https://github.com/produck/kitty.git"
   },
