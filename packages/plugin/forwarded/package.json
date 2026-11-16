@@ -1,0 +1,48 @@
+{
+  "author": "ChaosLee",
+  "bugs": {
+    "url": "https://github.com/produck/kitty/issues"
+  },
+  "description": "Forwarded header capability over the workflow exchange.",
+  "devDependencies": {
+    "@produck/argot": "^0.4.0",
+    "@produck/kit": "^0.4.0",
+    "@produck/kitty-workflow": "^0.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.mjs",
+      "types": "./src/index.d.mts"
+    }
+  },
+  "files": [
+    "src/**/*.mjs",
+    "src/**/*.d.mts"
+  ],
+  "homepage": "https://github.com/produck/kitty/tree/main/packages/plugin/forwarded#readme",
+  "keywords": [
+    "forwarded",
+    "kitty",
+    "plugin",
+    "proxy",
+    "rfc7239",
+    "workflow"
+  ],
+  "license": "MIT",
+  "name": "@produck/kitty-plugin-forwarded",
+  "peerDependencies": {
+    "@produck/argot": "^0.4.0",
+    "@produck/kitty-workflow": "^0.0.0"
+  },
+  "repository": {
+    "directory": "packages/plugin/forwarded",
+    "type": "git",
+    "url": "git+https://github.com/produck/kitty.git"
+  },
+  "scripts": {
+    "produck:coverage": "c8 --reporter=lcov --reporter=html --text-summary npm test",
+    "test": "node test/index.mjs"
+  },
+  "type": "module",
+  "version": "0.0.0"
+}
