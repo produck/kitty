@@ -195,7 +195,7 @@ import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as Ws from '@produck/kitty-deployer-http1-http/exchange/websocket';
 
 const Base = Http1Http.Deployer.Http1HttpDeployer;
-const Deployer = Base.withWebSocketExchange(Ws.Exchange);
+const Deployer = Base.deriveWithWebSocketExchange(Ws.Exchange);
 
 Workflow.registerDeployer(Deployer);
 ```

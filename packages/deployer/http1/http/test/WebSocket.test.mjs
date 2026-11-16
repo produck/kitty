@@ -14,7 +14,7 @@ import * as Http1Http from '@produck/kitty-deployer-http1-http';
 import * as WebSocketExchange from '@produck/kitty-deployer-http1-http/exchange/websocket';
 
 const Deployer = Http1Http.Deployer.Http1HttpDeployer;
-const WithWebSocket = Deployer.withWebSocketExchange(
+const WithWebSocket = Deployer.deriveWithWebSocketExchange(
   WebSocketExchange.Exchange,
 );
 
@@ -167,7 +167,7 @@ function readHead(socket) {
 }
 
 describe('WebSocket', () => {
-  describe('::withWebSocketExchange()', () => {
+  describe('::deriveWithWebSocketExchange()', () => {
     it('should tag the deployer and bind the exchange class', () => {
       assert.equal(WithWebSocket[SYMBOL.DEPLOYER._S.TAG], '1:http,websocket');
       assert.equal(
@@ -182,7 +182,8 @@ describe('WebSocket', () => {
 
     it('should refuse a second websocket derivation', () => {
       assert.throws(
-        () => WithWebSocket.withWebSocketExchange(WebSocketExchange.Exchange),
+        () =>
+          WithWebSocket.deriveWithWebSocketExchange(WebSocketExchange.Exchange),
         /MUST NOT carry another WebSocket/,
       );
     });

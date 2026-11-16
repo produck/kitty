@@ -15,7 +15,7 @@ import credentials from './credentials.mjs';
 import Distributor from './Distributor.mjs';
 
 const Deployer = Http1Https.Deployer.Http1HttpsDeployer;
-const WithWebSocket = Deployer.withWebSocketExchange(WebSocketExchange);
+const WithWebSocket = Deployer.deriveWithWebSocketExchange(WebSocketExchange);
 
 const TIMEOUT = 3000;
 

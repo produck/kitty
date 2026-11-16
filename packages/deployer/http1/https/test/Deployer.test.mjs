@@ -380,9 +380,9 @@ describe('::useHttp1Request()', () => {
   });
 });
 
-describe('::withWebSocketExchange()', () => {
+describe('::deriveWithWebSocketExchange()', () => {
   it('should derive a deployer that fills the websocket slot', () => {
-    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
+    const Derived = Deployer.deriveWithWebSocketExchange(WebSocketExchange);
 
     assert.ok(Derived.prototype instanceof Deployer);
     assert.equal(
@@ -393,22 +393,22 @@ describe('::withWebSocketExchange()', () => {
 
   it('should tag the derived deployer as a websocket variant', () => {
     const base = Deployer[SYMBOL.DEPLOYER._S.TAG];
-    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
+    const Derived = Deployer.deriveWithWebSocketExchange(WebSocketExchange);
 
     assert.equal(Derived[SYMBOL.DEPLOYER._S.TAG], `${base},websocket`);
   });
 
   it('should keep the TLS server constructor', () => {
-    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
+    const Derived = Deployer.deriveWithWebSocketExchange(WebSocketExchange);
 
     assert.equal(Derived[SYMBOL.DEPLOYER._S.SERVER_CTOR], https.Server);
   });
 
   it('should refuse a second websocket derivation', () => {
-    const Derived = Deployer.withWebSocketExchange(WebSocketExchange);
+    const Derived = Deployer.deriveWithWebSocketExchange(WebSocketExchange);
 
     assert.throws(
-      () => Derived.withWebSocketExchange(WebSocketExchange),
+      () => Derived.deriveWithWebSocketExchange(WebSocketExchange),
       /MUST NOT carry another WebSocket/,
     );
   });

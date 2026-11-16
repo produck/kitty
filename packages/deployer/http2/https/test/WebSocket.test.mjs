@@ -17,7 +17,7 @@ import credentials from './credentials.mjs';
 import Distributor from './Distributor.mjs';
 
 const Deployer = Http2Https.Deployer.Http2HttpsDeployer;
-const WithWebSocket = Deployer.withWebSocketExchange(
+const WithWebSocket = Deployer.deriveWithWebSocketExchange(
   WebSocketExchange.Exchange,
 );
 
@@ -246,7 +246,7 @@ function upgradeH1(port) {
 }
 
 describe('WebSocket', () => {
-  describe('::withWebSocketExchange()', () => {
+  describe('::deriveWithWebSocketExchange()', () => {
     it('should tag the deployer and bind the exchange class', () => {
       const base = Deployer[SYMBOL.DEPLOYER._S.TAG];
 
@@ -259,7 +259,8 @@ describe('WebSocket', () => {
 
     it('should refuse a second websocket derivation', () => {
       assert.throws(
-        () => WithWebSocket.withWebSocketExchange(WebSocketExchange.Exchange),
+        () =>
+          WithWebSocket.deriveWithWebSocketExchange(WebSocketExchange.Exchange),
         /MUST NOT carry another WebSocket/,
       );
     });

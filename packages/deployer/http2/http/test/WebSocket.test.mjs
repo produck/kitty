@@ -12,7 +12,7 @@ import * as Http2Http from '@produck/kitty-deployer-http2-http';
 import * as WebSocketExchange from '@produck/kitty-deployer-http2-http/exchange/websocket';
 
 const Deployer = Http2Http.Deployer.Http2HttpDeployer;
-const WithWebSocket = Deployer.withWebSocketExchange(
+const WithWebSocket = Deployer.deriveWithWebSocketExchange(
   WebSocketExchange.Exchange,
 );
 
@@ -207,7 +207,7 @@ async function connect(port, headers = {}) {
 }
 
 describe('WebSocket', () => {
-  describe('::withWebSocketExchange()', () => {
+  describe('::deriveWithWebSocketExchange()', () => {
     it('should tag the deployer and bind the exchange class', () => {
       const base = Deployer[SYMBOL.DEPLOYER._S.TAG];
 
@@ -224,7 +224,8 @@ describe('WebSocket', () => {
 
     it('should refuse a second websocket derivation', () => {
       assert.throws(
-        () => WithWebSocket.withWebSocketExchange(WebSocketExchange.Exchange),
+        () =>
+          WithWebSocket.deriveWithWebSocketExchange(WebSocketExchange.Exchange),
         /MUST NOT carry another WebSocket/,
       );
     });

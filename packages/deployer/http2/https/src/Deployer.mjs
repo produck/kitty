@@ -99,8 +99,8 @@ export const options = Implement.Normalize.Deployer({
 });
 
 export class Http2HttpsDeployer extends Implement.Deployer(options) {
-  static withWebSocketExchange(WebSocketExchange) {
-    return class Http2WithWebSocketDeployer extends this {
+  static deriveWithWebSocketExchange(WebSocketExchange) {
+    return class Http2WebSocketExchangeDeployer extends this {
       static get [SYMBOL.DEPLOYER._S.TAG]() {
         return '1,2:https,websocket';
       }
@@ -109,7 +109,7 @@ export class Http2HttpsDeployer extends Implement.Deployer(options) {
         return WebSocketExchange;
       }
 
-      static withWebSocketExchange() {
+      static deriveWithWebSocketExchange() {
         Ow.Error.Common('The deployer MUST NOT carry another WebSocket.');
       }
     };

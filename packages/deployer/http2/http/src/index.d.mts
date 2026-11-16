@@ -25,7 +25,7 @@ type Http2HttpDeployerClass = typeof Workflow.Abstract.Deployer & {
    * @param WebSocketExchange - WebSocket exchange class to load.
    * @returns A deployer subclass carrying that exchange.
    */
-  withWebSocketExchange(
+  deriveWithWebSocketExchange(
     WebSocketExchange: typeof Workflow.Abstract.WebSocketExchange,
   ): Http2HttpDeployerClass;
 };
