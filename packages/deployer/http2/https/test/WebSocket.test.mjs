@@ -42,6 +42,7 @@ class Workflow extends Abstract.Workflow {
 async function serve(handler) {
   const workflow = new Workflow(Kit.global);
 
+  workflow.mountDeployer(WithWebSocket);
   workflow.setRequestBodyDistributorConstructor(Distributor);
   workflow.use(handler);
   workflow.finalize();
@@ -53,7 +54,7 @@ async function serve(handler) {
   const sessions = new Set();
 
   server.on('session', (session) => sessions.add(session));
-  await workflow.withDeployer(WithWebSocket).deploy(server);
+  await workflow.deploy(server);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
   const { port } = server.address();

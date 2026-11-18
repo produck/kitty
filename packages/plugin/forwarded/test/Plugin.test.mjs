@@ -18,7 +18,7 @@ describe('::Plugin', () => {
   it('should install on a workflow', () => {
     const workflow = createWorkflow();
 
-    workflow.withPlugin(Plugin);
+    workflow.mountPlugin(Plugin);
 
     assert.doesNotThrow(() => workflow.finalize());
   });

@@ -17,7 +17,7 @@ function createWorkflow() {
 function createPluginKit(workflow) {
   let kit = null;
 
-  workflow.withPlugin(
+  workflow.mountPlugin(
     Implement.Plugin({
       tag: 'probe',
       install: (PluginKit) => (kit = PluginKit),
@@ -30,7 +30,7 @@ function createPluginKit(workflow) {
 function createSelector() {
   const workflow = createWorkflow();
 
-  workflow.withPlugin(Plugin);
+  workflow.mountPlugin(Plugin);
 
   return { workflow, selector: useCharset(createPluginKit(workflow)) };
 }

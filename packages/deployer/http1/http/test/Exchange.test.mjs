@@ -29,9 +29,10 @@ class Workflow extends Abstract.Workflow {
   }
 }
 
-function createWorkflow(handler) {
+function createWorkflow(handler, TargetDeployer = Deployer) {
   const workflow = new Workflow(Kit.global);
 
+  workflow.mountDeployer(TargetDeployer);
   workflow.setRequestBodyDistributorConstructor(Distributor);
 
   if (handler !== undefined) {
@@ -121,13 +122,14 @@ class Workflow extends Abstract.Workflow {
 const workflow = new Workflow(Kit.global);
 const server = http.createServer();
 
+workflow.mountDeployer(Deployer);
 workflow.setRequestBodyDistributorConstructor(Distributor);
 workflow.use(async (context) => {
 ${handlerBody}
 });
 workflow.finalize();
 
-await workflow.withDeployer(Deployer).deploy(server);
+await workflow.deploy(server);
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
 const { port } = server.address();
@@ -159,7 +161,6 @@ async function serve(handler, options = {}) {
   const { compile = false, protocol } = options;
   const workflow = createWorkflow(handler);
   const server = http.createServer();
-  const oneTime = workflow.withDeployer(Deployer);
   let manifest = null;
 
   if (protocol !== undefined) {
@@ -167,12 +168,12 @@ async function serve(handler, options = {}) {
   }
 
   if (compile) {
-    const deployment = await oneTime.compile(server);
+    const deployment = await workflow.compile(server);
 
     manifest = deployment.manifest;
     server.on('request', manifest['request-listener']);
   } else {
-    await oneTime.deploy(server);
+    await workflow.deploy(server);
   }
 
   const origin = await listen(server);
@@ -485,14 +486,12 @@ describe('Exchange', () => {
         }
 
         Use.Response(context).body.data = message;
-      });
+      }, Http2Http.Deployer.Http2HttpDeployer);
       const server = http2.createServer();
       const sessions = new Set();
 
       server.on('session', (session) => sessions.add(session));
-      await workflow
-        .withDeployer(Http2Http.Deployer.Http2HttpDeployer)
-        .deploy(server);
+      await workflow.deploy(server);
       await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
       const { port } = server.address();

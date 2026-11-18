@@ -1,4 +1,4 @@
-import { CONSTRUCTOR, instanceOf, Ow, ThrowTypeError } from '@produck/argot';
+import { CONSTRUCTOR, Ow, ThrowTypeError } from '@produck/argot';
 import { isSubConstructor } from '@produck/is-sub-constructor';
 import Abstract, { Member as M, ShadowThis as $ } from '@produck/es-abstract';
 import * as Fugue from '@produck/fugue';
@@ -6,23 +6,18 @@ import * as Fugue from '@produck/fugue';
 import * as DeployerRegistry from './DeployerRegistry/index.mjs';
 import * as Configuration from './Configuration/index.mjs';
 import * as Plugin from './Plugin/index.mjs';
+import * as Deployment from '../Workflow/Deployment/index.mjs';
 import * as Workflow from '../Workflow/index.mjs';
 
 import * as P from './_Parser.mjs';
 import { _A, DEPLOYER, DEPLOYMENT, PLUGIN, WORKFLOW } from './_Borrow.mjs';
-import { $I, _I, A, I, S } from './_Symbol.mjs';
+import { $I, _I, I } from './_Symbol.mjs';
 
 class CompoundWorkflow extends Workflow.Abstract {
-  static get DeployerRegistry() {
-    if (!Object.hasOwn(this, S.DEPLOYER_REGISTRY)) {
-      this[S.DEPLOYER_REGISTRY] = new DeployerRegistry.Concrete();
-    }
+  [I.DEPLOYER_REGISTRY] = new DeployerRegistry.Concrete();
 
-    return this[S.DEPLOYER_REGISTRY];
-  }
-
-  get [I.DEPLOYER_REGISTRY]() {
-    return this[CONSTRUCTOR].DeployerRegistry;
+  get DeployerRegistry() {
+    return this[I.DEPLOYER_REGISTRY];
   }
 
   [I.PLUGIN.HANDLER_PREFIX_LIST] = [];
@@ -63,7 +58,7 @@ class CompoundWorkflow extends Workflow.Abstract {
     this[WORKFLOW.$I.COMPOSE.PREPEND](...this[I.PLUGIN.HANDLER_PREFIX_LIST]);
   }
 
-  [WORKFLOW._I.COMPILE_DEPLOYMENT](deployment) {
+  [WORKFLOW._I.COMPILE_DEPLOYMENT](deployment, TargetDeployer) {
     const DeploymentKit = deployment[DEPLOYMENT.$I.KIT];
 
     for (const attacher of this[I.PLUGIN.DEPLOYMENT_ATTACHER_LIST]) {
@@ -71,7 +66,11 @@ class CompoundWorkflow extends Workflow.Abstract {
     }
 
     const server = deployment[DEPLOYMENT.$I.SERVER];
-    const TargetDeployer = this[A.I.REGISTRY][_A.REGISTRY.$I.RESOLVE](server);
+
+    if (TargetDeployer === undefined) {
+      TargetDeployer =
+        this[I.DEPLOYER_REGISTRY][_A.REGISTRY.$I.RESOLVE](server);
+    }
 
     if (TargetDeployer === undefined) {
       Ow.Error.Common(`No deployer for ${server.constructor.name}.`);
@@ -96,50 +95,48 @@ class CompoundWorkflow extends Workflow.Abstract {
     return super[WORKFLOW.$I.DEPLOY](server, kitName);
   }
 
-  withDeployer(TargetDeployer) {
+  mountDeployer(TargetDeployer) {
+    this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
+    this[I.DEPLOYER_REGISTRY].register(TargetDeployer);
+
+    return this;
+  }
+
+  pickDeployer(TargetDeployer) {
     P.SubDeployer(TargetDeployer);
-    this[WORKFLOW.$I.ASSERT.FINALIZED]();
 
     const DeploymentKitName = 'Kitty<Deployment:OneTime>';
-    const Server = TargetDeployer[DEPLOYER._S.SERVER_CTOR];
-    let expired = false;
     let consumed = false;
-
-    queueMicrotask(() => (expired = true));
-
-    const consumeBy = (server) => {
-      if (!instanceOf(server, Server)) {
-        ThrowTypeError('args[0] as server', Server.name);
-      }
+    const compile = async (server) => {
+      this[WORKFLOW.$I.ASSERT.FINALIZED]();
 
       if (consumed) {
         Ow.Error.Common('One-time deployer has already been used.');
       }
 
-      if (expired) {
-        Ow.Error.Common('One-time deployer MUST be consumed immediately.');
-      }
-
       consumed = true;
-      this[A.I.REGISTRY][_A.REGISTRY.$I.ASSOCIATE](server, TargetDeployer);
+
+      const deployment = new Deployment.Concrete(this[WORKFLOW.$I.KIT], this, {
+        server,
+        kitName: DeploymentKitName,
+      });
+
+      await this[WORKFLOW._I.COMPILE_DEPLOYMENT](deployment, TargetDeployer);
+
+      return deployment;
     };
 
-    const deployer = Object.freeze({
-      compile: async (server) => {
-        consumeBy(server);
+    return Object.freeze({
+      compile,
+      async deploy(server) {
+        const deployment = await compile(server);
 
-        return this[WORKFLOW.$I.COMPILE](server, DeploymentKitName);
-      },
-      deploy: async (server) => {
-        consumeBy(server);
-        await this[WORKFLOW.$I.DEPLOY](server, DeploymentKitName);
+        deployment.link();
       },
     });
-
-    return deployer;
   }
 
-  withPlugin(TargetPlugin) {
+  mountPlugin(TargetPlugin) {
     this[WORKFLOW.$I.ASSERT.NOT_FINALIZED]();
 
     if (!isSubConstructor(TargetPlugin, Plugin.Abstract)) {

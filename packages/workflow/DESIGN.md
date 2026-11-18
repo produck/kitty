@@ -165,7 +165,7 @@ additions to the assembly surface are closed.
 - **Composition layer** (`CompoundWorkflow/`): extends the abstract layer
   and implements two orthogonal domains — **Plugin** and **Deployer** —
   each responsible for a distinct kind of capability injection. It owns
-  `withPlugin()`, `withDeployer()`, and the default configuration record.
+  `mountPlugin()`, `pickDeployer()`, and the default configuration record.
 
 Extension hooks:
 
@@ -192,7 +192,7 @@ constructor(kit) -> use(handler)* -> finalize()
 - **Finalization**: `finalize()` freezes the handler list, prepends it
   to the pipeline through `Composer.compose`, runs the composition
   extension, then freezes the instance. After that, `use()` and
-  `withPlugin()` are rejected.
+  `mountPlugin()` are rejected.
 - **Compile**: `compile(server)` builds a `Deployment` and returns it
   without linking; `deployment.manifest` holds declared materials.
 - **Deploy**: `deploy(server)` builds the deployment, then calls
@@ -202,8 +202,8 @@ constructor(kit) -> use(handler)* -> finalize()
 ### Composition layer
 
 ```text
-constructor(kit) -> withPlugin(PluginClass)* -> use(handler)* -> finalize()
-  -> deploy(server) / compile(server) / withDeployer(DeployerClass)
+constructor(kit) -> mountPlugin(PluginClass)* -> use(handler)* -> finalize()
+  -> deploy(server) / compile(server) / pickDeployer(DeployerClass)
   -> Deployer.Registry lookup -> DeploymentKit prepared
   -> deployer[$I.INSTALL]() -> exchange attachers registered
   -> deployment[$I.COMMIT]() -> link() -> server wired
@@ -277,17 +277,17 @@ own the protocol bridge.
 
 ### Kittable Items
 
-| Kit             | Derived from                       | Lifetime               |
-| --------------- | ---------------------------------- | ---------------------- |
-| `ExternalKit`   | caller (default `Kit.global`)      | application            |
-| `WorkflowKit`   | `ExternalKit('Kitty<Workflow>')`   | one per workflow       |
-| `PluginKit`     | `WorkflowKit('Kitty<Plugin>')`     | one per `withPlugin()` |
-| `DeploymentKit` | `WorkflowKit('Kitty<Deployment>')` | one per compile        |
-| `DeployerKit`   | `DeploymentKit('Kitty<Deployer>')` | one per deployment     |
-| `ExchangeKit`   | `DeploymentKit('Kitty<Exchange>')` | one per exchange       |
-| `HandlerKit`    | handler's own discretion           | optional, per handler  |
+| Kit             | Derived from                       | Lifetime                |
+| --------------- | ---------------------------------- | ----------------------- |
+| `ExternalKit`   | caller (default `Kit.global`)      | application             |
+| `WorkflowKit`   | `ExternalKit('Kitty<Workflow>')`   | one per workflow        |
+| `PluginKit`     | `WorkflowKit('Kitty<Plugin>')`     | one per `mountPlugin()` |
+| `DeploymentKit` | `WorkflowKit('Kitty<Deployment>')` | one per compile         |
+| `DeployerKit`   | `DeploymentKit('Kitty<Deployer>')` | one per deployment      |
+| `ExchangeKit`   | `DeploymentKit('Kitty<Exchange>')` | one per exchange        |
+| `HandlerKit`    | handler's own discretion           | optional, per handler   |
 
-- A one-time deployment (`withDeployer()`) names its kit
+- A one-time deployment (`pickDeployer()`) names its kit
   `Kitty<Deployment:OneTime>`.
 - `ExchangeKit` and `HandlerKit` are created **per request**; the parent
   kits are created once at setup.
@@ -311,9 +311,9 @@ The package exports strict getters, each wrapping one symbol key:
 
 A plugin is a **class**, not a plain installer function: it may hold
 instance-level context for as long as the workflow lives. The workflow
-entry point is `withPlugin()`.
+entry point is `mountPlugin()`.
 
-`withPlugin(PluginClass)` validates that the argument is a `Plugin`
+`mountPlugin(PluginClass)` validates that the argument is a `Plugin`
 subclass, constructs it with `(WorkflowKit, workflow)`, and immediately
 runs `$I.INSTALL()` against its own `PluginKit`. There is no deferral
 queue, and no single-install enforcement — duplicate detection is the
@@ -322,7 +322,7 @@ plugin's own decision.
 ### PluginKit API
 
 `PluginKit` is derived via `WorkflowKit('Kitty<Plugin>')`, one kit per
-`withPlugin()` call. All methods target the workflow the plugin belongs to and
+`mountPlugin()` call. All methods target the workflow the plugin belongs to and
 guard against post-finalization calls.
 
 | Method                                      | Behavior                                                    |
@@ -339,7 +339,7 @@ guard against post-finalization calls.
 ```text
 1. Create the Deployment, deriving DeploymentKit from WorkflowKit
 2. Plugin deployment attachers run on DeploymentKit, in registration order
-3. Look up the deployer (the class registry, or the one-time association)
+3. Resolve the deployer (the picked deployer, or the mounted registry)
 4. Derive DeployerKit from DeploymentKit; construct the deployer with
    (DeployerKit, deployment)
 5. deployer[$I.INSTALL](DeployerKit) — declares manifest entries,
@@ -381,17 +381,16 @@ implementation into the uniform `Exchange` abstraction.
 instance-level: a deployer may hold context with the same lifetime as
 the workflow instance.
 
-### Deployer registration
+### Deployer mounting
 
-A deployer is registered once per server constructor, on the workflow
-class that will use it:
-`MyWorkflow.DeployerRegistry.register(DeployerClass)`.
+A deployer is mounted once per server constructor, on the workflow
+**instance** that will use it: `workflow.mountDeployer(DeployerClass)`.
 
-The registry is **owned by the workflow class**, not by the package. A
-derivation of a workflow class that registers nothing starts with an
-empty registry of its own; it never sees its base's entries. This makes
-"which servers this workflow serves" a readable property of the class
-rather than a fact about module load order.
+The registry is **owned by the workflow instance**, not by the class and
+not by the package. Two instances of the same class start with separate,
+empty registries, so "which servers this workflow serves" is a property
+of the instance that was assembled, not a fact about module load order.
+Mounting is rejected after `finalize()`.
 
 | Member                        | Level              | Meaning                                                |
 | ----------------------------- | ------------------ | ------------------------------------------------------ |
@@ -416,23 +415,23 @@ only way to read the static slots.
 
 ### Lookup
 
-Deployer resolution is two-level:
+Deployer resolution happens once per deployment, in
+`_I.COMPILE_DEPLOYMENT`:
 
-1. **Instance level**: a class explicitly associated with one server
-   instance. `withDeployer()` sets this.
-2. **Constructor level**: the class registered for the server's
-   constructor.
+1. **Picked deployer**: when the deployment came from `pickDeployer()`, that
+   class is used as is. Neither the registry nor the server type is consulted.
+2. **Mounted deployer**: otherwise the per-instance registry is searched for
+   the first class whose `_S.SERVER_CTOR` the server is an instance of.
 
-`getByServer(server)` checks the instance map first, then
-`Object.getPrototypeOf(server).constructor` in the registry. It answers
-`undefined` when neither matches; `_I.COMPILE_DEPLOYMENT` turns that
-into an error naming the server constructor.
+A miss answers `undefined`, which `_I.COMPILE_DEPLOYMENT` turns into an error
+naming the server constructor.
 
-- **Framework-level distribution**: library authors register deployers
-  for standard server constructors on the workflow class they ship;
-  `deploy(server)` then finds the right one.
-- **Per-instance override**: `withDeployer()` binds one deployer to one
-  server instance, bypassing registration.
+- **Mounting**: `mountDeployer(DeployerClass)` adds a class to this instance's
+  registry. Duplicates by server constructor throw, so one server type answers
+  one deployer per instance.
+- **Picking**: `pickDeployer(DeployerClass)` returns a one-time handle. It
+  exists for the case where one deployment needs a deployer the workflow does
+  not mount, and it is consumed by the first `compile` / `deploy` call.
 
 The registry stores the **class only**, keyed by
 `DeployerClass[_S.SERVER_CTOR]`. `register` asserts only that the class
@@ -532,11 +531,11 @@ pipeline.
 ### Deployment flow
 
 ```text
-deploy(server) / withDeployer(DeployerClass).deploy(server)
+deploy(server) / pickDeployer(DeployerClass).deploy(server)
   │
   ├─ 1. Create the Deployment (DeploymentKit + server + workflow)
   ├─ 2. Run plugin deployment attachers on DeploymentKit
-  ├─ 3. Look up the deployer (class registry or instance association)
+  ├─ 3. Resolve the deployer (picked, or from the mounted registry)
   ├─ 4. Derive DeployerKit; construct the deployer
   ├─ 5. deployer[$I.INSTALL](DeployerKit)
   ├─ 6. Append plugin exchange attachers to the deployment
@@ -1140,9 +1139,9 @@ A handler with `length > 2` is rejected at registration.
 
 ### State guards
 
-- `finalize()`, `compile()`, `deploy()`, `withDeployer()`, `use()`, and
-  `withPlugin()` check `isFinalized`. Repeated finalization throws.
-- `withDeployer()` guards the synchronous consumption window with
+- `finalize()`, `compile()`, `deploy()`, `pickDeployer()`, `use()`, and
+  `mountPlugin()` check `isFinalized`. Repeated finalization throws.
+- `pickDeployer()` guards the synchronous consumption window with
   `queueMicrotask`.
 - Dispatch mutations guard on the deployment's `COMMITTED` flag.
 
@@ -1154,7 +1153,7 @@ A handler with `length > 2` is rejected at registration.
 
 ## Server Lifecycle Ownership
 
-The server passed to `deploy()` or `withDeployer().deploy()` stays under
+The server passed to `deploy()` or `pickDeployer().deploy()` stays under
 the caller's control at all times. The workflow does not start or stop it,
 does not track connections or exchanges, and exposes no management handle.
 
@@ -1224,22 +1223,23 @@ internal)` through the kit entries.
 
 Three paths serve different scenarios:
 
-| Property        | `deploy(server)`   | `compile(server)`           | `withDeployer(DeployerClass)`            |
-| --------------- | ------------------ | --------------------------- | ---------------------------------------- |
-| Deployer source | Per-class registry | Per-class registry          | Instance association, bypassing registry |
-| Links server    | Yes                | No (returns the deployment) | `compile` or `deploy`                    |
-| Reusability     | Unlimited          | Unlimited                   | Single-use per call                      |
-| Timing          | No constraint      | No constraint               | Must be consumed in the same microtask   |
+| Property        | `deploy(server)` | `compile(server)`           | `pickDeployer(DeployerClass)`            |
+| --------------- | ---------------- | --------------------------- | ---------------------------------------- |
+| Deployer source | Mounted registry | Mounted registry            | The picked class, bypassing the registry |
+| Links server    | Yes              | No (returns the deployment) | `compile` or `deploy`                    |
+| Reusability     | Unlimited        | Unlimited                   | Single-use per handle                    |
 
-### `withDeployer()` single-use contract
+Mounted deployers need no timing constraint: the handle returned by
+`pickDeployer()` is the only single-use surface.
+
+### `pickDeployer()` single-use contract
 
 The returned handle enforces:
 
-- `queueMicrotask` expires the availability window: either call must
-  happen synchronously at the call site.
 - A `consumed` flag rejects a second call.
 - `compile` and `deploy` share one execution lock: exactly one may be
-  called per invocation.
+  called per handle.
+- `compile` / `deploy` require the workflow to be finalized.
 
 ## Package Surface
 
@@ -1316,7 +1316,7 @@ Factories that turn one options record into a whole class (or class set):
   `Composer.compose()`.
 - **Compound workflow**: a workflow carrying configuration, request body
   distributor state, and the response body normaliser slot.
-- **Plugin**: a class installed with `withPlugin()`; receives a
+- **Plugin**: a class installed with `mountPlugin()`; receives a
   `PluginKit`.
 - **Deployer**: a class mapping one server constructor to protocol
   bridging; receives a `DeployerKit` and the deployment.
@@ -1336,9 +1336,9 @@ Factories that turn one options record into a whole class (or class set):
   compile path.
 - **Link**: a plain function that wires a compiled deployment to a server.
 - **Deploy**: auto-discovery deployment — looks up a deployer in the
-  workflow class's registry by server constructor.
-- **WithDeployer**: ephemeral deployment — no registration, one-off use
-  with an immediate-consumption guard.
+  workflow instance's registry by server constructor.
+- **PickDeployer**: ephemeral deployment — no mounting, one-off use with a
+  single-consumption guard.
 - **Tune**: adjust a supplier-owned runtime parameter, keyed by workflow
   identity.
 - **Done / closed / destroyed**: data reached its end / a reader was

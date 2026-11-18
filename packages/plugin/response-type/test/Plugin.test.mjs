@@ -34,7 +34,7 @@ describe('::Plugin', () => {
     const workflow = createWorkflow();
 
     assert.throws(
-      () => workflow.withPlugin(Plugin),
+      () => workflow.mountPlugin(Plugin),
       /mime type table is NOT installed/,
     );
   });
@@ -42,10 +42,10 @@ describe('::Plugin', () => {
   it('should require the charset selector', () => {
     const workflow = createWorkflow();
 
-    workflow.withPlugin(MimeTypePlugin);
+    workflow.mountPlugin(MimeTypePlugin);
 
     assert.throws(
-      () => workflow.withPlugin(Plugin),
+      () => workflow.mountPlugin(Plugin),
       /charset selector is NOT installed/,
     );
   });

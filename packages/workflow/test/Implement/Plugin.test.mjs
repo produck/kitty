@@ -51,7 +51,7 @@ describe('Plugin()', () => {
         install: (kit) => seen.push(kit),
       });
 
-      workflow.withPlugin(Plugin);
+      workflow.mountPlugin(Plugin);
       workflow.finalize();
 
       assert.equal(seen.length, 1);

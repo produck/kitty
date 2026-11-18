@@ -29,7 +29,7 @@ export interface Handler {
 }
 
 /**
- * Handle returned by `withDeployer()`; call exactly one of `compile` /
+ * Handle returned by `pickDeployer()`; call exactly one of `compile` /
  * `deploy`, once.
  */
 export interface OneTimeDeployer {
@@ -61,12 +61,11 @@ declare abstract class CompoundWorkflow {
   constructor(externalKit?: Kit.KitProvider);
 
   /**
-   * Deployer registry owned by this workflow class; derived classes each get
-   * their own instance.
+   * Deployer registry owned by this workflow instance.
    */
-  static readonly DeployerRegistry: DeployerRegistry.Concrete;
+  readonly DeployerRegistry: DeployerRegistry.Concrete;
 
-  /** Whether it is finalized; `use` / `withPlugin` are rejected afterwards. */
+  /** Whether it is finalized; `use` / `mountPlugin` are rejected afterwards. */
   readonly isFinalized: boolean;
 
   /**
@@ -90,7 +89,7 @@ declare abstract class CompoundWorkflow {
    * @param plugin - Plugin class to install.
    * @returns This workflow.
    */
-  withPlugin(plugin: Plugin.Class): this;
+  mountPlugin(plugin: Plugin.Class): this;
 
   /**
    * Compiles and returns the deployment without connecting to the server.
@@ -109,12 +108,20 @@ declare abstract class CompoundWorkflow {
   deploy(server: net.Server): Promise<void>;
 
   /**
-   * Creates a one-time deploy handle; consume it within the same tick.
+   * Mounts a deployer class for this instance; duplicates throw.
    *
-   * @param deployer - Deployer class used for this single deployment.
-   * @returns The one-time handle.
+   * @param deployer - Deployer class to mount.
+   * @returns This workflow.
    */
-  withDeployer(deployer: Deployer.Class): OneTimeDeployer;
+  mountDeployer(deployer: Deployer.Class): this;
+
+  /**
+   * Picks a deployer for a single deployment, bypassing the mounted registry.
+   *
+   * @param deployer - Deployer class used for this one deployment.
+   * @returns A one-time handle; call exactly one of `compile` / `deploy`.
+   */
+  pickDeployer(deployer: Deployer.Class): OneTimeDeployer;
 
   /**
    * Sets the request body distributor constructor; allowed after finalize.

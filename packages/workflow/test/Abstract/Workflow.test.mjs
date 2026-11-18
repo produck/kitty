@@ -68,11 +68,11 @@ describe('Workflow', () => {
     });
   });
 
-  describe('.withPlugin()', () => {
+  describe('.mountPlugin()', () => {
     it('should reject a non-plugin constructor', () => {
       const workflow = Baseline.createWorkflow();
 
-      assert.throws(() => workflow.withPlugin(class {}));
+      assert.throws(() => workflow.mountPlugin(class {}));
     });
 
     it('should reject after finalization', () => {
@@ -84,7 +84,7 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      assert.throws(() => workflow.withPlugin(Plugin));
+      assert.throws(() => workflow.mountPlugin(Plugin));
     });
   });
 
@@ -216,7 +216,7 @@ describe('Workflow', () => {
     });
   });
 
-  describe('.withDeployer()', () => {
+  describe('.pickDeployer()', () => {
     it('should compile through a one-time deployer', async () => {
       const fixture = Baseline.createDeployer({
         declare: (kit) => kit.declareToManifest('request', () => {}),
@@ -225,7 +225,7 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      const handle = workflow.withDeployer(fixture.Deployer);
+      const handle = workflow.pickDeployer(fixture.Deployer);
       const { manifest } = await handle.compile(new fixture.Server());
 
       assert.deepEqual(Object.keys(manifest), ['request']);
@@ -237,12 +237,23 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      const handle = workflow.withDeployer(fixture.Deployer);
+      const handle = workflow.pickDeployer(fixture.Deployer);
 
       await handle.deploy(new fixture.Server());
 
       assert.equal(fixture.installLog.length, 1);
       assert.deepEqual(fixture.linkLog, ['only']);
+    });
+
+    it('should not require the server type to be mounted', async () => {
+      const fixture = Baseline.createDeployer();
+      const workflow = Baseline.createWorkflow();
+
+      workflow.finalize();
+
+      await assert.doesNotReject(() =>
+        workflow.pickDeployer(fixture.Deployer).compile(new fixture.Server()),
+      );
     });
 
     it('should reject a second consumption', async () => {
@@ -251,35 +262,11 @@ describe('Workflow', () => {
 
       workflow.finalize();
 
-      const handle = workflow.withDeployer(fixture.Deployer);
+      const handle = workflow.pickDeployer(fixture.Deployer);
 
       await handle.compile(new fixture.Server());
 
       await assert.rejects(() => handle.deploy(new fixture.Server()));
-    });
-
-    it('should reject a server outside the deployer server contract', async () => {
-      const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
-
-      workflow.finalize();
-
-      const handle = workflow.withDeployer(fixture.Deployer);
-
-      await assert.rejects(() => handle.compile({}));
-    });
-
-    it('should reject a consumption after the current tick', async () => {
-      const fixture = Baseline.createDeployer();
-      const workflow = Baseline.createWorkflow();
-
-      workflow.finalize();
-
-      const handle = workflow.withDeployer(fixture.Deployer);
-
-      await Promise.resolve();
-
-      await assert.rejects(() => handle.compile(new fixture.Server()));
     });
 
     it('should reject a value outside the deployer contract', () => {
@@ -288,7 +275,7 @@ describe('Workflow', () => {
       workflow.finalize();
 
       assert.throws(
-        () => workflow.withDeployer(class NotADeployer {}),
+        () => workflow.pickDeployer(class NotADeployer {}),
         /sub class of Deployer/,
       );
     });
@@ -305,12 +292,12 @@ describe('Workflow', () => {
         install: () => {},
       });
 
-      workflow.withPlugin(Plugin);
+      workflow.mountPlugin(Plugin);
       workflow.finalize();
 
       await workflow.deploy(new fixture.Server());
 
-      assert.throws(() => workflow.withPlugin(Plugin));
+      assert.throws(() => workflow.mountPlugin(Plugin));
     });
   });
 });

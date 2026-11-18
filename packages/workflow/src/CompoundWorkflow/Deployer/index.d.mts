@@ -87,7 +87,7 @@ declare abstract class Deployer {
   [_Symbol._I.INSTALL](deployerKit: DeployerKit): void;
 }
 
-/** Shape of a deployer class, used by the registry and `withDeployer()`. */
+/** Shape of a deployer class, used by the registry and `pickDeployer()`. */
 export type Class = typeof Deployer;
 
 export { Deployer as Abstract };

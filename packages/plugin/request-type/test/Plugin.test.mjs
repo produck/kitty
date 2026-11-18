@@ -19,7 +19,7 @@ describe('::Plugin', () => {
   it('should reject a workflow without the mime type plugin', () => {
     const workflow = createWorkflow();
 
-    assert.throws(() => workflow.withPlugin(Plugin), {
+    assert.throws(() => workflow.mountPlugin(Plugin), {
       message: /mime type table is NOT installed/,
     });
   });
@@ -27,8 +27,8 @@ describe('::Plugin', () => {
   it('should install over the mime type plugin', () => {
     const workflow = createWorkflow();
 
-    workflow.withPlugin(MimeTypePlugin);
-    workflow.withPlugin(Plugin);
+    workflow.mountPlugin(MimeTypePlugin);
+    workflow.mountPlugin(Plugin);
 
     assert.doesNotThrow(() => workflow.finalize());
   });

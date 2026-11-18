@@ -19,7 +19,7 @@ describe('::Plugin', () => {
   it('should reject a workflow without the charset plugin', () => {
     const workflow = createWorkflow();
 
-    assert.throws(() => workflow.withPlugin(Plugin), {
+    assert.throws(() => workflow.mountPlugin(Plugin), {
       message: /charset selector is NOT installed/,
     });
   });
@@ -27,8 +27,8 @@ describe('::Plugin', () => {
   it('should install over the charset plugin', () => {
     const workflow = createWorkflow();
 
-    workflow.withPlugin(CharsetPlugin);
-    workflow.withPlugin(Plugin);
+    workflow.mountPlugin(CharsetPlugin);
+    workflow.mountPlugin(Plugin);
 
     assert.doesNotThrow(() => workflow.finalize());
   });

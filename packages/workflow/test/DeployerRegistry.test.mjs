@@ -29,73 +29,81 @@ function createDeployerOn(Server, tag) {
   );
 }
 
-describe('.register()', () => {
+describe('::mountDeployer()', () => {
+  it('should answer this for chaining', () => {
+    const fixture = Baseline.createDeployer();
+    const workflow = Baseline.createWorkflow();
+
+    assert.equal(workflow.mountDeployer(fixture.Deployer), workflow);
+  });
+
   it('should reject a server constructor that is already registered', () => {
     const fixture = Baseline.createDeployer();
     const Deployer = createDeployerOn(fixture.Server, 'duplicate');
-    const registry = Baseline.createWorkflowClass().DeployerRegistry;
+    const workflow = Baseline.createWorkflow();
 
-    registry.register(fixture.Deployer);
+    workflow.mountDeployer(fixture.Deployer);
 
-    assert.throws(() => registry.register(Deployer));
+    assert.throws(() => workflow.mountDeployer(Deployer));
   });
 
-  it('should keep each workflow class on its own registry', () => {
+  it('should reject a non deployer', () => {
+    const workflow = Baseline.createWorkflow();
+
+    assert.throws(() => workflow.mountDeployer(class {}));
+  });
+
+  it('should reject a call after finalize', () => {
     const fixture = Baseline.createDeployer();
-    const Left = Baseline.createWorkflowClass();
-    const Right = Baseline.createWorkflowClass();
+    const workflow = Baseline.createWorkflow();
 
-    Left.DeployerRegistry.register(fixture.Deployer);
+    workflow.finalize();
 
-    assert.equal(
-      Left.DeployerRegistry.isAvaiableServer(new fixture.Server()),
-      true,
-    );
-    assert.equal(
-      Right.DeployerRegistry.isAvaiableServer(new fixture.Server()),
-      false,
-    );
+    assert.throws(() => workflow.mountDeployer(fixture.Deployer));
+  });
+
+  it('should keep each workflow instance on its own registry', () => {
+    const fixture = Baseline.createDeployer();
+    const Left = Baseline.createWorkflow();
+    const Right = Baseline.createWorkflow();
+
+    Left.mountDeployer(fixture.Deployer);
+
+    assert.notEqual(Left.DeployerRegistry, Right.DeployerRegistry);
+    assert.doesNotThrow(() => Right.mountDeployer(fixture.Deployer));
+  });
+
+  it('should accept the same server constructor on a sibling instance', () => {
+    const fixture = Baseline.createDeployer();
+    const Left = Baseline.createWorkflow();
+    const Right = Baseline.createWorkflow();
+
+    Left.mountDeployer(fixture.Deployer);
+
+    assert.doesNotThrow(() => Right.mountDeployer(fixture.Deployer));
   });
 });
 
-describe('>derived workflow class', () => {
-  it('should not reuse a registry the base class has already built', () => {
-    const Base = Baseline.createWorkflowClass();
-    const Derived = class DerivedWorkflow extends Base {};
-
-    const baseRegistry = Base.DeployerRegistry;
-    const derivedRegistry = Derived.DeployerRegistry;
-
-    assert.notEqual(derivedRegistry, baseRegistry);
-  });
-
-  it('should accept the same server constructor independently of the base', () => {
+describe('>deploy', () => {
+  it('should answer a deployment for the registered server type', async () => {
     const fixture = Baseline.createDeployer();
-    const Base = Baseline.createWorkflowClass();
-    const Derived = class DerivedWorkflow extends Base {};
+    const workflow = Baseline.createWorkflow();
 
-    Base.DeployerRegistry.register(fixture.Deployer);
+    workflow.mountDeployer(fixture.Deployer);
+    workflow.finalize();
 
-    assert.doesNotThrow(() =>
-      Derived.DeployerRegistry.register(fixture.Deployer),
-    );
-  });
-});
+    const deployment = await workflow.compile(new fixture.Server());
 
-describe('.isAvaiableServer()', () => {
-  it('should accept a server of a registered deployer', () => {
-    const fixture = Baseline.createDeployer();
-    const registry = Baseline.createWorkflowClass().DeployerRegistry;
-
-    registry.register(fixture.Deployer);
-
-    assert.equal(registry.isAvaiableServer(new fixture.Server()), true);
+    assert.ok(deployment !== undefined);
   });
 
-  it('should reject a server of no registered deployer', () => {
-    assert.equal(
-      Baseline.createWorkflowClass().DeployerRegistry.isAvaiableServer({}),
-      false,
+  it('should reject a server type without a deployer', async () => {
+    const workflow = Baseline.createWorkflow();
+
+    workflow.finalize();
+
+    await assert.rejects(() =>
+      workflow.compile(new (class ForeignServer {})()),
     );
   });
 });

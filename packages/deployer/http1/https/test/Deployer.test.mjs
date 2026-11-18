@@ -32,9 +32,10 @@ class Workflow extends Abstract.Workflow {
   }
 }
 
-function createWorkflow(handler) {
+function createWorkflow(handler, TargetDeployer = Deployer) {
   const workflow = new Workflow(Kit.global);
 
+  workflow.mountDeployer(TargetDeployer);
   workflow.setRequestBodyDistributorConstructor(Distributor);
   workflow.use(handler);
 
@@ -45,16 +46,15 @@ async function serve(handler, options = {}) {
   const { compile = false, tls = {} } = options;
   const workflow = createWorkflow(handler);
   const server = https.createServer({ ...credentials, ...tls });
-  const oneTime = workflow.withDeployer(Deployer);
   let manifest = null;
 
   if (compile) {
-    const deployment = await oneTime.compile(server);
+    const deployment = await workflow.compile(server);
 
     manifest = deployment.manifest;
     server.on('request', manifest['request-listener']);
   } else {
-    await oneTime.deploy(server);
+    await workflow.deploy(server);
   }
 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -442,12 +442,10 @@ describe('Use.Server()', () => {
       }
 
       Use.Response(context).body.data = message;
-    });
+    }, Http1Http.Deployer.Http1HttpDeployer);
     const server = http.createServer();
 
-    await workflow
-      .withDeployer(Http1Http.Deployer.Http1HttpDeployer)
-      .deploy(server);
+    await workflow.deploy(server);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
     const { port } = server.address();

@@ -19,7 +19,7 @@ describe('::Plugin', () => {
   it('should install a selector on the workflow', () => {
     const workflow = createWorkflow();
 
-    workflow.withPlugin(Plugin);
+    workflow.mountPlugin(Plugin);
 
     assert.equal(typeof Bridge.getSelector(workflow), 'object');
   });
@@ -28,8 +28,8 @@ describe('::Plugin', () => {
     const left = createWorkflow();
     const right = createWorkflow();
 
-    left.withPlugin(Plugin);
-    right.withPlugin(Plugin);
+    left.mountPlugin(Plugin);
+    right.mountPlugin(Plugin);
 
     assert.notEqual(Bridge.getSelector(left), Bridge.getSelector(right));
   });

@@ -33,9 +33,10 @@ class Workflow extends Abstract.Workflow {
   }
 }
 
-function createWorkflow(handler) {
+function createWorkflow(handler, TargetDeployer = Deployer) {
   const workflow = new Workflow(Kit.global);
 
+  workflow.mountDeployer(TargetDeployer);
   workflow.setRequestBodyDistributorConstructor(Distributor);
 
   if (handler !== undefined) {
@@ -55,7 +56,7 @@ async function serve(handler, options = {}) {
   const sessions = new Set();
 
   server.on('session', (session) => sessions.add(session));
-  await workflow.withDeployer(Deployer).deploy(server);
+  await workflow.deploy(server);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
   const { port } = server.address();
@@ -631,12 +632,10 @@ describe('Exchange', () => {
         }
 
         Use.Response(context).body.data = message;
-      });
+      }, Http1Http.Deployer.Http1HttpDeployer);
       const server = createServer();
 
-      await workflow
-        .withDeployer(Http1Http.Deployer.Http1HttpDeployer)
-        .deploy(server);
+      await workflow.deploy(server);
       await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
       const { port } = server.address();

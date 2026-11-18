@@ -7,5 +7,4 @@ export * as DEPLOYMENT from '../Workflow/Deployment/_Symbol.mjs';
 export * as PLUGIN from './Plugin/_Symbol.mjs';
 export * as WORKFLOW from '../Workflow/_Symbol.mjs';
 
-export { DEPLOYER_REGISTRY };
 export const _A = deepFreeze({ REGISTRY: DEPLOYER_REGISTRY });

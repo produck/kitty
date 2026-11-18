@@ -1,9 +1,9 @@
 import type * as Deployer from '../Deployer/index.d.mts';
 
 /**
- * Per-workflow-class deployer registry: maps server constructors and one-time
- * server instances to deployer classes. Each workflow class owns its own
- * instance, so classes never see each other's registrations.
+ * Per-workflow-instance deployer registry: maps server constructors to
+ * deployer classes. Each workflow instance owns its own registry, so the set
+ * of supported deployments is an instance decision.
  */
 declare class DeployerRegistry {
   /**
@@ -12,14 +12,6 @@ declare class DeployerRegistry {
    * @param DeployerClass - Deployer class to register.
    */
   register(DeployerClass: Deployer.Class): void;
-
-  /**
-   * Reports whether the server has a usable deployer.
-   *
-   * @param value - Candidate server instance.
-   * @returns `true` when a deployer is registered for it.
-   */
-  isAvaiableServer(value: unknown): boolean;
 }
 
 export { DeployerRegistry as Concrete };

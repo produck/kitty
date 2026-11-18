@@ -25,13 +25,11 @@ function normalizeHttpResponseBodyData(value) {
 
 function createWorkflow() {
   const Workflow = Implement.Workflow({ normalizeHttpResponseBodyData });
-
-  Workflow.DeployerRegistry.register(Deployer.Deployer.Http1Http);
-
   const workflow = new Workflow(Kit.global);
 
+  workflow.mountDeployer(Deployer.Deployer.Http1Http);
   workflow.setRequestBodyDistributorConstructor(Distributor);
-  workflow.withPlugin(Plugin);
+  workflow.mountPlugin(Plugin);
   workflow.use((kit) => {
     const cookie = useCookie(kit);
     const theme = cookie.get('theme');

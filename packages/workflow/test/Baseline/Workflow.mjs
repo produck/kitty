@@ -10,7 +10,6 @@ export function createWorkflowClass(options = {}) {
   const {
     base = Abstract.Workflow,
     normalize = DEFAULT_NORMALIZE,
-    deployers = [],
     specification = undefined,
   } = options;
 
@@ -26,17 +25,19 @@ export function createWorkflowClass(options = {}) {
     });
   }
 
-  for (const Deployer of deployers) {
-    Workflow.DeployerRegistry.register(Deployer);
-  }
-
   return Workflow;
 }
 
 export function createWorkflow(options = {}) {
-  const Workflow = createWorkflowClass(options);
+  const { deployers = [], ...rest } = options;
+  const Workflow = createWorkflowClass(rest);
   const workflow = new Workflow(Kit.global);
+
   workflow.setRequestBodyDistributorConstructor(Distributor);
+
+  for (const Deployer of deployers) {
+    workflow.mountDeployer(Deployer);
+  }
 
   return workflow;
 }

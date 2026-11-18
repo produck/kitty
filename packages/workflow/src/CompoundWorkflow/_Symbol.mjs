@@ -1,11 +1,5 @@
 import { deepFreeze } from '@produck/deep-freeze-enumerable';
 
-const S_DEPLOYER_REGISTRY = Symbol('.#deployerRegistry');
-
-export const S = deepFreeze({
-  DEPLOYER_REGISTRY: S_DEPLOYER_REGISTRY,
-});
-
 const I_DEPLOYER_REGISTRY = Symbol('.#deployerRegistry');
 const I_PLUGIN_HANDLER_PREFIX_LIST = Symbol('.#pluginHandlerPrefixList');
 const I_PLUGIN_DEPLOYMENT_ATTACHER_LIST = Symbol('.#pluginDeploymentAttacherList');

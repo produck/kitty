@@ -30,7 +30,7 @@ function createWorkflow() {
   const workflow = new Workflow(Kit.global);
 
   workflow.setRequestBodyDistributorConstructor(Distributor);
-  workflow.withPlugin(Plugin);
+  workflow.mountPlugin(Plugin);
   workflow.use((kit) => {
     const cookie = useCookie(kit);
     const theme = cookie.get('theme');
@@ -75,7 +75,7 @@ const workflow = createWorkflow();
 const sessions = new Set();
 
 server.on('session', (session) => sessions.add(session));
-await workflow.withDeployer(Http1Http.Deployer.Http1Http).deploy(server);
+await workflow.pickDeployer(Http1Http.Deployer.Http1Http).deploy(server);
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
 const url = `http://127.0.0.1:${server.address().port}/`;

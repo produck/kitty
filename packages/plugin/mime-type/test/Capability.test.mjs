@@ -24,7 +24,7 @@ function createWorkflow() {
 function createPluginKit(workflow) {
   let kit = null;
 
-  workflow.withPlugin(
+  workflow.mountPlugin(
     Implement.Plugin({
       tag: 'probe',
       install: (PluginKit) => (kit = PluginKit),
@@ -37,7 +37,7 @@ function createPluginKit(workflow) {
 function createType() {
   const workflow = createWorkflow();
 
-  workflow.withPlugin(Plugin);
+  workflow.mountPlugin(Plugin);
 
   return { workflow, type: useTypeTable(createPluginKit(workflow)) };
 }

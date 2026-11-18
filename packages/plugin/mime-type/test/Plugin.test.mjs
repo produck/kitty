@@ -22,7 +22,7 @@ describe('::Plugin', () => {
   it('should install the standard preset', () => {
     const workflow = createWorkflow();
 
-    workflow.withPlugin(Plugin);
+    workflow.mountPlugin(Plugin);
 
     assert.deepEqual(Bridge.getTypeTable(workflow).findByAlias('json'), [
       {
@@ -43,7 +43,7 @@ describe('::Plugin', () => {
     const left = createWorkflow();
     const right = createWorkflow();
 
-    left.withPlugin(Plugin);
+    left.mountPlugin(Plugin);
 
     assert.ok(findAll(left).length > 0);
     assert.throws(() => findAll(right));

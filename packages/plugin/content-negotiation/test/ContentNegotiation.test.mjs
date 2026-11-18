@@ -17,8 +17,8 @@ function createTypeTable() {
   const workflow = new Workflow(Kit.global);
   let kit = null;
 
-  workflow.withPlugin(MimeTypePlugin);
-  workflow.withPlugin(
+  workflow.mountPlugin(MimeTypePlugin);
+  workflow.mountPlugin(
     Implement.Plugin({
       tag: 'probe',
       install: (PluginKit) => (kit = PluginKit),
